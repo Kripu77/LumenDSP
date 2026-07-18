@@ -16,8 +16,8 @@
   --radius: 14px;
   --shadow: 0 12px 40px rgba(0, 0, 0, 0.55);
   --font: "SF Pro Text", "Segoe UI", system-ui, -apple-system, sans-serif;
-  --knob-sprite: url("assets/knob/knob-main.svg");
-  --knob-mini-sprite: url("assets/knob/knob-mini.svg");
+  --knob-sprite: url("assets/knob/knob-main.png");
+  --knob-mini-sprite: url("assets/knob/knob-mini.png");
 }
 
 * { box-sizing: border-box; }
@@ -222,15 +222,15 @@ html, body {
   background-size: 100% 100%;
 }
 .meter-seg.on {
-  background-image: url("assets/signal-path/led-strip-green.svg");
+  background-image: url("assets/signal-path/led-strip-green.png");
   background-color: var(--success);
 }
 .meter-seg.warn {
-  background-image: url("assets/signal-path/led-strip-yellow.svg");
+  background-image: url("assets/signal-path/led-strip-yellow.png");
   background-color: #e0b040;
 }
 .meter-seg.clip {
-  background-image: url("assets/signal-path/led-strip-red.svg");
+  background-image: url("assets/signal-path/led-strip-red.png");
   background-color: var(--danger);
 }
 
@@ -249,10 +249,10 @@ html, body {
   padding: 0;
 }
 .hw-toggle img {
-  width: 44px;
-  height: 26px;
+  width: 48px;
+  height: 28px;
   object-fit: contain;
-  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));
+  filter: drop-shadow(0 2px 6px rgba(0,0,0,0.45));
 }
 .hw-toggle.inline { margin-top: 4px; align-self: flex-start; }
 
@@ -287,7 +287,7 @@ html, body {
   width: 18px;
   height: 14px;
   transform: translateY(-50%);
-  background: url("assets/signal-path/signal-path-connector.svg") center / contain no-repeat;
+  background: url("assets/signal-path/signal-path-connector.png") center / contain no-repeat;
   z-index: 2;
   opacity: 0.9;
 }

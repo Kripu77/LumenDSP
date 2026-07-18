@@ -63,15 +63,38 @@ VST3 support is provided through JUCE; no separate Steinberg SDK install is requ
 
 ## Build instructions
 
+### Quick build and run
+
+From the repo root, use `build-and-start.sh` to configure (if needed), build the Release standalone, sync the WebView UI into the app bundle, and open it:
+
 ```bash
 git clone https://github.com/Kripu77/LumenDSP.git
 cd LumenDSP
 
+./build-and-start.sh
+```
+
+Useful flags:
+
+| Flag | Effect |
+|------|--------|
+| `--clean` | Wipe `build/` then reconfigure and rebuild |
+| `--build-only` | Build without launching |
+| `--open-only` | Launch the last build without compiling |
+| `-j N` | Parallel jobs (default: CPU count) |
+| `--debug` | Debug build |
+| `--vst3` | Build standalone + VST3 (`LumenDSP_All`) |
+| `--configure` | Force CMake reconfigure |
+| `--help` | Full option list |
+
+First configure downloads JUCE and NeuralAmpModelerCore (including Eigen). That step can take several minutes.
+
+### Manual CMake
+
+```bash
 cmake -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build --config Release -j
 ```
-
-First configure downloads JUCE and NeuralAmpModelerCore (including Eigen). That step can take several minutes.
 
 ### Outputs
 
@@ -142,6 +165,7 @@ Presets are simple XML files (`.lumenpreset`) containing:
 ```
 LumenDSP/
 ├── CMakeLists.txt
+├── build-and-start.sh   # configure, build, sync web UI, launch standalone
 ├── LICENSE
 ├── README.md
 ├── Source/

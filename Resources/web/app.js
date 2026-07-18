@@ -8,8 +8,8 @@
     trebleGain: { min: -12, max: 12, unit: "dB", decimals: 1 },
   };
 
-  const TOGGLE_ON = "assets/signal-path/toggle-on.svg";
-  const TOGGLE_OFF = "assets/signal-path/toggle-off.svg";
+  const TOGGLE_ON = "assets/signal-path/toggle-on.png";
+  const TOGGLE_OFF = "assets/signal-path/toggle-off.png";
 
   const state = {
     parameters: {
@@ -137,28 +137,28 @@
           ? `Gate ${Number(state.parameters.noiseGateThreshold).toFixed(1)} dB`
           : "Gate off",
         on: true,
-        icon: "assets/pedals/pedal-icon.svg",
+        icon: "assets/pedals/pedal-icon.png",
         cls: "",
       },
       {
         title: "AMP",
         detail: state.namLoaded ? state.namName : "No model",
         on: state.namLoaded,
-        icon: "assets/amp-head/amp-icon.svg",
+        icon: "assets/amp-head/amp-icon.png",
         cls: "amp",
       },
       {
         title: "EQ",
         detail: state.parameters.eqEnabled ? "Tone active" : "Bypassed",
         on: state.parameters.eqEnabled,
-        icon: "assets/signal-path/icon-eq.svg",
+        icon: "assets/signal-path/icon-eq.png",
         cls: "",
       },
       {
         title: "CAB",
         detail: state.irLoaded ? state.irName : "No IR",
         on: state.parameters.cabEnabled && state.irLoaded,
-        icon: "assets/cabinet/cab-icon.svg",
+        icon: "assets/cabinet/cab-icon.png",
         cls: "",
       },
     ];
