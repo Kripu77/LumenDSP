@@ -5,19 +5,6 @@
  #include <juce_audio_plugin_client/Standalone/juce_StandaloneFilterWindow.h>
 #endif
 
-namespace
-{
-
-juce::String escapeForJavascriptString(const juce::String& input)
-{
-    return input.replace("\\", "\\\\")
-        .replace("'", "\\'")
-        .replace("\n", "\\n")
-        .replace("\r", "");
-}
-
-} // namespace
-
 bool LumenWebBrowser::pageAboutToLoad(const juce::String& newURL)
 {
     if (newURL.startsWith("http://juce.backend")
