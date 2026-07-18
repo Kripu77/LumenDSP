@@ -310,8 +310,6 @@ juce::File LumenDSPAudioProcessorEditor::getWebResourceRoot() const
 
 std::optional<juce::WebBrowserComponent::Resource> LumenDSPAudioProcessorEditor::getResource(const juce::String& url)
 {
-    // On macOS the resource provider receives URL paths like "/" or "/styles.css"
-    // (not a full scheme URL). Match JUCE WebViewPluginDemo handling.
     auto path = url.upToFirstOccurrenceOf("?", false, false);
     path = juce::URL::removeEscapeChars(path);
 
