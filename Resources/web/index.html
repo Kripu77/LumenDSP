@@ -17,6 +17,8 @@
         </div>
       </div>
 
+      <span class="bar-rule" aria-hidden="true"></span>
+
       <div class="io-group">
         <div class="meter-col" id="input-meter" aria-label="Input meter"></div>
         <div class="knob-wrap mini" data-param="inputGain">
@@ -25,6 +27,8 @@
           <div class="knob-value" id="val-inputGain">0.0 dB</div>
         </div>
       </div>
+
+      <span class="bar-rule" aria-hidden="true"></span>
 
       <div class="gate-group">
         <button type="button" class="hw-toggle" id="noiseGateEnabled" aria-pressed="true" title="Gate">
@@ -38,11 +42,17 @@
         </div>
       </div>
 
+      <span class="bar-rule" aria-hidden="true"></span>
+
       <div class="preset-group">
-        <select id="presetSelect" aria-label="Preset"></select>
-        <input id="presetName" type="text" placeholder="Save as…" maxlength="64" />
-        <button type="button" id="btnSave" class="btn">Save</button>
-        <button type="button" id="btnLoad" class="btn">Load</button>
+        <button type="button" class="preset-current" id="btnPresets" title="Open preset browser" aria-haspopup="dialog" aria-expanded="false">
+          <span class="preset-current-text">
+            <span class="preset-current-label">PRESET</span>
+            <span class="preset-current-name" id="presetCurrentName">None</span>
+          </span>
+          <span class="preset-current-chevron" aria-hidden="true">▾</span>
+        </button>
+        <select id="presetSelect" class="preset-select-hidden" aria-label="Preset"></select>
       </div>
 
       <div class="io-group out">
@@ -52,8 +62,11 @@
           <div class="knob-value" id="val-outputLevel">0.0 dB</div>
         </div>
         <div class="meter-col" id="output-meter" aria-label="Output meter"></div>
-        <button type="button" id="btnLibrary" class="btn">Library</button>
-        <button type="button" id="btnAudio" class="btn btn-accent">Audio</button>
+        <span class="bar-rule" aria-hidden="true"></span>
+        <div class="bar-actions">
+          <button type="button" id="btnLibrary" class="btn btn-bar" aria-pressed="false">Library</button>
+          <button type="button" id="btnAudio" class="btn btn-accent btn-bar">Audio</button>
+        </div>
       </div>
     </header>
 
@@ -66,7 +79,7 @@
           <h2>Gate</h2>
           <button type="button" class="hw-toggle" id="noiseGateEnabledCard" aria-pressed="true">
             <img src="assets/signal-path/toggle-on.png" alt="" data-role="toggle-img" />
-            <span>Engage</span>
+            <span>On</span>
           </button>
         </div>
         <div class="pedal-stage">
@@ -113,7 +126,7 @@
         </div>
         <button type="button" class="hw-toggle inline" id="eqEnabled" aria-pressed="true">
           <img src="assets/signal-path/toggle-on.png" alt="" data-role="toggle-img" />
-          <span>EQ in path</span>
+          <span>EQ</span>
         </button>
       </section>
 
@@ -277,6 +290,44 @@
 
     <div id="popoverBackdrop" class="popover-backdrop" hidden></div>
 
+    <div id="presetsPopover" class="popover popover-presets" hidden role="dialog" aria-label="Presets">
+      <div class="popover-head library-head">
+        <div class="library-title-block">
+          <h2>Presets</h2>
+          <p class="library-subtitle">Load, organize, and save tones</p>
+        </div>
+        <button type="button" class="popover-icon-btn" id="btnPresetsClose" title="Close">✕</button>
+      </div>
+
+      <div class="presets-save-bar">
+        <input id="presetName" type="text" maxlength="64" placeholder="Name" />
+        <input id="presetCategory" type="text" maxlength="32" placeholder="Category" list="presetCategoryList" />
+        <datalist id="presetCategoryList"></datalist>
+        <button type="button" id="btnSave" class="btn btn-accent">Save</button>
+        <button type="button" class="btn btn-soft" id="btnPresetImport">Import</button>
+      </div>
+
+      <div class="library-toolbar presets-toolbar">
+        <div class="library-search-wrap">
+          <span class="library-search-icon" aria-hidden="true">⌕</span>
+          <input id="presetsSearch" class="library-search" type="search" placeholder="Search presets…" autocomplete="off" />
+        </div>
+        <div class="presets-cat-chips" id="presetsCategoryChips"></div>
+        <button type="button" class="library-fav-chip" id="presetsFavoritesOnly" aria-pressed="false">
+          <span class="library-fav-chip-icon">★</span>
+          <span>Favorites</span>
+        </button>
+      </div>
+      <select id="presetsCategoryFilter" class="visually-hidden" aria-label="Category filter">
+        <option value="">All</option>
+      </select>
+      <div class="library-list" id="presetsList" role="listbox"></div>
+      <div class="library-foot">
+        <span id="presetsCount">0 presets</span>
+        <span class="library-hint">Click to load</span>
+      </div>
+    </div>
+
     <div id="libraryPopover" class="popover popover-library" hidden role="dialog" aria-label="Library">
       <div class="popover-head library-head">
         <div class="library-title-block">
@@ -292,7 +343,7 @@
         </div>
         <div class="library-search-wrap">
           <span class="library-search-icon" aria-hidden="true">⌕</span>
-          <input id="librarySearch" class="library-search" type="search" placeholder="Search library…" autocomplete="off" />
+          <input id="librarySearch" class="library-search" type="search" placeholder="Search…" autocomplete="off" />
         </div>
         <button type="button" class="btn btn-soft" id="btnLibraryImport">Import</button>
         <button type="button" class="library-fav-chip" id="libraryFavoritesOnly" aria-pressed="false" title="Show favorites only">
@@ -303,7 +354,7 @@
       <div class="library-list" id="libraryList" role="listbox"></div>
       <div class="library-foot">
         <span id="libraryCount">0 items</span>
-        <span class="library-hint">Click to load · star to favorite</span>
+        <span class="library-hint">Click to load · ★ to favorite</span>
       </div>
     </div>
 
@@ -386,20 +437,20 @@
 
     <footer class="dock-bar" aria-label="Practice tools">
       <div class="dock-left">
-        <button type="button" class="dock-item" id="btnTuner" aria-pressed="false">TUNER</button>
-        <span class="dock-pipe">|</span>
+        <button type="button" class="dock-item" id="btnTuner" aria-pressed="false">Tuner</button>
+        <span class="dock-pipe" aria-hidden="true"></span>
         <button type="button" class="dock-item dock-tap-group" id="btnDockTap" title="Tap tempo">
-          <span>TAP</span>
+          <span>Tap</span>
           <span class="dock-value" id="dockBpm">120.0 BPM</span>
           <span class="dock-chevrons" aria-hidden="true">↕</span>
         </button>
-        <span class="dock-pipe">|</span>
+        <span class="dock-pipe" aria-hidden="true"></span>
         <button type="button" class="dock-item" id="btnMetro" aria-pressed="false">
-          METRONOME
+          Metronome
           <span class="dock-play" id="dockMetroPlay" aria-hidden="true">▶</span>
         </button>
-        <span class="dock-pipe">|</span>
-        <button type="button" class="dock-item" id="btnAudio">SETTINGS</button>
+        <span class="dock-pipe" aria-hidden="true"></span>
+        <button type="button" class="dock-item" id="btnSettings" title="Audio settings">Settings</button>
       </div>
       <div class="dock-right">
         <span class="dock-status" id="footerStatus">Starting…</span>

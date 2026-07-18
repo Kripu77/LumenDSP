@@ -74,6 +74,11 @@
     librarySearch: "",
     libraryFavoritesOnly: false,
     library: { models: [], irs: [] },
+    presetsMeta: [],
+    presetCategories: [],
+    presetsSearch: "",
+    presetsCategory: "",
+    presetsFavoritesOnly: false,
   };
 
   const tapTimes = [];
@@ -382,6 +387,10 @@
     if (state.currentPreset) select.value = state.currentPreset;
     else if (previous) select.value = previous;
 
+    const currentName = $("presetCurrentName");
+    if (currentName)
+      currentName.textContent = state.currentPreset || "None";
+
     renderSignalPath();
   }
 
@@ -516,13 +525,16 @@
     const tuner = $("tunerPopover");
     const metro = $("metroPopover");
     const library = $("libraryPopover");
+    const presets = $("presetsPopover");
     if (backdrop) backdrop.hidden = true;
     if (tuner) tuner.hidden = true;
     if (metro) metro.hidden = true;
     if (library) library.hidden = true;
+    if (presets) presets.hidden = true;
     $("btnTuner")?.setAttribute("aria-pressed", "false");
     $("btnMetro")?.setAttribute("aria-pressed", "false");
     $("btnLibrary")?.setAttribute("aria-pressed", "false");
+    $("btnPresets")?.setAttribute("aria-expanded", "false");
   }
 
   function openPopover(name) {
@@ -548,6 +560,105 @@
       send({ type: "refreshLibrary" });
       renderLibraryList();
     }
+    if (name === "presets") {
+      $("presetsPopover").hidden = false;
+      $("btnPresets")?.setAttribute("aria-expanded", "true");
+      send({ type: "refreshPresets" });
+      renderPresetsList();
+    }
+  }
+
+  function filteredPresets() {
+    const query = state.presetsSearch.trim().toLowerCase();
+    return (state.presetsMeta || []).filter((item) => {
+      if (state.presetsFavoritesOnly && !item.favorite) return false;
+      if (state.presetsCategory && item.category !== state.presetsCategory) return false;
+      if (!query) return true;
+      const hay = `${item.name} ${item.category} ${(item.tags || []).join(" ")}`.toLowerCase();
+      return hay.includes(query);
+    });
+  }
+
+  function renderPresetsList() {
+    const root = $("presetsList");
+    const count = $("presetsCount");
+    const categoryFilter = $("presetsCategoryFilter");
+    const categoryList = $("presetCategoryList");
+    const chips = $("presetsCategoryChips");
+    if (!root) return;
+
+    const categories = state.presetCategories || [];
+    if (categoryFilter) {
+      const selected = state.presetsCategory || "";
+      categoryFilter.innerHTML = `<option value="">All</option>`;
+      categories.forEach((category) => {
+        const opt = document.createElement("option");
+        opt.value = category;
+        opt.textContent = category;
+        if (category === selected) opt.selected = true;
+        categoryFilter.appendChild(opt);
+      });
+    }
+
+    if (categoryList) {
+      categoryList.innerHTML = "";
+      categories.forEach((category) => {
+        const opt = document.createElement("option");
+        opt.value = category;
+        categoryList.appendChild(opt);
+      });
+    }
+
+    if (chips) {
+      const allActive = !state.presetsCategory;
+      chips.innerHTML = `
+        <button type="button" class="fx-chip ${allActive ? "active" : ""}" data-preset-cat="">All</button>
+        ${categories
+          .map(
+            (category) => `
+          <button type="button" class="fx-chip ${state.presetsCategory === category ? "active" : ""}" data-preset-cat="${escapeHtml(category)}">${escapeHtml(category)}</button>`
+          )
+          .join("")}`;
+    }
+
+    const items = filteredPresets();
+    if (count) count.textContent = `${items.length} preset${items.length === 1 ? "" : "s"}`;
+
+    if (!items.length) {
+      root.innerHTML = `
+        <div class="library-empty">
+          <strong>No matching presets</strong>
+          Save the current tone, import a .lumenpreset, or clear filters.
+        </div>`;
+      return;
+    }
+
+    root.innerHTML = items
+      .map((item) => {
+        const active = state.currentPreset === item.name;
+        const tags = (item.tags || [])
+          .slice(0, 3)
+          .map((tag) => `<span class="preset-tag">${escapeHtml(tag)}</span>`)
+          .join("");
+        return `
+      <div class="library-item ${active ? "active" : ""}">
+        <button type="button" class="library-star ${item.favorite ? "on" : ""}" data-preset-star="${escapeHtml(item.name)}" title="Favorite">${item.favorite ? "★" : "☆"}</button>
+        <div class="library-type nam" aria-hidden="true">P</div>
+        <button type="button" class="library-item-main" data-preset-load="${escapeHtml(item.name)}">
+          <span class="library-item-name">${escapeHtml(item.name)}</span>
+          <span class="library-item-meta">${escapeHtml(item.category || "User")}</span>
+          ${tags ? `<div class="preset-tags">${tags}</div>` : ""}
+        </button>
+        <div class="library-item-aside">
+          ${active ? `<span class="library-loaded">Loaded</span>` : ""}
+          <div class="preset-item-actions">
+            <button type="button" class="preset-action" data-preset-export="${escapeHtml(item.name)}" title="Export">↗</button>
+            <button type="button" class="preset-action danger" data-preset-delete="${escapeHtml(item.name)}" title="Delete">✕</button>
+          </div>
+        </div>
+      </div>`;
+      })
+      .join("");
   }
 
   function filteredLibraryItems() {
@@ -734,12 +845,66 @@
     $("presetSelect").addEventListener("change", (event) => {
       send({ type: "loadPreset", name: event.target.value });
     });
-    $("btnLoad").addEventListener("click", () => {
-      send({ type: "loadPreset", name: $("presetSelect").value });
+    $("btnSave")?.addEventListener("click", () => {
+      const name =
+        $("presetName")?.value.trim() ||
+        state.currentPreset ||
+        "";
+      if (!name) {
+        openPopover("presets");
+        $("presetName")?.focus();
+        return;
+      }
+      send({
+        type: "savePreset",
+        name,
+        category: ($("presetCategory")?.value || "").trim(),
+        tags: [],
+      });
     });
-    $("btnSave").addEventListener("click", () => {
-      const name = $("presetName").value.trim() || $("presetSelect").value;
-      if (name) send({ type: "savePreset", name });
+    $("btnPresets")?.addEventListener("click", () => openPopover("presets"));
+    $("btnPresetsClose")?.addEventListener("click", closePopovers);
+    $("btnPresetImport")?.addEventListener("click", () => send({ type: "importPreset" }));
+    $("presetsSearch")?.addEventListener("input", (event) => {
+      state.presetsSearch = event.target.value || "";
+      renderPresetsList();
+    });
+    $("presetsFavoritesOnly")?.addEventListener("click", () => {
+      state.presetsFavoritesOnly = !state.presetsFavoritesOnly;
+      $("presetsFavoritesOnly")?.setAttribute(
+        "aria-pressed",
+        state.presetsFavoritesOnly ? "true" : "false"
+      );
+      renderPresetsList();
+    });
+    $("presetsCategoryChips")?.addEventListener("click", (event) => {
+      const chip = event.target.closest("[data-preset-cat]");
+      if (!chip) return;
+      state.presetsCategory = chip.getAttribute("data-preset-cat") || "";
+      const filter = $("presetsCategoryFilter");
+      if (filter) filter.value = state.presetsCategory;
+      renderPresetsList();
+    });
+    $("presetsList")?.addEventListener("click", (event) => {
+      const star = event.target.closest("[data-preset-star]");
+      if (star) {
+        send({ type: "togglePresetFavorite", name: star.getAttribute("data-preset-star") });
+        return;
+      }
+      const exp = event.target.closest("[data-preset-export]");
+      if (exp) {
+        send({ type: "exportPreset", name: exp.getAttribute("data-preset-export") });
+        return;
+      }
+      const del = event.target.closest("[data-preset-delete]");
+      if (del) {
+        const name = del.getAttribute("data-preset-delete");
+        if (name && window.confirm(`Delete preset “${name}”?`))
+          send({ type: "deletePreset", name });
+        return;
+      }
+      const load = event.target.closest("[data-preset-load]");
+      if (load) send({ type: "loadPreset", name: load.getAttribute("data-preset-load") });
     });
     $("btnBrowseNam").addEventListener("click", () => openPopover("library"));
     $("btnBrowseIr").addEventListener("click", () => {
@@ -749,7 +914,9 @@
       });
       openPopover("library");
     });
-    $("btnAudio")?.addEventListener("click", () => send({ type: "openAudioSettings" }));
+    const openAudioSettings = () => send({ type: "openAudioSettings" });
+    $("btnAudio")?.addEventListener("click", openAudioSettings);
+    $("btnSettings")?.addEventListener("click", openAudioSettings);
     $("btnLibrary")?.addEventListener("click", () => openPopover("library"));
     $("btnLibraryClose")?.addEventListener("click", closePopovers);
     $("btnLibraryImport")?.addEventListener("click", () => {
@@ -836,6 +1003,7 @@
     if (data.type === "state") {
       applyState(data);
       if (state.openPopover === "library") renderLibraryList();
+      if (state.openPopover === "presets") renderPresetsList();
     } else if (data.type === "meters") {
       paintMeter("input-meter", data.inputDb ?? -60);
       paintMeter("output-meter", data.outputDb ?? -60);
@@ -847,6 +1015,28 @@
         irs: Array.isArray(data.irs) ? data.irs : [],
       };
       renderLibraryList();
+    } else if (data.type === "presets") {
+      state.presetsMeta = Array.isArray(data.items) ? data.items : [];
+      state.presetCategories = Array.isArray(data.categories) ? data.categories : [];
+      if (data.current) state.currentPreset = data.current;
+      const names = state.presetsMeta.map((item) => item.name);
+      state.presets = names;
+      const select = $("presetSelect");
+      if (select) {
+        const previous = select.value;
+        select.innerHTML = "";
+        names.forEach((name) => {
+          const opt = document.createElement("option");
+          opt.value = name;
+          opt.textContent = name;
+          select.appendChild(opt);
+        });
+        if (state.currentPreset) select.value = state.currentPreset;
+        else if (previous) select.value = previous;
+      }
+      const currentName = $("presetCurrentName");
+      if (currentName) currentName.textContent = state.currentPreset || "None";
+      renderPresetsList();
     } else if (data.type === "status") {
       $("footerStatus").textContent = data.message || "";
     }

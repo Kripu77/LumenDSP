@@ -230,12 +230,17 @@ bool LumenDSPAudioProcessor::applyPreset(const juce::String& presetName)
     return true;
 }
 
-bool LumenDSPAudioProcessor::storePreset(const juce::String& presetName)
+bool LumenDSPAudioProcessor::storePreset(
+    const juce::String& presetName,
+    const juce::String& category,
+    const juce::StringArray& tags)
 {
     return presetManager.savePreset(
         presetName,
         audioPipeline.getNamEngine().getLoadedModelFile(),
-        audioPipeline.getIrConvolver().getLoadedFile());
+        audioPipeline.getIrConvolver().getLoadedFile(),
+        category,
+        tags);
 }
 
 void LumenDSPAudioProcessor::ensureFactoryContentReady()

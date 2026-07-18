@@ -177,6 +177,7 @@ void LumenDSPAudioProcessorEditor::handleWebMessage(const juce::String& message)
         webReady = true;
         pushStateToWeb();
         pushLibraryToWeb();
+        pushPresetsToWeb();
         return;
     }
 
@@ -192,13 +193,97 @@ void LumenDSPAudioProcessorEditor::handleWebMessage(const juce::String& message)
     {
         audioProcessor.applyPreset(parsed.getProperty("name", {}).toString());
         pushStateToWeb();
+        pushPresetsToWeb();
         return;
     }
 
     if (type == "savePreset")
     {
-        audioProcessor.storePreset(parsed.getProperty("name", {}).toString());
+        juce::StringArray tags;
+        if (const auto* tagsVar = parsed.getProperty("tags", {}).getArray())
+            for (const auto& tag : *tagsVar)
+                tags.add(tag.toString());
+
+        audioProcessor.storePreset(
+            parsed.getProperty("name", {}).toString(),
+            parsed.getProperty("category", {}).toString(),
+            tags);
         pushStateToWeb();
+        pushPresetsToWeb();
+        return;
+    }
+
+    if (type == "deletePreset")
+    {
+        audioProcessor.getPresetManager().deletePreset(parsed.getProperty("name", {}).toString());
+        pushStateToWeb();
+        pushPresetsToWeb();
+        return;
+    }
+
+    if (type == "togglePresetFavorite")
+    {
+        audioProcessor.getPresetManager().toggleFavorite(parsed.getProperty("name", {}).toString());
+        pushPresetsToWeb();
+        return;
+    }
+
+    if (type == "refreshPresets")
+    {
+        pushPresetsToWeb();
+        return;
+    }
+
+    if (type == "exportPreset")
+    {
+        const auto name = parsed.getProperty("name", {}).toString();
+        fileChooser = std::make_unique<juce::FileChooser>(
+            "Export preset",
+            juce::File{},
+            "*.lumenpreset");
+        constexpr auto flags =
+            juce::FileBrowserComponent::saveMode | juce::FileBrowserComponent::canSelectFiles;
+        fileChooser->launchAsync(flags, [this, name](const juce::FileChooser& chooser) {
+            auto dest = chooser.getResult();
+            if (dest.getFullPathName().isEmpty())
+                return;
+            if (!dest.hasFileExtension(".lumenpreset"))
+                dest = dest.withFileExtension(".lumenpreset");
+            audioProcessor.getPresetManager().exportPreset(name, dest);
+        });
+        return;
+    }
+
+    if (type == "importPreset")
+    {
+        fileChooser = std::make_unique<juce::FileChooser>(
+            "Import preset",
+            juce::File{},
+            "*.lumenpreset");
+        constexpr auto flags =
+            juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles;
+        fileChooser->launchAsync(flags, [this](const juce::FileChooser& chooser) {
+            const auto result = chooser.getResult();
+            if (!result.existsAsFile())
+                return;
+
+            juce::String error;
+            juce::String importedName;
+            if (!audioProcessor.getPresetManager().importPreset(result, error, &importedName))
+            {
+                auto* status = new juce::DynamicObject();
+                status->setProperty("type", "status");
+                status->setProperty("message", error);
+                emitToWeb(juce::var(status));
+                return;
+            }
+
+            pushStateToWeb();
+            pushPresetsToWeb();
+            if (importedName.isNotEmpty())
+                audioProcessor.applyPreset(importedName);
+            pushStateToWeb();
+        });
         return;
     }
 
@@ -274,6 +359,41 @@ void LumenDSPAudioProcessorEditor::pushMetersToWeb()
 void LumenDSPAudioProcessorEditor::pushLibraryToWeb()
 {
     emitToWeb(buildLibraryObject());
+}
+
+void LumenDSPAudioProcessorEditor::pushPresetsToWeb()
+{
+    emitToWeb(buildPresetsObject());
+}
+
+juce::var LumenDSPAudioProcessorEditor::buildPresetsObject() const
+{
+    auto* object = new juce::DynamicObject();
+    object->setProperty("type", "presets");
+    object->setProperty("current", audioProcessor.getPresetManager().getCurrentPresetName());
+
+    juce::Array<juce::var> list;
+    for (const auto& summary : audioProcessor.getPresetManager().getPresetSummaries())
+    {
+        auto* item = new juce::DynamicObject();
+        item->setProperty("name", summary.name);
+        item->setProperty("category", summary.category);
+        item->setProperty("favorite", summary.favorite);
+
+        juce::Array<juce::var> tags;
+        for (const auto& tag : summary.tags)
+            tags.add(tag);
+        item->setProperty("tags", tags);
+        list.add(juce::var(item));
+    }
+    object->setProperty("items", list);
+
+    juce::Array<juce::var> categories;
+    for (const auto& category : audioProcessor.getPresetManager().getCategories())
+        categories.add(category);
+    object->setProperty("categories", categories);
+
+    return juce::var(object);
 }
 
 juce::var LumenDSPAudioProcessorEditor::buildLibraryObject() const

@@ -202,19 +202,24 @@ bool FactoryContentInstaller::writeFactoryPresets(
     bool allSucceeded = true;
 
     applyControlValues(apvts, 0.0f, -82.0f, true, -1.0f, 1.5f, 2.5f, true, true, -8.0f);
-    allSucceeded &= presetManager.savePreset("01 Glass Clean", twinClean, glassIr);
+    allSucceeded &= presetManager.savePreset(
+        "01 Glass Clean", twinClean, glassIr, "Clean", { "glass", "fusion", "factory" });
 
     applyControlValues(apvts, 1.0f, -80.0f, true, -0.5f, 1.0f, 3.0f, true, true, -8.0f);
-    allSucceeded &= presetManager.savePreset("02 Airy Clean", twinAiry, glassIr);
+    allSucceeded &= presetManager.savePreset(
+        "02 Airy Clean", twinAiry, glassIr, "Clean", { "airy", "fusion", "factory" });
 
     applyControlValues(apvts, 4.0f, -76.0f, true, 0.0f, 2.5f, 1.5f, true, true, -10.0f);
-    allSucceeded &= presetManager.savePreset("03 Smooth Lead", bugClean, smoothIr);
+    allSucceeded &= presetManager.savePreset(
+        "03 Smooth Lead", bugClean, smoothIr, "Lead", { "lead", "sustain", "factory" });
 
     applyControlValues(apvts, 0.0f, -80.0f, true, 0.0f, 0.5f, 1.0f, true, false, -6.0f);
-    allSucceeded &= presetManager.savePreset("04 Full Rig Clean", bugCleanCab, juce::File());
+    allSucceeded &= presetManager.savePreset(
+        "04 Full Rig Clean", bugCleanCab, juce::File(), "Clean", { "full-rig", "factory" });
 
     applyControlValues(apvts, 6.0f, -72.0f, true, -2.0f, 3.0f, 0.5f, true, true, -9.0f);
-    allSucceeded &= presetManager.savePreset("05 Light Crunch", jcmClean, crunchIr);
+    allSucceeded &= presetManager.savePreset(
+        "05 Light Crunch", jcmClean, crunchIr, "Crunch", { "crunch", "rhythm", "factory" });
 
     return allSucceeded;
 }

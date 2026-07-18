@@ -25,7 +25,7 @@ The core tone always comes from **your** `.nam` file. LumenDSP does not replace 
 | Tone | Three-band EQ (post-amp, pre-cab) |
 | Time FX | Delay and reverb (post-cab) |
 | Practice | Tuner + metronome (bottom dock) |
-| Presets | Named presets storing model path, IR path, and all control values |
+| Presets | Named presets with categories, tags, favorites, import/export |
 | Formats | Standalone desktop app and VST3 plugin |
 | UI | WebView frontend (HTML/CSS/JS) with dense dark rack layout, JSON bridge to C++ engine |
 

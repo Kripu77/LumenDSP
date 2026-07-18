@@ -26,12 +26,14 @@ public:
     void pushMetersToWeb();
     void pushPracticeToWeb();
     void pushLibraryToWeb();
+    void pushPresetsToWeb();
 
 private:
     void timerCallback() override;
     void emitToWeb(const juce::var& payload);
     juce::var buildStateObject() const;
     juce::var buildLibraryObject() const;
+    juce::var buildPresetsObject() const;
     juce::File getWebResourceRoot() const;
     std::optional<juce::WebBrowserComponent::Resource> getResource(const juce::String& url);
     juce::String getMimeForExtension(const juce::String& extension) const;

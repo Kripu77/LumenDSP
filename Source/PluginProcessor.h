@@ -45,7 +45,10 @@ public:
     void requestNamLoad(const juce::File& modelFile);
     void requestIrLoad(const juce::File& irFile);
     bool applyPreset(const juce::String& presetName);
-    bool storePreset(const juce::String& presetName);
+    bool storePreset(
+        const juce::String& presetName,
+        const juce::String& category = {},
+        const juce::StringArray& tags = {});
     void ensureFactoryContentReady();
     juce::String getFactoryStatusMessage() const;
     juce::String getDefaultPresetName() const;
