@@ -138,6 +138,116 @@
       </section>
     </main>
 
+    <section class="fx-rack" aria-label="Effects rack">
+      <article class="fx-module" data-fx="comp">
+        <div class="fx-head">
+          <h3>Comp</h3>
+          <button type="button" class="hw-toggle" id="compressorEnabled" aria-pressed="false">
+            <img src="assets/signal-path/toggle-off.png" alt="" data-role="toggle-img" />
+            <span>On</span>
+          </button>
+        </div>
+        <div class="fx-knobs">
+          <div class="knob-wrap mini" data-param="compressorThreshold">
+            <div class="knob knob-mini" id="knob-compressorThreshold"></div>
+            <div class="knob-label">THRESH</div>
+            <div class="knob-value" id="val-compressorThreshold">-18.0 dB</div>
+          </div>
+          <div class="knob-wrap mini" data-param="compressorRatio">
+            <div class="knob knob-mini" id="knob-compressorRatio"></div>
+            <div class="knob-label">RATIO</div>
+            <div class="knob-value" id="val-compressorRatio">4.0</div>
+          </div>
+          <div class="knob-wrap mini" data-param="compressorMix">
+            <div class="knob knob-mini" id="knob-compressorMix"></div>
+            <div class="knob-label">MIX</div>
+            <div class="knob-value" id="val-compressorMix">100%</div>
+          </div>
+        </div>
+      </article>
+
+      <article class="fx-module" data-fx="drive">
+        <div class="fx-head">
+          <h3>Drive</h3>
+          <button type="button" class="hw-toggle" id="driveEnabled" aria-pressed="false">
+            <img src="assets/signal-path/toggle-off.png" alt="" data-role="toggle-img" />
+            <span>On</span>
+          </button>
+        </div>
+        <div class="fx-knobs">
+          <div class="knob-wrap mini" data-param="driveAmount">
+            <div class="knob knob-mini" id="knob-driveAmount"></div>
+            <div class="knob-label">DRIVE</div>
+            <div class="knob-value" id="val-driveAmount">35%</div>
+          </div>
+          <div class="knob-wrap mini" data-param="driveTone">
+            <div class="knob knob-mini" id="knob-driveTone"></div>
+            <div class="knob-label">TONE</div>
+            <div class="knob-value" id="val-driveTone">50%</div>
+          </div>
+          <div class="knob-wrap mini" data-param="driveLevel">
+            <div class="knob knob-mini" id="knob-driveLevel"></div>
+            <div class="knob-label">LEVEL</div>
+            <div class="knob-value" id="val-driveLevel">70%</div>
+          </div>
+        </div>
+      </article>
+
+      <article class="fx-module" data-fx="delay">
+        <div class="fx-head">
+          <h3>Delay</h3>
+          <button type="button" class="hw-toggle" id="delayEnabled" aria-pressed="false">
+            <img src="assets/signal-path/toggle-off.png" alt="" data-role="toggle-img" />
+            <span>On</span>
+          </button>
+        </div>
+        <div class="fx-knobs">
+          <div class="knob-wrap mini" data-param="delayTime">
+            <div class="knob knob-mini" id="knob-delayTime"></div>
+            <div class="knob-label">TIME</div>
+            <div class="knob-value" id="val-delayTime">380 ms</div>
+          </div>
+          <div class="knob-wrap mini" data-param="delayFeedback">
+            <div class="knob knob-mini" id="knob-delayFeedback"></div>
+            <div class="knob-label">FDBK</div>
+            <div class="knob-value" id="val-delayFeedback">25%</div>
+          </div>
+          <div class="knob-wrap mini" data-param="delayMix">
+            <div class="knob knob-mini" id="knob-delayMix"></div>
+            <div class="knob-label">MIX</div>
+            <div class="knob-value" id="val-delayMix">20%</div>
+          </div>
+        </div>
+      </article>
+
+      <article class="fx-module" data-fx="reverb">
+        <div class="fx-head">
+          <h3>Reverb</h3>
+          <button type="button" class="hw-toggle" id="reverbEnabled" aria-pressed="false">
+            <img src="assets/signal-path/toggle-off.png" alt="" data-role="toggle-img" />
+            <span>On</span>
+          </button>
+        </div>
+        <div class="fx-knobs">
+          <div class="knob-wrap mini" data-param="reverbSize">
+            <div class="knob knob-mini" id="knob-reverbSize"></div>
+            <div class="knob-label">SIZE</div>
+            <div class="knob-value" id="val-reverbSize">40%</div>
+          </div>
+          <div class="knob-wrap mini" data-param="reverbDamping">
+            <div class="knob knob-mini" id="knob-reverbDamping"></div>
+            <div class="knob-label">DAMP</div>
+            <div class="knob-value" id="val-reverbDamping">50%</div>
+          </div>
+          <div class="knob-wrap mini" data-param="reverbMix">
+            <div class="knob knob-mini" id="knob-reverbMix"></div>
+            <div class="knob-label">MIX</div>
+            <div class="knob-value" id="val-reverbMix">18%</div>
+          </div>
+        </div>
+      </article>
+    </section>
+
     <div id="popoverBackdrop" class="popover-backdrop" hidden></div>
 
     <div id="tunerPopover" class="popover popover-tuner" hidden role="dialog" aria-label="Tuner">

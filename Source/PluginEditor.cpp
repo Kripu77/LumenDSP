@@ -267,20 +267,46 @@ juce::var LumenDSPAudioProcessorEditor::buildStateObject() const
     object->setProperty("type", "state");
 
     auto* parameters = new juce::DynamicObject();
-    parameters->setProperty("inputGain", readParameter(lumen::parameters::inputGainId));
-    parameters->setProperty("noiseGateThreshold", readParameter(lumen::parameters::noiseGateThresholdId));
-    parameters->setProperty("noiseGateEnabled", readParameter(lumen::parameters::noiseGateEnabledId) > 0.5f);
-    parameters->setProperty("outputLevel", readParameter(lumen::parameters::outputLevelId));
-    parameters->setProperty("bassGain", readParameter(lumen::parameters::bassGainId));
-    parameters->setProperty("midGain", readParameter(lumen::parameters::midGainId));
-    parameters->setProperty("trebleGain", readParameter(lumen::parameters::trebleGainId));
-    parameters->setProperty("eqEnabled", readParameter(lumen::parameters::eqEnabledId) > 0.5f);
-    parameters->setProperty("cabEnabled", readParameter(lumen::parameters::cabEnabledId) > 0.5f);
-    parameters->setProperty(
-        "metronomeEnabled",
-        readParameter(lumen::parameters::metronomeEnabledId) > 0.5f);
-    parameters->setProperty("metronomeBpm", readParameter(lumen::parameters::metronomeBpmId));
-    parameters->setProperty("metronomeVolume", readParameter(lumen::parameters::metronomeVolumeId));
+    auto putFloat = [&](const char* key, const char* id) {
+        parameters->setProperty(key, readParameter(id));
+    };
+    auto putBool = [&](const char* key, const char* id) {
+        parameters->setProperty(key, readParameter(id) > 0.5f);
+    };
+
+    putFloat("inputGain", lumen::parameters::inputGainId);
+    putFloat("noiseGateThreshold", lumen::parameters::noiseGateThresholdId);
+    putBool("noiseGateEnabled", lumen::parameters::noiseGateEnabledId);
+    putFloat("outputLevel", lumen::parameters::outputLevelId);
+    putFloat("bassGain", lumen::parameters::bassGainId);
+    putFloat("midGain", lumen::parameters::midGainId);
+    putFloat("trebleGain", lumen::parameters::trebleGainId);
+    putBool("eqEnabled", lumen::parameters::eqEnabledId);
+    putBool("cabEnabled", lumen::parameters::cabEnabledId);
+    putBool("metronomeEnabled", lumen::parameters::metronomeEnabledId);
+    putFloat("metronomeBpm", lumen::parameters::metronomeBpmId);
+    putFloat("metronomeVolume", lumen::parameters::metronomeVolumeId);
+
+    putBool("compressorEnabled", lumen::parameters::compressorEnabledId);
+    putFloat("compressorThreshold", lumen::parameters::compressorThresholdId);
+    putFloat("compressorRatio", lumen::parameters::compressorRatioId);
+    putFloat("compressorMix", lumen::parameters::compressorMixId);
+
+    putBool("driveEnabled", lumen::parameters::driveEnabledId);
+    putFloat("driveAmount", lumen::parameters::driveAmountId);
+    putFloat("driveTone", lumen::parameters::driveToneId);
+    putFloat("driveLevel", lumen::parameters::driveLevelId);
+
+    putBool("delayEnabled", lumen::parameters::delayEnabledId);
+    putFloat("delayTime", lumen::parameters::delayTimeId);
+    putFloat("delayFeedback", lumen::parameters::delayFeedbackId);
+    putFloat("delayMix", lumen::parameters::delayMixId);
+
+    putBool("reverbEnabled", lumen::parameters::reverbEnabledId);
+    putFloat("reverbSize", lumen::parameters::reverbSizeId);
+    putFloat("reverbDamping", lumen::parameters::reverbDampingId);
+    putFloat("reverbMix", lumen::parameters::reverbMixId);
+
     object->setProperty("parameters", juce::var(parameters));
 
     juce::Array<juce::var> presets;

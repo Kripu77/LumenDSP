@@ -7,8 +7,12 @@ void AudioPipeline::prepare(const juce::dsp::ProcessSpec& processSpec)
 {
     namEngine.prepare(processSpec.sampleRate, static_cast<int>(processSpec.maximumBlockSize));
     noiseGate.prepare(processSpec);
+    compressor.prepare(processSpec);
+    drive.prepare(processSpec);
     threeBandEq.prepare(processSpec);
     irConvolver.prepare(processSpec);
+    delay.prepare(processSpec);
+    reverb.prepare(processSpec);
     inputMeter.prepare(processSpec.sampleRate);
     outputMeter.prepare(processSpec.sampleRate);
     tuner.prepare(processSpec.sampleRate);
@@ -21,8 +25,12 @@ void AudioPipeline::reset()
 {
     namEngine.reset();
     noiseGate.reset();
+    compressor.reset();
+    drive.reset();
     threeBandEq.reset();
     irConvolver.reset();
+    delay.reset();
+    reverb.reset();
     inputMeter.reset();
     outputMeter.reset();
     tuner.reset();
@@ -32,13 +40,37 @@ void AudioPipeline::reset()
 void AudioPipeline::setControlState(const PipelineControlState& controlState)
 {
     controls = controlState;
+
     noiseGate.setEnabled(controls.noiseGateEnabled);
     noiseGate.setThresholdDb(controls.noiseGateThresholdDb);
+
+    compressor.setEnabled(controls.compressorEnabled);
+    compressor.setThresholdDb(controls.compressorThresholdDb);
+    compressor.setRatio(controls.compressorRatio);
+    compressor.setMix(controls.compressorMix);
+
+    drive.setEnabled(controls.driveEnabled);
+    drive.setDrive(controls.driveAmount);
+    drive.setTone(controls.driveTone);
+    drive.setLevel(controls.driveLevel);
+
     threeBandEq.setEnabled(controls.eqEnabled);
     threeBandEq.setBassGainDb(controls.bassGainDb);
     threeBandEq.setMidGainDb(controls.midGainDb);
     threeBandEq.setTrebleGainDb(controls.trebleGainDb);
+
     irConvolver.setEnabled(controls.cabEnabled);
+
+    delay.setEnabled(controls.delayEnabled);
+    delay.setTimeMs(controls.delayTimeMs);
+    delay.setFeedback(controls.delayFeedback);
+    delay.setMix(controls.delayMix);
+
+    reverb.setEnabled(controls.reverbEnabled);
+    reverb.setRoomSize(controls.reverbSize);
+    reverb.setDamping(controls.reverbDamping);
+    reverb.setMix(controls.reverbMix);
+
     metronome.setEnabled(controls.metronomeEnabled);
     metronome.setBpm(controls.metronomeBpm);
     metronome.setVolumeLinear(controls.metronomeVolume);
@@ -54,74 +86,32 @@ void AudioPipeline::process(juce::AudioBuffer<float>& buffer)
     tuner.process(buffer, monoMeterChannelIndex);
 
     noiseGate.process(buffer);
+    compressor.process(buffer);
+    drive.process(buffer);
     namEngine.process(buffer);
     threeBandEq.process(buffer);
     irConvolver.process(buffer);
+    delay.process(buffer);
+    reverb.process(buffer);
+
     applyOutputLevel(buffer, controls.outputLevelDb);
     metronome.process(buffer);
-
     outputMeter.processBlock(buffer, monoMeterChannelIndex);
 }
 
-NamEngine& AudioPipeline::getNamEngine() noexcept
-{
-    return namEngine;
-}
+NamEngine& AudioPipeline::getNamEngine() noexcept { return namEngine; }
+IrConvolver& AudioPipeline::getIrConvolver() noexcept { return irConvolver; }
+LevelMeter& AudioPipeline::getInputMeter() noexcept { return inputMeter; }
+LevelMeter& AudioPipeline::getOutputMeter() noexcept { return outputMeter; }
+Tuner& AudioPipeline::getTuner() noexcept { return tuner; }
+Metronome& AudioPipeline::getMetronome() noexcept { return metronome; }
 
-IrConvolver& AudioPipeline::getIrConvolver() noexcept
-{
-    return irConvolver;
-}
-
-LevelMeter& AudioPipeline::getInputMeter() noexcept
-{
-    return inputMeter;
-}
-
-LevelMeter& AudioPipeline::getOutputMeter() noexcept
-{
-    return outputMeter;
-}
-
-Tuner& AudioPipeline::getTuner() noexcept
-{
-    return tuner;
-}
-
-Metronome& AudioPipeline::getMetronome() noexcept
-{
-    return metronome;
-}
-
-const NamEngine& AudioPipeline::getNamEngine() const noexcept
-{
-    return namEngine;
-}
-
-const IrConvolver& AudioPipeline::getIrConvolver() const noexcept
-{
-    return irConvolver;
-}
-
-const LevelMeter& AudioPipeline::getInputMeter() const noexcept
-{
-    return inputMeter;
-}
-
-const LevelMeter& AudioPipeline::getOutputMeter() const noexcept
-{
-    return outputMeter;
-}
-
-const Tuner& AudioPipeline::getTuner() const noexcept
-{
-    return tuner;
-}
-
-const Metronome& AudioPipeline::getMetronome() const noexcept
-{
-    return metronome;
-}
+const NamEngine& AudioPipeline::getNamEngine() const noexcept { return namEngine; }
+const IrConvolver& AudioPipeline::getIrConvolver() const noexcept { return irConvolver; }
+const LevelMeter& AudioPipeline::getInputMeter() const noexcept { return inputMeter; }
+const LevelMeter& AudioPipeline::getOutputMeter() const noexcept { return outputMeter; }
+const Tuner& AudioPipeline::getTuner() const noexcept { return tuner; }
+const Metronome& AudioPipeline::getMetronome() const noexcept { return metronome; }
 
 void AudioPipeline::applyInputGain(juce::AudioBuffer<float>& buffer, float gainDb)
 {

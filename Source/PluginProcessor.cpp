@@ -279,22 +279,47 @@ void LumenDSPAudioProcessor::bootstrapFactoryExperience()
 
 lumen::audio::PipelineControlState LumenDSPAudioProcessor::readControlState() const
 {
+    auto readFloat = [this](const char* id) {
+        return apvts.getRawParameterValue(id)->load();
+    };
+    auto readBool = [&readFloat](const char* id) {
+        return readFloat(id) > 0.5f;
+    };
+
     lumen::audio::PipelineControlState controlState;
-    controlState.inputGainDb = apvts.getRawParameterValue(lumen::parameters::inputGainId)->load();
-    controlState.outputLevelDb = apvts.getRawParameterValue(lumen::parameters::outputLevelId)->load();
-    controlState.noiseGateThresholdDb =
-        apvts.getRawParameterValue(lumen::parameters::noiseGateThresholdId)->load();
-    controlState.noiseGateEnabled =
-        apvts.getRawParameterValue(lumen::parameters::noiseGateEnabledId)->load() > 0.5f;
-    controlState.bassGainDb = apvts.getRawParameterValue(lumen::parameters::bassGainId)->load();
-    controlState.midGainDb = apvts.getRawParameterValue(lumen::parameters::midGainId)->load();
-    controlState.trebleGainDb = apvts.getRawParameterValue(lumen::parameters::trebleGainId)->load();
-    controlState.eqEnabled = apvts.getRawParameterValue(lumen::parameters::eqEnabledId)->load() > 0.5f;
-    controlState.cabEnabled = apvts.getRawParameterValue(lumen::parameters::cabEnabledId)->load() > 0.5f;
-    controlState.metronomeEnabled =
-        apvts.getRawParameterValue(lumen::parameters::metronomeEnabledId)->load() > 0.5f;
-    controlState.metronomeBpm = apvts.getRawParameterValue(lumen::parameters::metronomeBpmId)->load();
-    controlState.metronomeVolume = apvts.getRawParameterValue(lumen::parameters::metronomeVolumeId)->load();
+    controlState.inputGainDb = readFloat(lumen::parameters::inputGainId);
+    controlState.outputLevelDb = readFloat(lumen::parameters::outputLevelId);
+    controlState.noiseGateThresholdDb = readFloat(lumen::parameters::noiseGateThresholdId);
+    controlState.noiseGateEnabled = readBool(lumen::parameters::noiseGateEnabledId);
+    controlState.bassGainDb = readFloat(lumen::parameters::bassGainId);
+    controlState.midGainDb = readFloat(lumen::parameters::midGainId);
+    controlState.trebleGainDb = readFloat(lumen::parameters::trebleGainId);
+    controlState.eqEnabled = readBool(lumen::parameters::eqEnabledId);
+    controlState.cabEnabled = readBool(lumen::parameters::cabEnabledId);
+    controlState.metronomeEnabled = readBool(lumen::parameters::metronomeEnabledId);
+    controlState.metronomeBpm = readFloat(lumen::parameters::metronomeBpmId);
+    controlState.metronomeVolume = readFloat(lumen::parameters::metronomeVolumeId);
+
+    controlState.compressorEnabled = readBool(lumen::parameters::compressorEnabledId);
+    controlState.compressorThresholdDb = readFloat(lumen::parameters::compressorThresholdId);
+    controlState.compressorRatio = readFloat(lumen::parameters::compressorRatioId);
+    controlState.compressorMix = readFloat(lumen::parameters::compressorMixId);
+
+    controlState.driveEnabled = readBool(lumen::parameters::driveEnabledId);
+    controlState.driveAmount = readFloat(lumen::parameters::driveAmountId);
+    controlState.driveTone = readFloat(lumen::parameters::driveToneId);
+    controlState.driveLevel = readFloat(lumen::parameters::driveLevelId);
+
+    controlState.delayEnabled = readBool(lumen::parameters::delayEnabledId);
+    controlState.delayTimeMs = readFloat(lumen::parameters::delayTimeId);
+    controlState.delayFeedback = readFloat(lumen::parameters::delayFeedbackId);
+    controlState.delayMix = readFloat(lumen::parameters::delayMixId);
+
+    controlState.reverbEnabled = readBool(lumen::parameters::reverbEnabledId);
+    controlState.reverbSize = readFloat(lumen::parameters::reverbSizeId);
+    controlState.reverbDamping = readFloat(lumen::parameters::reverbDampingId);
+    controlState.reverbMix = readFloat(lumen::parameters::reverbMixId);
+
     return controlState;
 }
 

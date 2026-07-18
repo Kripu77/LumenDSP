@@ -119,6 +119,10 @@ target_sources(LumenDSP
         Source/audio/LevelMeter.cpp
         Source/audio/Tuner.cpp
         Source/audio/Metronome.cpp
+        Source/audio/Compressor.cpp
+        Source/audio/Drive.cpp
+        Source/audio/Delay.cpp
+        Source/audio/ReverbFx.cpp
         Source/audio/AudioPipeline.cpp
         Source/presets/PresetManager.cpp
         Source/presets/FactoryContentInstaller.cpp

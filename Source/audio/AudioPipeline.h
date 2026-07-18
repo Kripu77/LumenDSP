@@ -1,11 +1,15 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include "audio/Compressor.h"
+#include "audio/Delay.h"
+#include "audio/Drive.h"
 #include "audio/IrConvolver.h"
 #include "audio/LevelMeter.h"
 #include "audio/Metronome.h"
 #include "audio/NamEngine.h"
 #include "audio/NoiseGate.h"
+#include "audio/ReverbFx.h"
 #include "audio/ThreeBandEq.h"
 #include "audio/Tuner.h"
 
@@ -26,6 +30,26 @@ struct PipelineControlState
     bool metronomeEnabled = false;
     float metronomeBpm = 120.0f;
     float metronomeVolume = 0.35f;
+
+    bool compressorEnabled = false;
+    float compressorThresholdDb = -18.0f;
+    float compressorRatio = 4.0f;
+    float compressorMix = 1.0f;
+
+    bool driveEnabled = false;
+    float driveAmount = 0.35f;
+    float driveTone = 0.5f;
+    float driveLevel = 0.7f;
+
+    bool delayEnabled = false;
+    float delayTimeMs = 380.0f;
+    float delayFeedback = 0.25f;
+    float delayMix = 0.2f;
+
+    bool reverbEnabled = false;
+    float reverbSize = 0.4f;
+    float reverbDamping = 0.5f;
+    float reverbMix = 0.18f;
 };
 
 class AudioPipeline
@@ -58,8 +82,12 @@ private:
 
     NamEngine namEngine;
     NoiseGate noiseGate;
+    Compressor compressor;
+    Drive drive;
     ThreeBandEq threeBandEq;
     IrConvolver irConvolver;
+    Delay delay;
+    ReverbFx reverb;
     LevelMeter inputMeter;
     LevelMeter outputMeter;
     Tuner tuner;

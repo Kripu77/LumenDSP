@@ -19,8 +19,11 @@ The core tone always comes from **your** `.nam` file. LumenDSP does not replace 
 |------|------------|
 | Amp | Load and hot-swap `.nam` / A2 models via NeuralAmpModelerCore |
 | Cab | Load and hot-swap impulse response `.wav` files |
-| Dynamics | Input gain, output level, simple noise gate |
+| Dynamics | Input gain, output level, noise gate, compressor |
+| Drive | Soft-clip overdrive pedal stage (pre-amp) |
 | Tone | Three-band EQ (post-amp, pre-cab) |
+| Time FX | Delay and reverb (post-cab) |
+| Practice | Tuner + metronome (bottom dock) |
 | Presets | Named presets storing model path, IR path, and all control values |
 | Formats | Standalone desktop app and VST3 plugin |
 | UI | WebView frontend (HTML/CSS/JS) with dense dark rack layout, JSON bridge to C++ engine |
@@ -28,7 +31,7 @@ The core tone always comes from **your** `.nam` file. LumenDSP does not replace 
 ### Signal flow
 
 ```
-Input → Amp (NAM) → EQ → Cab (IR) → Output
+Input → Gate → Comp → Drive → Amp (NAM) → EQ → Cab (IR) → Delay → Reverb → Output
 ```
 
 ## Status

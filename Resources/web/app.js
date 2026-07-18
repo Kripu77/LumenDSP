@@ -8,6 +8,18 @@
     trebleGain: { min: -12, max: 12, unit: "dB", decimals: 1 },
     metronomeBpm: { min: 40, max: 240, unit: "BPM", decimals: 0 },
     metronomeVolume: { min: 0, max: 1, unit: "%", decimals: 0, asPercent: true },
+    compressorThreshold: { min: -40, max: 0, unit: "dB", decimals: 1 },
+    compressorRatio: { min: 1, max: 20, unit: ":1", decimals: 1 },
+    compressorMix: { min: 0, max: 1, unit: "%", decimals: 0, asPercent: true },
+    driveAmount: { min: 0, max: 1, unit: "%", decimals: 0, asPercent: true },
+    driveTone: { min: 0, max: 1, unit: "%", decimals: 0, asPercent: true },
+    driveLevel: { min: 0, max: 1, unit: "%", decimals: 0, asPercent: true },
+    delayTime: { min: 1, max: 1000, unit: "ms", decimals: 0 },
+    delayFeedback: { min: 0, max: 1, unit: "%", decimals: 0, asPercent: true },
+    delayMix: { min: 0, max: 1, unit: "%", decimals: 0, asPercent: true },
+    reverbSize: { min: 0, max: 1, unit: "%", decimals: 0, asPercent: true },
+    reverbDamping: { min: 0, max: 1, unit: "%", decimals: 0, asPercent: true },
+    reverbMix: { min: 0, max: 1, unit: "%", decimals: 0, asPercent: true },
   };
 
   const TOGGLE_ON = "assets/signal-path/toggle-on.png";
@@ -27,6 +39,22 @@
       metronomeEnabled: false,
       metronomeBpm: 120,
       metronomeVolume: 0.35,
+      compressorEnabled: false,
+      compressorThreshold: -18,
+      compressorRatio: 4,
+      compressorMix: 1,
+      driveEnabled: false,
+      driveAmount: 0.35,
+      driveTone: 0.5,
+      driveLevel: 0.7,
+      delayEnabled: false,
+      delayTime: 380,
+      delayFeedback: 0.25,
+      delayMix: 0.2,
+      reverbEnabled: false,
+      reverbSize: 0.4,
+      reverbDamping: 0.5,
+      reverbMix: 0.18,
     },
     presets: [],
     currentPreset: "",
@@ -65,7 +93,9 @@
     const meta = PARAMS[id];
     if (!meta) return String(value);
     if (meta.asPercent)
-      return `${Math.round(Number(value) * 100)} ${meta.unit}`;
+      return `${Math.round(Number(value) * 100)}${meta.unit === "%" ? "%" : ` ${meta.unit}`}`;
+    if (meta.unit === ":1")
+      return `${Number(value).toFixed(meta.decimals)}${meta.unit}`;
     return `${Number(value).toFixed(meta.decimals)} ${meta.unit}`;
   }
 
@@ -140,53 +170,141 @@
       .replaceAll('"', "&quot;");
   }
 
+  function focusStage(focusId) {
+    if (!focusId) return;
+    const el = document.querySelector(focusId);
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" });
+    el.classList.add("stage-flash");
+    window.setTimeout(() => el.classList.remove("stage-flash"), 450);
+  }
+
+  function togglePathParam(paramId) {
+    if (!paramId || state.parameters[paramId] === undefined) return;
+    const next = !state.parameters[paramId];
+    state.parameters[paramId] = next;
+    setToggle(paramId, next);
+    if (paramId === "noiseGateEnabled") setToggle("noiseGateEnabled", next);
+    send({ type: "setParameter", id: paramId, value: next ? 1 : 0 });
+
+    document.querySelectorAll(".fx-module").forEach((mod) => {
+      const key = mod.getAttribute("data-fx");
+      const enabled =
+        key === "comp" ? state.parameters.compressorEnabled
+        : key === "drive" ? state.parameters.driveEnabled
+        : key === "delay" ? state.parameters.delayEnabled
+        : key === "reverb" ? state.parameters.reverbEnabled
+        : false;
+      mod.classList.toggle("on", !!enabled);
+    });
+
+    if (paramId === "cabEnabled") {
+      const cabLed = $("cabLed");
+      if (cabLed) cabLed.classList.toggle("on", next && state.irLoaded);
+    }
+    renderSignalPath();
+  }
+
   function renderSignalPath() {
     const root = $("signalPath");
+    if (!root) return;
+    const p = state.parameters;
     const nodes = [
       {
-        title: "INPUT",
-        detail: state.parameters.noiseGateEnabled
-          ? `Gate ${Number(state.parameters.noiseGateThreshold).toFixed(1)} dB`
-          : "Gate off",
-        on: true,
-        icon: "assets/pedals/pedal-icon.png",
-        cls: "",
+        id: "gate",
+        title: "GATE",
+        detail: p.noiseGateEnabled ? `${Number(p.noiseGateThreshold).toFixed(0)} dB` : "Off",
+        on: !!p.noiseGateEnabled,
+        toggle: "noiseGateEnabled",
+        focus: ".card-gate",
       },
       {
+        id: "comp",
+        title: "COMP",
+        detail: p.compressorEnabled ? `${Number(p.compressorRatio).toFixed(1)}:1` : "Off",
+        on: !!p.compressorEnabled,
+        toggle: "compressorEnabled",
+        focus: '.fx-module[data-fx="comp"]',
+      },
+      {
+        id: "drive",
+        title: "DRIVE",
+        detail: p.driveEnabled ? `${Math.round(p.driveAmount * 100)}%` : "Off",
+        on: !!p.driveEnabled,
+        toggle: "driveEnabled",
+        focus: '.fx-module[data-fx="drive"]',
+      },
+      {
+        id: "amp",
         title: "AMP",
         detail: state.namLoaded ? state.namName : "No model",
         on: state.namLoaded,
-        icon: "assets/amp-head/amp-icon.png",
         cls: "amp",
+        focus: ".card-amp",
       },
       {
+        id: "eq",
         title: "EQ",
-        detail: state.parameters.eqEnabled ? "Tone active" : "Bypassed",
-        on: state.parameters.eqEnabled,
-        icon: "assets/signal-path/icon-eq.png",
-        cls: "",
+        detail: p.eqEnabled ? "Tone" : "Off",
+        on: !!p.eqEnabled,
+        toggle: "eqEnabled",
+        focus: ".card-amp",
       },
       {
+        id: "cab",
         title: "CAB",
         detail: state.irLoaded ? state.irName : "No IR",
-        on: state.parameters.cabEnabled && state.irLoaded,
-        icon: "assets/cabinet/cab-icon.png",
-        cls: "",
+        on: !!p.cabEnabled && state.irLoaded,
+        toggle: "cabEnabled",
+        focus: ".card-cab",
+      },
+      {
+        id: "delay",
+        title: "DELAY",
+        detail: p.delayEnabled ? `${Math.round(p.delayTime)} ms` : "Off",
+        on: !!p.delayEnabled,
+        toggle: "delayEnabled",
+        focus: '.fx-module[data-fx="delay"]',
+      },
+      {
+        id: "reverb",
+        title: "REVERB",
+        detail: p.reverbEnabled ? `${Math.round(p.reverbMix * 100)}%` : "Off",
+        on: !!p.reverbEnabled,
+        toggle: "reverbEnabled",
+        focus: '.fx-module[data-fx="reverb"]',
       },
     ];
 
     root.innerHTML = nodes
       .map(
         (node) => `
-      <div class="path-node ${node.cls} ${node.on ? "on" : ""}">
-        <img class="path-icon" src="${node.icon}" alt="" />
-        <div>
-          <div class="path-title">${node.title}</div>
-          <div class="path-detail">${escapeHtml(node.detail)}</div>
-        </div>
-      </div>`
+      <button type="button"
+        class="path-node ${node.cls || ""} ${node.on ? "on" : ""}"
+        data-path-id="${node.id}"
+        data-toggle="${node.toggle || ""}"
+        data-focus="${node.focus || ""}"
+        aria-pressed="${node.on ? "true" : "false"}"
+        title="${node.toggle ? "Click to toggle · " : ""}${node.title}">
+        <span class="path-title">${node.title}</span>
+        <span class="path-detail">${escapeHtml(node.detail)}</span>
+      </button>`
       )
       .join("");
+  }
+
+  function bindSignalPath() {
+    const root = $("signalPath");
+    if (!root || root.dataset.bound === "1") return;
+    root.dataset.bound = "1";
+    root.addEventListener("click", (event) => {
+      const node = event.target.closest(".path-node");
+      if (!node || !root.contains(node)) return;
+      const toggle = node.getAttribute("data-toggle");
+      const focus = node.getAttribute("data-focus");
+      if (toggle) togglePathParam(toggle);
+      focusStage(focus);
+    });
   }
 
   function applyState(next) {
@@ -201,6 +319,21 @@
     setToggle("eqEnabled", state.parameters.eqEnabled);
     setToggle("cabEnabled", state.parameters.cabEnabled);
     setToggle("metronomeEnabled", state.parameters.metronomeEnabled);
+    setToggle("compressorEnabled", state.parameters.compressorEnabled);
+    setToggle("driveEnabled", state.parameters.driveEnabled);
+    setToggle("delayEnabled", state.parameters.delayEnabled);
+    setToggle("reverbEnabled", state.parameters.reverbEnabled);
+
+    document.querySelectorAll(".fx-module").forEach((mod) => {
+      const key = mod.getAttribute("data-fx");
+      const enabled =
+        key === "comp" ? state.parameters.compressorEnabled
+        : key === "drive" ? state.parameters.driveEnabled
+        : key === "delay" ? state.parameters.delayEnabled
+        : key === "reverb" ? state.parameters.reverbEnabled
+        : false;
+      mod.classList.toggle("on", !!enabled);
+    });
 
     $("namName").textContent = state.namLoaded ? state.namName : "None loaded";
     $("irName").textContent = state.irLoaded ? state.irName : "None loaded";
@@ -284,6 +417,16 @@
       if (paramId === "noiseGateEnabled") setToggle("noiseGateEnabled", next);
       send({ type: "setParameter", id: paramId, value: next ? 1 : 0 });
       renderSignalPath();
+      document.querySelectorAll(".fx-module").forEach((mod) => {
+        const key = mod.getAttribute("data-fx");
+        const enabled =
+          key === "comp" ? state.parameters.compressorEnabled
+          : key === "drive" ? state.parameters.driveEnabled
+          : key === "delay" ? state.parameters.delayEnabled
+          : key === "reverb" ? state.parameters.reverbEnabled
+          : false;
+        mod.classList.toggle("on", !!enabled);
+      });
       if (paramId === "cabEnabled") {
         const cabLed = $("cabLed");
         if (cabLed) cabLed.classList.toggle("on", next && state.irLoaded);
@@ -433,6 +576,10 @@
     bindToggle("eqEnabled", "eqEnabled");
     bindToggle("cabEnabled", "cabEnabled");
     bindToggle("metronomeEnabled", "metronomeEnabled");
+    bindToggle("compressorEnabled", "compressorEnabled");
+    bindToggle("driveEnabled", "driveEnabled");
+    bindToggle("delayEnabled", "delayEnabled");
+    bindToggle("reverbEnabled", "reverbEnabled");
 
     $("presetSelect").addEventListener("change", (event) => {
       send({ type: "loadPreset", name: event.target.value });
@@ -503,6 +650,7 @@
   buildMeters();
   bindKnobs();
   bindControls();
+  bindSignalPath();
   applyState(state);
   send({ type: "ready" });
 })();

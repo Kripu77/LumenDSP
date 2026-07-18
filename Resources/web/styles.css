@@ -37,10 +37,75 @@ html, body {
   position: relative;
   height: 100%;
   display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  grid-template-rows: auto auto minmax(0, 1fr) auto auto;
   gap: 10px;
   padding: 10px;
   min-height: 0;
+}
+
+.fx-rack {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  min-height: 0;
+  flex-shrink: 0;
+}
+
+.fx-module {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  padding: 10px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.03), transparent 40%),
+    var(--bg-card);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
+}
+
+.fx-module[data-fx="drive"] {
+  border-color: color-mix(in srgb, var(--accent) 28%, var(--border));
+}
+
+.fx-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.fx-head h3 {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.fx-knobs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  align-items: start;
+}
+
+.fx-knobs .knob-wrap {
+  min-width: 0;
+}
+
+@media (max-width: 980px) {
+  .fx-rack {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .fx-rack {
+    grid-template-columns: 1fr;
+  }
 }
 
 .control-bar {
@@ -259,9 +324,9 @@ html, body {
 
 .signal-path {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 10px;
-  min-height: 68px;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 8px;
+  min-height: 58px;
   flex-shrink: 0;
 }
 
@@ -270,47 +335,78 @@ html, body {
     linear-gradient(180deg, rgba(255,255,255,0.03), transparent 40%),
     var(--bg-card);
   border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 10px 12px 10px 10px;
+  border-radius: 10px;
+  padding: 8px 10px;
   position: relative;
-  min-height: 64px;
+  min-height: 54px;
   display: grid;
-  grid-template-columns: 32px 1fr;
-  gap: 8px;
-  align-items: center;
+  gap: 2px;
+  align-content: center;
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+  opacity: 0.72;
+  width: 100%;
+  text-align: left;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  z-index: 1;
+  transition: border-color 0.12s ease, opacity 0.12s ease, box-shadow 0.12s ease;
+}
+
+.path-node:hover {
+  opacity: 1;
+  border-color: var(--border-strong);
+}
+
+.path-node:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 55%, transparent);
+  outline-offset: 2px;
+}
+
+.path-node.on {
+  opacity: 1;
+}
+
+.fx-module.on {
+  border-color: color-mix(in srgb, var(--success) 40%, var(--border));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--success) 12%, transparent);
 }
 .path-node::after {
   content: "";
   position: absolute;
-  right: -14px;
+  right: -10px;
   top: 50%;
-  width: 18px;
-  height: 14px;
+  width: 12px;
+  height: 10px;
   transform: translateY(-50%);
   background: url("assets/signal-path/signal-path-connector.png") center / contain no-repeat;
   z-index: 2;
-  opacity: 0.9;
+  opacity: 0.75;
+  pointer-events: none;
 }
 .path-node:last-child::after { content: none; }
-.path-icon {
-  width: 34px;
-  height: 34px;
-  object-fit: contain;
-  filter: drop-shadow(0 2px 6px rgba(0,0,0,0.45));
-}
 .path-title {
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.08em;
-  margin-bottom: 3px;
+  margin-bottom: 2px;
+  pointer-events: none;
 }
 .path-detail {
-  font-size: 11px;
+  font-size: 10px;
   color: var(--text-muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  pointer-events: none;
+}
+
+.stage-flash {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 55%, transparent),
+    0 0 24px rgba(255, 136, 80, 0.18) !important;
+  transition: box-shadow 0.2s ease;
 }
 .path-node.on .path-title { color: var(--text-primary); }
 .path-node.amp.on {
