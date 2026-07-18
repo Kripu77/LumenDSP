@@ -8,6 +8,9 @@
     trebleGain: { min: -12, max: 12, unit: "dB", decimals: 1 },
   };
 
+  const TOGGLE_ON = "assets/signal-path/toggle-on.png";
+  const TOGGLE_OFF = "assets/signal-path/toggle-off.png";
+
   const state = {
     parameters: {
       inputGain: 0,
@@ -69,17 +72,23 @@
   }
 
   function setKnob(id, value) {
-    const el = $(`knob-${id}`);
-    const val = $(`val-${id}`);
-    if (!el) return;
     const pct = valueToPct(id, value);
-    el.style.setProperty("--pct", String(pct));
-    if (val) val.textContent = formatValue(id, value);
+    document.querySelectorAll(`[data-param="${id}"] .knob`).forEach((el) => {
+      el.style.setProperty("--pct", String(pct));
+    });
+    document.querySelectorAll(`#val-${id}, #val-${id}-main`).forEach((val) => {
+      val.textContent = formatValue(id, value);
+    });
   }
 
-  function setBool(id, value) {
-    const el = $(id);
-    if (el) el.checked = !!value;
+  function setToggle(id, value) {
+    const on = !!value;
+    document.querySelectorAll(`#${id}, #${id}Card`).forEach((btn) => {
+      if (!btn) return;
+      btn.setAttribute("aria-pressed", on ? "true" : "false");
+      const img = btn.querySelector("[data-role='toggle-img']");
+      if (img) img.src = on ? TOGGLE_ON : TOGGLE_OFF;
+    });
   }
 
   function buildMeters() {
@@ -98,9 +107,7 @@
     const root = $(id);
     if (!root) return;
     const segs = [...root.children];
-    const floor = -60;
-    const ceil = 0;
-    const n = Math.max(0, Math.min(1, (db - floor) / (ceil - floor)));
+    const n = Math.max(0, Math.min(1, (db + 60) / 60));
     const lit = Math.round(n * segs.length);
     segs.forEach((seg, index) => {
       seg.classList.remove("on", "warn", "clip");
@@ -113,37 +120,45 @@
     });
   }
 
+  function escapeHtml(text) {
+    return String(text)
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;");
+  }
+
   function renderSignalPath() {
     const root = $("signalPath");
     const nodes = [
       {
-        key: "input",
         title: "INPUT",
         detail: state.parameters.noiseGateEnabled
-          ? `Gate ${state.parameters.noiseGateThreshold.toFixed(1)} dB`
+          ? `Gate ${Number(state.parameters.noiseGateThreshold).toFixed(1)} dB`
           : "Gate off",
         on: true,
+        icon: "assets/pedals/pedal-icon.png",
         cls: "",
       },
       {
-        key: "amp",
         title: "AMP",
         detail: state.namLoaded ? state.namName : "No model",
         on: state.namLoaded,
+        icon: "assets/amp-head/amp-icon.png",
         cls: "amp",
       },
       {
-        key: "eq",
         title: "EQ",
         detail: state.parameters.eqEnabled ? "Tone active" : "Bypassed",
         on: state.parameters.eqEnabled,
+        icon: "assets/signal-path/node-background-tiles.png",
         cls: "",
       },
       {
-        key: "cab",
         title: "CAB",
         detail: state.irLoaded ? state.irName : "No IR",
         on: state.parameters.cabEnabled && state.irLoaded,
+        icon: "assets/cabinet/cab-icon.png",
         cls: "",
       },
     ];
@@ -152,19 +167,14 @@
       .map(
         (node) => `
       <div class="path-node ${node.cls} ${node.on ? "on" : ""}">
-        <div class="path-title"><span class="dot"></span>${node.title}</div>
-        <div class="path-detail">${escapeHtml(node.detail)}</div>
+        <img class="path-icon" src="${node.icon}" alt="" />
+        <div>
+          <div class="path-title">${node.title}</div>
+          <div class="path-detail">${escapeHtml(node.detail)}</div>
+        </div>
       </div>`
       )
       .join("");
-  }
-
-  function escapeHtml(text) {
-    return String(text)
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")
-      .replaceAll('"', "&quot;");
   }
 
   function applyState(next) {
@@ -174,15 +184,19 @@
     Object.keys(PARAMS).forEach((id) => {
       if (state.parameters[id] !== undefined) setKnob(id, state.parameters[id]);
     });
-    setBool("noiseGateEnabled", state.parameters.noiseGateEnabled);
-    setBool("eqEnabled", state.parameters.eqEnabled);
-    setBool("cabEnabled", state.parameters.cabEnabled);
+
+    setToggle("noiseGateEnabled", state.parameters.noiseGateEnabled);
+    setToggle("eqEnabled", state.parameters.eqEnabled);
+    setToggle("cabEnabled", state.parameters.cabEnabled);
 
     $("namName").textContent = state.namLoaded ? state.namName : "None loaded";
     $("irName").textContent = state.irLoaded ? state.irName : "None loaded";
     $("namStatus").textContent = state.namLoaded ? state.namName : "No model";
     $("namStatus").className = `status ${state.namLoaded ? "ok" : "warn"}`;
     $("footerStatus").textContent = state.status || "";
+
+    const cabLed = $("cabLed");
+    if (cabLed) cabLed.classList.toggle("on", !!state.parameters.cabEnabled && !!state.irLoaded);
 
     const select = $("presetSelect");
     const previous = select.value;
@@ -203,13 +217,14 @@
     document.querySelectorAll(".knob-wrap[data-param]").forEach((wrap) => {
       const id = wrap.dataset.param;
       const knob = wrap.querySelector(".knob");
+      if (!knob) return;
       let dragging = false;
       let startY = 0;
       let startValue = 0;
 
       const onMove = (clientY) => {
         if (!dragging) return;
-        const delta = (startY - clientY) / 1.6;
+        const delta = (startY - clientY) / 1.55;
         const next = pctToValue(id, valueToPct(id, startValue) + delta);
         state.parameters[id] = next;
         setKnob(id, next);
@@ -219,7 +234,7 @@
       knob.addEventListener("pointerdown", (event) => {
         dragging = true;
         startY = event.clientY;
-        startValue = state.parameters[id];
+        startValue = state.parameters[id] ?? 0;
         knob.setPointerCapture(event.pointerId);
       });
       knob.addEventListener("pointermove", (event) => onMove(event.clientY));
@@ -232,15 +247,28 @@
     });
   }
 
-  function bindControls() {
-    ["noiseGateEnabled", "eqEnabled", "cabEnabled"].forEach((id) => {
-      $(id).addEventListener("change", (event) => {
-        const value = !!event.target.checked;
-        state.parameters[id] = value;
-        send({ type: "setParameter", id, value: value ? 1 : 0 });
-        renderSignalPath();
-      });
+  function bindToggle(buttonId, paramId) {
+    const el = $(buttonId);
+    if (!el) return;
+    el.addEventListener("click", () => {
+      const next = !(state.parameters[paramId]);
+      state.parameters[paramId] = next;
+      setToggle(paramId === "noiseGateEnabled" ? "noiseGateEnabled" : paramId, next);
+      if (paramId === "noiseGateEnabled") setToggle("noiseGateEnabled", next);
+      send({ type: "setParameter", id: paramId, value: next ? 1 : 0 });
+      renderSignalPath();
+      if (paramId === "cabEnabled") {
+        const cabLed = $("cabLed");
+        if (cabLed) cabLed.classList.toggle("on", next && state.irLoaded);
+      }
     });
+  }
+
+  function bindControls() {
+    bindToggle("noiseGateEnabled", "noiseGateEnabled");
+    bindToggle("noiseGateEnabledCard", "noiseGateEnabled");
+    bindToggle("eqEnabled", "eqEnabled");
+    bindToggle("cabEnabled", "cabEnabled");
 
     $("presetSelect").addEventListener("change", (event) => {
       send({ type: "loadPreset", name: event.target.value });

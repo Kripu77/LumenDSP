@@ -375,7 +375,12 @@ void LumenDSPAudioProcessorEditor::handleOpenAudioSettings()
 
 float LumenDSPAudioProcessorEditor::readParameter(const juce::String& parameterId) const
 {
-    if (auto* value = audioProcessor.getValueTreeState().getRawParameterValue(parameterId))
-        return value->load();
-    return 0.0f;
+    auto* parameter = audioProcessor.getValueTreeState().getParameter(parameterId);
+    if (parameter == nullptr)
+        return 0.0f;
+
+    if (auto* ranged = dynamic_cast<juce::RangedAudioParameter*>(parameter))
+        return ranged->convertFrom0to1(ranged->getValue());
+
+    return parameter->getValue();
 }

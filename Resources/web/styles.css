@@ -1,29 +1,32 @@
 :root {
-  --bg-primary: #111116;
-  --bg-secondary: #18181e;
-  --bg-tertiary: #1e1e25;
-  --bg-card: #22222a;
+  --bg-primary: #0e0e13;
+  --bg-secondary: #16161c;
+  --bg-tertiary: #1c1c24;
+  --bg-card: #1f1f28;
   --bg-elevated: #2a2a34;
   --border: #32323e;
-  --border-strong: #424250;
-  --text-primary: #ebebf4;
-  --text-secondary: #b8b8c8;
-  --text-muted: #8888a0;
+  --border-strong: #454556;
+  --text-primary: #f0f0f8;
+  --text-secondary: #c4c4d4;
+  --text-muted: #8e8ea4;
   --accent: #ff8850;
   --accent-dim: #e86838;
   --success: #2ec868;
-  --success-dim: #1f9a4c;
   --danger: #d06060;
-  --radius: 12px;
-  --shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+  --radius: 14px;
+  --shadow: 0 12px 40px rgba(0, 0, 0, 0.55);
   --font: "SF Pro Text", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --knob-sprite: url("assets/knob/knob-with-green-glow-active.png");
+  --knob-mini-sprite: url("assets/knob/mini-chrome-style-knob.png");
 }
 
 * { box-sizing: border-box; }
 html, body {
   margin: 0;
   height: 100%;
-  background: var(--bg-primary);
+  background:
+    radial-gradient(1200px 500px at 50% -10%, rgba(255, 136, 80, 0.08), transparent 55%),
+    var(--bg-primary);
   color: var(--text-primary);
   font-family: var(--font);
   overflow: hidden;
@@ -42,27 +45,41 @@ html, body {
   display: flex;
   align-items: center;
   gap: 14px;
-  min-height: 88px;
+  min-height: 92px;
   padding: 10px 14px;
-  background: linear-gradient(180deg, #1a1a22 0%, #14141a 100%);
+  background:
+    linear-gradient(180deg, rgba(40,40,50,0.9) 0%, rgba(18,18,24,0.96) 100%);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
 }
 
-.brand { min-width: 72px; line-height: 1.1; }
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 108px;
+}
+.brand-mark {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  object-fit: cover;
+  box-shadow: 0 0 0 1px rgba(255,136,80,0.35);
+}
 .brand-lumen {
   display: block;
   color: var(--accent);
   font-weight: 800;
-  letter-spacing: 0.04em;
-  font-size: 14px;
+  letter-spacing: 0.06em;
+  font-size: 13px;
 }
 .brand-dsp {
   display: block;
   color: var(--text-primary);
   font-weight: 700;
   font-size: 15px;
+  line-height: 1.1;
 }
 
 .io-group, .gate-group, .preset-group {
@@ -76,7 +93,7 @@ html, body {
   flex: 1;
   min-width: 280px;
   justify-content: center;
-  background: var(--bg-elevated);
+  background: rgba(0,0,0,0.28);
   border: 1px solid var(--border);
   border-radius: 999px;
   padding: 6px 10px;
@@ -91,7 +108,7 @@ html, body {
   font: inherit;
   font-size: 13px;
 }
-.preset-group select { max-width: 180px; }
+.preset-group select { max-width: 190px; }
 .preset-group input {
   width: 110px;
   border-left: 1px solid var(--border);
@@ -101,15 +118,15 @@ html, body {
 
 .btn {
   border: 1px solid var(--border-strong);
-  background: linear-gradient(180deg, #32323e 0%, #262630 100%);
+  background: linear-gradient(180deg, #383846 0%, #262630 100%);
   color: var(--text-primary);
-  border-radius: 8px;
+  border-radius: 9px;
   padding: 8px 12px;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 650;
   cursor: pointer;
 }
-.btn:hover { border-color: var(--accent); color: #fff; }
+.btn:hover { border-color: var(--accent); }
 .btn-accent {
   background: linear-gradient(180deg, var(--accent) 0%, var(--accent-dim) 100%);
   border-color: transparent;
@@ -121,12 +138,12 @@ html, body {
   flex-direction: column;
   align-items: center;
   gap: 4px;
-  min-width: 64px;
+  min-width: 68px;
 }
 .knob-label {
   font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
+  font-weight: 750;
+  letter-spacing: 0.1em;
   color: var(--text-muted);
 }
 .knob-value {
@@ -134,56 +151,36 @@ html, body {
   color: var(--text-secondary);
   font-variant-numeric: tabular-nums;
 }
+
 .knob {
-  width: 48px;
-  height: 48px;
+  width: 76px;
+  height: 76px;
   border-radius: 50%;
   position: relative;
   cursor: ns-resize;
   touch-action: none;
-  background: conic-gradient(
-    from 225deg,
-    var(--success) 0deg,
-    var(--success) calc(var(--pct, 0) * 2.7deg),
-    rgba(255,255,255,0.08) calc(var(--pct, 0) * 2.7deg),
-    rgba(255,255,255,0.08) 270deg,
-    transparent 270deg
-  );
-  box-shadow: 0 2px 8px rgba(0,0,0,0.45);
-}
-.knob::before {
-  content: "";
-  position: absolute;
-  inset: 5px;
-  border-radius: 50%;
-  background: linear-gradient(180deg, #4a4a5c 0%, #1c1c24 100%);
-  box-shadow:
-    inset 0 1px 1px rgba(255,255,255,0.12),
-    inset 0 -2px 4px rgba(0,0,0,0.5);
-}
-.knob::after {
-  content: "";
-  position: absolute;
-  left: 50%;
-  top: 10px;
-  width: 2px;
-  height: 10px;
-  margin-left: -1px;
-  border-radius: 1px;
-  background: #e8e8f0;
-  transform-origin: 50% 14px;
+  background-image: var(--knob-sprite);
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
   transform: rotate(calc(-135deg + var(--pct, 0) * 2.7deg));
-  z-index: 2;
+  filter: drop-shadow(0 6px 10px rgba(0,0,0,0.45));
 }
-.knob-wrap.large .knob { width: 64px; height: 64px; }
-.knob-wrap.large .knob::before { inset: 6px; }
-.knob-wrap.large .knob::after { top: 12px; height: 14px; transform-origin: 50% 20px; }
+.knob-mini {
+  width: 50px;
+  height: 50px;
+  background-image: var(--knob-mini-sprite);
+}
+.knob-main {
+  width: 84px;
+  height: 84px;
+}
 
 .meter-col {
-  width: 10px;
-  height: 64px;
-  border-radius: 6px;
-  background: #1a1a22;
+  width: 11px;
+  height: 66px;
+  border-radius: 7px;
+  background: #121218;
   border: 1px solid var(--border);
   display: flex;
   flex-direction: column-reverse;
@@ -194,98 +191,90 @@ html, body {
 .meter-seg {
   flex: 1;
   border-radius: 1px;
-  background: #2a2a36;
+  background: #242430;
+  background-size: 100% 100%;
 }
-.meter-seg.on { background: var(--success); }
-.meter-seg.warn { background: #e0b040; }
-.meter-seg.clip { background: var(--danger); }
+.meter-seg.on {
+  background-image: url("assets/signal-path/led-strip-green.png");
+  background-color: var(--success);
+}
+.meter-seg.warn {
+  background-image: url("assets/signal-path/led-strip-yellow.png");
+  background-color: #e0b040;
+}
+.meter-seg.clip {
+  background-image: url("assets/signal-path/led-strip-red.png");
+  background-color: var(--danger);
+}
 
-.toggle {
+.hw-toggle {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  cursor: pointer;
-  font-size: 11px;
-  font-weight: 700;
+  border: none;
+  background: transparent;
   color: var(--text-secondary);
-  letter-spacing: 0.04em;
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  padding: 0;
 }
-.toggle input { display: none; }
-.toggle-ui {
-  width: 34px;
-  height: 18px;
-  border-radius: 999px;
-  background: #3a3a48;
-  border: 1px solid var(--border-strong);
-  position: relative;
-  transition: 0.15s ease;
+.hw-toggle img {
+  width: 42px;
+  height: 24px;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));
 }
-.toggle-ui::after {
-  content: "";
-  position: absolute;
-  top: 1px;
-  left: 2px;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: #c8c8d4;
-  transition: 0.15s ease;
-}
-.toggle input:checked + .toggle-ui {
-  background: color-mix(in srgb, var(--accent) 55%, #2a2a34);
-  border-color: var(--accent);
-}
-.toggle input:checked + .toggle-ui::after {
-  left: 16px;
-  background: var(--accent);
-}
-.toggle.inline { margin-top: 8px; }
+.hw-toggle.inline { margin-top: 4px; align-self: flex-start; }
 
 .signal-path {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 10px;
-  min-height: 72px;
+  gap: 12px;
+  min-height: 78px;
 }
 
 .path-node {
-  background: var(--bg-card);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.03), transparent 40%),
+    var(--bg-card);
   border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 12px 14px;
+  border-radius: 12px;
+  padding: 12px 14px 12px 12px;
   position: relative;
-  min-height: 68px;
+  min-height: 74px;
+  display: grid;
+  grid-template-columns: 36px 1fr;
+  gap: 10px;
+  align-items: center;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
 }
 .path-node::after {
-  content: "→";
+  content: "";
   position: absolute;
-  right: -12px;
+  right: -14px;
   top: 50%;
+  width: 18px;
+  height: 14px;
   transform: translateY(-50%);
-  color: var(--success);
-  font-weight: 700;
-  z-index: 1;
+  background: url("assets/signal-path/signal-path-connector.png") center / contain no-repeat;
+  z-index: 2;
+  opacity: 0.9;
 }
 .path-node:last-child::after { content: none; }
-.path-node .dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  display: inline-block;
-  margin-right: 8px;
-  background: var(--text-muted);
-  box-shadow: 0 0 0 3px transparent;
+.path-icon {
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 6px rgba(0,0,0,0.45));
 }
-.path-node.on .dot {
-  background: var(--success);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--success) 25%, transparent);
-}
-.path-node.amp.on .dot { background: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent); }
 .path-title {
   font-size: 12px;
   font-weight: 800;
-  letter-spacing: 0.06em;
-  margin-bottom: 4px;
+  letter-spacing: 0.08em;
+  margin-bottom: 3px;
 }
 .path-detail {
   font-size: 11px;
@@ -294,24 +283,32 @@ html, body {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+.path-node.on .path-title { color: var(--text-primary); }
+.path-node.amp.on {
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 20%, transparent);
+}
 
 .workspace {
   display: grid;
-  grid-template-columns: 1.4fr 1fr;
+  grid-template-columns: 0.9fr 1.35fr 1fr;
   gap: 12px;
   min-height: 0;
 }
 
 .card {
-  background: var(--bg-card);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.025), transparent 28%),
+    var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
-  padding: 16px;
+  padding: 14px;
   min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 12px;
+  overflow: hidden;
 }
 .card-head {
   display: flex;
@@ -321,13 +318,17 @@ html, body {
 }
 .card-head h2 {
   margin: 0;
-  font-size: 16px;
-  font-weight: 700;
+  font-size: 15px;
+  font-weight: 750;
 }
 .status {
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 650;
   color: var(--text-muted);
+  max-width: 55%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .status.ok { color: var(--success); }
 .status.warn { color: var(--accent); }
@@ -338,55 +339,114 @@ html, body {
   justify-content: space-between;
   gap: 12px;
   padding: 12px 14px;
-  border-radius: 10px;
-  background: var(--bg-tertiary);
+  border-radius: 12px;
+  background: rgba(0,0,0,0.22);
   border: 1px solid var(--border);
 }
 .resource-title {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 0.08em;
   color: var(--text-muted);
   text-transform: uppercase;
 }
 .resource-name {
   margin-top: 4px;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 650;
   color: var(--text-primary);
+}
+
+.pedal-stage {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  place-items: center;
+  position: relative;
+  border-radius: 12px;
+  background:
+    radial-gradient(circle at 50% 30%, rgba(255,136,80,0.08), transparent 55%),
+    linear-gradient(180deg, #23232c 0%, #15151b 100%);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+.pedal-art {
+  width: min(88%, 280px);
+  height: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 18px 28px rgba(0,0,0,0.55));
+  transform: translateY(4px);
+}
+.overlay-knob {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  padding: 8px 10px 6px;
+  border-radius: 12px;
+  background: rgba(10,10,14,0.55);
+  border: 1px solid rgba(255,255,255,0.06);
+  backdrop-filter: blur(6px);
+}
+
+.amp-hero {
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: #101014;
+  display: grid;
+  place-items: center;
+  min-height: 140px;
+  max-height: 180px;
+}
+.amp-hero img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
 }
 
 .knob-row {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 8px;
-  padding: 18px 12px;
+  padding: 16px 8px 12px;
   border-radius: 12px;
   background:
-    radial-gradient(ellipse at 50% 0%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 60%),
-    linear-gradient(180deg, #2a2a34 0%, #1c1c24 100%);
+    radial-gradient(ellipse at 50% 0%, rgba(255,136,80,0.12), transparent 60%),
+    linear-gradient(180deg, #262630 0%, #17171e 100%);
   border: 1px solid var(--border);
 }
-.knob-row .knob { width: 72px; height: 72px; }
-.knob-row .knob::before { inset: 7px; }
-.knob-row .knob::after { top: 14px; height: 16px; transform-origin: 50% 22px; }
 
-.cab-visual {
-  height: 140px;
-  border-radius: 12px;
-  border: 1px solid var(--border);
-  background:
-    radial-gradient(circle at 50% 50%, #4a4a58 0%, #2a2a34 42%, #16161c 43%, #101016 100%);
+.cab-hero {
   position: relative;
+  flex: 1;
+  min-height: 160px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: #121218;
+  display: grid;
+  place-items: center;
 }
-.cab-visual::before {
-  content: "";
+.cab-hero img#cabArt {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  opacity: 0.95;
+}
+.cab-led {
   position: absolute;
-  inset: 28%;
-  border-radius: 50%;
-  border: 2px solid #3a3a48;
-  box-shadow: inset 0 0 0 10px #1c1c24, inset 0 0 0 18px #2e2e3a;
+  top: 12px;
+  right: 12px;
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 10px rgba(255,136,80,0.75));
+  opacity: 0.25;
+  transition: opacity 0.15s ease;
 }
+.cab-led.on { opacity: 1; }
 
 .status-bar {
   display: flex;
@@ -397,7 +457,11 @@ html, body {
   padding: 0 4px;
 }
 
-@media (max-width: 980px) {
+@media (max-width: 1100px) {
+  .workspace { grid-template-columns: 1fr 1.2fr; }
+  .card-cab { grid-column: 1 / -1; }
+}
+@media (max-width: 860px) {
   .workspace { grid-template-columns: 1fr; }
   .control-bar { flex-wrap: wrap; height: auto; }
   .io-group.out { margin-left: 0; }
