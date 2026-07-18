@@ -7,7 +7,10 @@
 
 bool LumenWebBrowser::pageAboutToLoad(const juce::String& newURL)
 {
-    if (newURL.startsWith("http://juce.backend")
+    // macOS/Linux/iOS use juce://juce.backend/; Windows/Android use https://juce.backend/
+    if (newURL == getResourceProviderRoot()
+        || newURL.startsWith("juce://juce.backend")
+        || newURL.startsWith("http://juce.backend")
         || newURL.startsWith("https://juce.backend")
         || newURL.startsWith("file:")
         || newURL.startsWith("data:"))
@@ -63,19 +66,23 @@ window.lumenPostMessage = function(payload) {
 #endif
 
 #if JUCE_WEB_BROWSER_RESOURCE_PROVIDER_AVAILABLE
+        // Resource provider root is platform-specific (juce:// on Mac/Linux, https:// on Win).
+        // No allowedOrigin needed when serving only from the embedded resource provider.
         options = options.withResourceProvider(
-            [this](const auto& url) { return getResource(url); },
-            juce::String{ "http://juce.backend/" });
+            [this](const auto& url) { return getResource(url); });
 #endif
 
         return options;
     }())
 {
-    setSize(1100, 720);
-    setResizeLimits(920, 620, 1600, 1000);
+    setSize(1120, 760);
+    setResizeLimits(960, 640, 1800, 1200);
     setResizable(true, true);
 
     addAndMakeVisible(webView);
+
+    // Guitar amp sim needs live input; JUCE standalone defaults to mute-input (anti-feedback).
+    ensureStandaloneInputUnmuted();
 
 #if JUCE_WEB_BROWSER_RESOURCE_PROVIDER_AVAILABLE
     webView.goToURL(juce::WebBrowserComponent::getResourceProviderRoot());
@@ -105,10 +112,55 @@ void LumenDSPAudioProcessorEditor::resized()
 
 void LumenDSPAudioProcessorEditor::timerCallback()
 {
+    // Keep re-asserting unmute in case the host settings window reloads mute-on-default.
+    ensureStandaloneInputUnmuted();
+
     if (!webReady)
         return;
 
+    const auto& namEngine = audioProcessor.getAudioPipeline().getNamEngine();
+    const bool loading = namEngine.isModelLoading();
+    const bool loaded = namEngine.isModelLoaded();
+    const auto modelName = namEngine.getLoadedModelName();
+    const auto status = [&]() -> juce::String {
+        if (loading)
+            return "Loading NAM model...";
+        if (loaded)
+            return "Model: " + modelName;
+        if (namEngine.getLastErrorMessage().isNotEmpty())
+            return namEngine.getLastErrorMessage();
+        return "Ready — load a NAM model or factory preset";
+    }();
+
+    // Push full state when model load status changes (async load used to leave UI stuck on "Loading…").
+    if (loading != lastModelLoading
+        || loaded != lastModelLoaded
+        || modelName != lastModelName
+        || status != lastStatus)
+    {
+        lastModelLoading = loading;
+        lastModelLoaded = loaded;
+        lastModelName = modelName;
+        lastStatus = status;
+        pushStateToWeb();
+    }
+
     pushMetersToWeb();
+}
+
+void LumenDSPAudioProcessorEditor::ensureStandaloneInputUnmuted()
+{
+#if JucePlugin_Build_Standalone
+    if (auto* holder = juce::StandalonePluginHolder::getInstance())
+    {
+        if (static_cast<bool>(holder->getMuteInputValue().getValue()))
+            holder->getMuteInputValue() = false;
+
+        if (auto* settings = holder->settings.get())
+            if (settings->getBoolValue("shouldMuteInput", false))
+                settings->setValue("shouldMuteInput", false);
+    }
+#endif
 }
 
 void LumenDSPAudioProcessorEditor::handleWebMessage(const juce::String& message)
@@ -217,7 +269,7 @@ juce::var LumenDSPAudioProcessorEditor::buildStateObject() const
     object->setProperty("irLoaded", ir.isLoaded());
     object->setProperty("irName", ir.getLoadedFileName());
 
-    juce::String status = "Ready";
+    juce::String status = "Ready — load a NAM model or factory preset";
     if (namEngine.isModelLoading())
         status = "Loading NAM model...";
     else if (namEngine.isModelLoaded())
@@ -258,15 +310,23 @@ juce::File LumenDSPAudioProcessorEditor::getWebResourceRoot() const
 
 std::optional<juce::WebBrowserComponent::Resource> LumenDSPAudioProcessorEditor::getResource(const juce::String& url)
 {
-    auto path = url.fromFirstOccurrenceOf("://", false, false);
-    path = path.fromFirstOccurrenceOf("/", false, false);
-    if (path.isEmpty() || path == "juce.backend" || path.endsWithIgnoreCase("juce.backend/"))
-        path = "index.html";
-
-    path = path.upToFirstOccurrenceOf("?", false, false);
+    // On macOS the resource provider receives URL paths like "/" or "/styles.css"
+    // (not a full scheme URL). Match JUCE WebViewPluginDemo handling.
+    auto path = url.upToFirstOccurrenceOf("?", false, false);
     path = juce::URL::removeEscapeChars(path);
 
+    if (path.isEmpty() || path == "/")
+        path = "index.html";
+    else if (path.startsWithChar('/'))
+        path = path.fromFirstOccurrenceOf("/", false, false);
+
+    if (path.isEmpty())
+        path = "index.html";
+
     auto file = webResourceRoot.getChildFile(path);
+    if (!file.existsAsFile() && path != "index.html")
+        return std::nullopt;
+
     if (!file.existsAsFile())
         file = webResourceRoot.getChildFile("index.html");
 

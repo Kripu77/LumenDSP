@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 320" fill="none">
+  <defs>
+    <linearGradient id="chassis" x1="40" y1="20" x2="240" y2="300" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#3a3a48"/>
+      <stop offset="0.45" stop-color="#22222c"/>
+      <stop offset="1" stop-color="#121218"/>
+    </linearGradient>
+    <linearGradient id="top" x1="50" y1="30" x2="230" y2="200" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#4a4a5c"/>
+      <stop offset="1" stop-color="#1c1c24"/>
+    </linearGradient>
+    <linearGradient id="knobMetal" x1="100" y1="70" x2="150" y2="130" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#7a7a90"/>
+      <stop offset="0.5" stop-color="#3a3a48"/>
+      <stop offset="1" stop-color="#1a1a22"/>
+    </linearGradient>
+    <radialGradient id="ledOn" cx="40%" cy="35%" r="60%">
+      <stop stop-color="#9ef0b8"/>
+      <stop offset="1" stop-color="#2ec868"/>
+    </radialGradient>
+    <filter id="shadow" x="-15%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="14" stdDeviation="12" flood-color="#000" flood-opacity="0.55"/>
+    </filter>
+  </defs>
+
+  <!-- isometric-ish body -->
+  <g filter="url(#shadow)">
+    <path d="M48 48h168c10 0 18 8 18 18v188c0 10-8 18-18 18H48c-10 0-18-8-18-18V66c0-10 8-18 18-18z"
+          fill="url(#chassis)" stroke="#4a4a5c" stroke-width="1.5"/>
+    <!-- top face highlight -->
+    <path d="M48 48h168c10 0 18 8 18 18v36H30V66c0-10 8-18 18-18z" fill="url(#top)" opacity="0.9"/>
+    <!-- side edge -->
+    <path d="M234 66v188c0 10-8 18-18 18h-8V66h26z" fill="#0e0e13" opacity="0.45"/>
+  </g>
+
+  <!-- screws -->
+  <g fill="#2a2a34" stroke="#5a5a6c" stroke-width="0.8">
+    <circle cx="52" cy="60" r="4"/>
+    <circle cx="228" cy="60" r="4"/>
+    <circle cx="52" cy="256" r="4"/>
+    <circle cx="228" cy="256" r="4"/>
+  </g>
+  <g stroke="#8a8a9c" stroke-width="0.7" stroke-linecap="round">
+    <path d="M50 58l4 4M54 58l-4 4"/>
+    <path d="M226 58l4 4M230 58l-4 4"/>
+    <path d="M50 254l4 4M54 254l-4 4"/>
+    <path d="M226 254l4 4M230 254l-4 4"/>
+  </g>
+
+  <!-- brand plate -->
+  <rect x="72" y="150" width="136" height="48" rx="6" fill="#0e0e13" stroke="#ff8850" stroke-opacity="0.35" stroke-width="1.2"/>
+  <text x="140" y="172" text-anchor="middle" fill="#ff8850" font-family="system-ui,Segoe UI,sans-serif" font-size="13" font-weight="700" letter-spacing="0.18em">LUMEN</text>
+  <text x="140" y="188" text-anchor="middle" fill="#8e8ea4" font-family="system-ui,Segoe UI,sans-serif" font-size="10" font-weight="600" letter-spacing="0.28em">GATE</text>
+
+  <!-- threshold knob -->
+  <circle cx="110" cy="100" r="28" fill="url(#knobMetal)" stroke="#5a5a6c" stroke-width="1.5"/>
+  <circle cx="110" cy="100" r="20" fill="#1a1a22"/>
+  <rect x="107" y="78" width="6" height="16" rx="3" fill="#ff8850"/>
+  <circle cx="110" cy="100" r="5" fill="#121218" stroke="#4a4a5c" stroke-width="1"/>
+
+  <!-- status LED -->
+  <circle cx="178" cy="96" r="8" fill="#0e0e13" stroke="#2a2a34" stroke-width="1"/>
+  <circle cx="178" cy="96" r="5" fill="url(#ledOn)"/>
+  <circle cx="176" cy="94" r="1.8" fill="#ffffff" fill-opacity="0.55"/>
+
+  <!-- footswitch -->
+  <circle cx="140" cy="230" r="28" fill="#2a2a34" stroke="#5a5a6c" stroke-width="1.5"/>
+  <circle cx="140" cy="230" r="18" fill="#1c1c24" stroke="#3a3a48" stroke-width="1"/>
+  <circle cx="140" cy="230" r="10" fill="#2a2a34"/>
+  <circle cx="134" cy="224" r="4" fill="#ffffff" fill-opacity="0.08"/>
+
+  <!-- jack hint on side -->
+  <ellipse cx="234" cy="180" rx="5" ry="8" fill="#0a0a0e" stroke="#3a3a48" stroke-width="1"/>
+  <ellipse cx="234" cy="180" rx="2.2" ry="3.5" fill="#1a1a22"/>
+</svg>

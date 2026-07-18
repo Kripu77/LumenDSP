@@ -63,7 +63,9 @@ bool NamEngine::loadModelAsync(const juce::File& modelFile)
 {
     if (!modelFile.existsAsFile())
     {
-        lastErrorMessage = "Model file does not exist.";
+        std::lock_guard<std::mutex> lock(modelMutex);
+        lastErrorMessage = "Model file does not exist: " + modelFile.getFullPathName();
+        modelLoading.store(false, std::memory_order_relaxed);
         return false;
     }
 
@@ -71,8 +73,10 @@ bool NamEngine::loadModelAsync(const juce::File& modelFile)
 
     try
     {
+        // prewarm can take a very long time (or appear stuck) on WaveNet models.
+        // Skip it so the model becomes playable quickly; first notes may be slightly cold.
         nam::DspLoadOptions loadOptions;
-        loadOptions.prewarm = true;
+        loadOptions.prewarm = false;
 
         auto loadedModel = nam::get_dsp(
             std::filesystem::path(modelFile.getFullPathName().toStdString()),
@@ -80,6 +84,7 @@ bool NamEngine::loadModelAsync(const juce::File& modelFile)
 
         if (loadedModel == nullptr)
         {
+            std::lock_guard<std::mutex> lock(modelMutex);
             lastErrorMessage = "NeuralAmpModelerCore returned an empty model.";
             modelLoading.store(false, std::memory_order_relaxed);
             return false;
@@ -95,6 +100,17 @@ bool NamEngine::loadModelAsync(const juce::File& modelFile)
             stagedModelName = modelFile.getFileName();
             lastErrorMessage.clear();
             stagedModelReady.store(true, std::memory_order_release);
+
+            // Promote immediately so UI/status update without waiting for the audio thread.
+            // process() also calls applyStagedModel(); double-apply is a no-op if already moved.
+            if (stagedModel != nullptr)
+            {
+                activeModel = std::move(stagedModel);
+                activeModelFile = stagedModelFile;
+                activeModelName = stagedModelName;
+                stagedModelReady.store(false, std::memory_order_relaxed);
+                modelLoaded.store(true, std::memory_order_relaxed);
+            }
         }
 
         modelLoading.store(false, std::memory_order_relaxed);
@@ -102,12 +118,14 @@ bool NamEngine::loadModelAsync(const juce::File& modelFile)
     }
     catch (const std::exception& exception)
     {
+        std::lock_guard<std::mutex> lock(modelMutex);
         lastErrorMessage = juce::String("Failed to load model: ") + exception.what();
         modelLoading.store(false, std::memory_order_relaxed);
         return false;
     }
     catch (...)
     {
+        std::lock_guard<std::mutex> lock(modelMutex);
         lastErrorMessage = "Failed to load model for an unknown reason.";
         modelLoading.store(false, std::memory_order_relaxed);
         return false;

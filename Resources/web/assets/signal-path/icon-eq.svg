@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none">
+  <defs>
+    <linearGradient id="panel" x1="8" y1="8" x2="40" y2="40" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#32324a"/>
+      <stop offset="1" stop-color="#1a1a28"/>
+    </linearGradient>
+  </defs>
+  <rect x="7" y="8" width="34" height="32" rx="5" fill="url(#panel)" stroke="#4a4a68" stroke-width="1"/>
+  <!-- three EQ sliders -->
+  <g stroke="#6888b8" stroke-width="2.2" stroke-linecap="round">
+    <path d="M16 14v20"/>
+    <path d="M24 14v20"/>
+    <path d="M32 14v20"/>
+  </g>
+  <circle cx="16" cy="28" r="3.2" fill="#ff8850"/>
+  <circle cx="24" cy="18" r="3.2" fill="#2ec868"/>
+  <circle cx="32" cy="24" r="3.2" fill="#ff8850"/>
+  <circle cx="16" cy="28" r="1.2" fill="#ffd0b0"/>
+  <circle cx="24" cy="18" r="1.2" fill="#9ef0b8"/>
+  <circle cx="32" cy="24" r="1.2" fill="#ffd0b0"/>
+</svg>

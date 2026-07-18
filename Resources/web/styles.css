@@ -16,8 +16,8 @@
   --radius: 14px;
   --shadow: 0 12px 40px rgba(0, 0, 0, 0.55);
   --font: "SF Pro Text", "Segoe UI", system-ui, -apple-system, sans-serif;
-  --knob-sprite: url("assets/knob/knob-with-green-glow-active.png");
-  --knob-mini-sprite: url("assets/knob/mini-chrome-style-knob.png");
+  --knob-sprite: url("assets/knob/knob-main.svg");
+  --knob-mini-sprite: url("assets/knob/knob-mini.svg");
 }
 
 * { box-sizing: border-box; }
@@ -36,22 +36,24 @@ html, body {
 #app {
   height: 100%;
   display: grid;
-  grid-template-rows: auto auto 1fr auto;
-  gap: 12px;
-  padding: 12px;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  gap: 10px;
+  padding: 10px;
+  min-height: 0;
 }
 
 .control-bar {
   display: flex;
   align-items: center;
-  gap: 14px;
-  min-height: 92px;
-  padding: 10px 14px;
+  gap: 12px;
+  min-height: 84px;
+  padding: 8px 12px;
   background:
     linear-gradient(180deg, rgba(40,40,50,0.9) 0%, rgba(18,18,24,0.96) 100%);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
+  flex-shrink: 0;
 }
 
 .brand {
@@ -64,7 +66,7 @@ html, body {
   width: 40px;
   height: 40px;
   border-radius: 10px;
-  object-fit: cover;
+  object-fit: contain;
   box-shadow: 0 0 0 1px rgba(255,136,80,0.35);
 }
 .brand-lumen {
@@ -159,21 +161,46 @@ html, body {
   position: relative;
   cursor: ns-resize;
   touch-action: none;
+  /* fixed value ring — does not rotate with the cap */
+  background:
+    conic-gradient(
+      from 225deg,
+      var(--success) 0deg,
+      var(--success) calc(var(--pct, 0) * 2.7deg),
+      rgba(255, 255, 255, 0.08) calc(var(--pct, 0) * 2.7deg),
+      rgba(255, 255, 255, 0.08) 270deg,
+      transparent 270deg
+    );
+  box-shadow:
+    0 0 0 1px rgba(46, 200, 104, 0.12),
+    0 6px 12px rgba(0, 0, 0, 0.45);
+}
+.knob::before {
+  content: "";
+  position: absolute;
+  inset: 5px;
+  border-radius: 50%;
   background-image: var(--knob-sprite);
   background-size: contain;
   background-repeat: no-repeat;
   background-position: center;
   transform: rotate(calc(-135deg + var(--pct, 0) * 2.7deg));
-  filter: drop-shadow(0 6px 10px rgba(0,0,0,0.45));
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.35));
 }
 .knob-mini {
   width: 50px;
   height: 50px;
+}
+.knob-mini::before {
+  inset: 4px;
   background-image: var(--knob-mini-sprite);
 }
 .knob-main {
   width: 84px;
   height: 84px;
+}
+.knob-main::before {
+  inset: 6px;
 }
 
 .meter-col {
@@ -195,15 +222,15 @@ html, body {
   background-size: 100% 100%;
 }
 .meter-seg.on {
-  background-image: url("assets/signal-path/led-strip-green.png");
+  background-image: url("assets/signal-path/led-strip-green.svg");
   background-color: var(--success);
 }
 .meter-seg.warn {
-  background-image: url("assets/signal-path/led-strip-yellow.png");
+  background-image: url("assets/signal-path/led-strip-yellow.svg");
   background-color: #e0b040;
 }
 .meter-seg.clip {
-  background-image: url("assets/signal-path/led-strip-red.png");
+  background-image: url("assets/signal-path/led-strip-red.svg");
   background-color: var(--danger);
 }
 
@@ -222,8 +249,8 @@ html, body {
   padding: 0;
 }
 .hw-toggle img {
-  width: 42px;
-  height: 24px;
+  width: 44px;
+  height: 26px;
   object-fit: contain;
   filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));
 }
@@ -232,8 +259,9 @@ html, body {
 .signal-path {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
-  min-height: 78px;
+  gap: 10px;
+  min-height: 68px;
+  flex-shrink: 0;
 }
 
 .path-node {
@@ -242,12 +270,12 @@ html, body {
     var(--bg-card);
   border: 1px solid var(--border);
   border-radius: 12px;
-  padding: 12px 14px 12px 12px;
+  padding: 10px 12px 10px 10px;
   position: relative;
-  min-height: 74px;
+  min-height: 64px;
   display: grid;
-  grid-template-columns: 36px 1fr;
-  gap: 10px;
+  grid-template-columns: 32px 1fr;
+  gap: 8px;
   align-items: center;
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
 }
@@ -259,7 +287,7 @@ html, body {
   width: 18px;
   height: 14px;
   transform: translateY(-50%);
-  background: url("assets/signal-path/signal-path-connector.png") center / contain no-repeat;
+  background: url("assets/signal-path/signal-path-connector.svg") center / contain no-repeat;
   z-index: 2;
   opacity: 0.9;
 }
@@ -289,11 +317,16 @@ html, body {
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
+/* Three stage cards side-by-side at default plugin size (~1100×720) */
 .workspace {
   display: grid;
-  grid-template-columns: 0.9fr 1.35fr 1fr;
-  gap: 12px;
+  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.35fr) minmax(0, 1.05fr);
+  grid-template-rows: minmax(0, 1fr);
+  gap: 10px;
   min-height: 0;
+  height: 100%;
+  overflow: hidden;
+  align-items: stretch;
 }
 
 .card {
@@ -303,26 +336,28 @@ html, body {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
-  padding: 14px;
+  padding: 10px;
   min-height: 0;
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
   overflow: hidden;
 }
 .card-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 8px;
+  flex: 0 0 auto;
 }
 .card-head h2 {
   margin: 0;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 750;
 }
 .status {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 650;
   color: var(--text-muted);
   max-width: 55%;
@@ -337,31 +372,36 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: 12px 14px;
-  border-radius: 12px;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
   background: rgba(0,0,0,0.22);
   border: 1px solid var(--border);
+  flex: 0 0 auto;
+  min-height: 0;
 }
 .resource-title {
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 750;
   letter-spacing: 0.08em;
   color: var(--text-muted);
   text-transform: uppercase;
 }
 .resource-name {
-  margin-top: 4px;
-  font-size: 13px;
+  margin-top: 2px;
+  font-size: 12px;
   font-weight: 650;
   color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 18ch;
 }
 
+/* ——— Gate card ——— */
 .pedal-stage {
-  flex: 1;
+  flex: 1 1 auto;
   min-height: 0;
-  display: grid;
-  place-items: center;
   position: relative;
   border-radius: 12px;
   background:
@@ -371,80 +411,124 @@ html, body {
   overflow: hidden;
 }
 .pedal-art {
-  width: min(88%, 280px);
+  position: absolute;
+  /* leave room for overlay threshold knob on the right */
+  inset: 8px 96px 8px 8px;
+  width: auto;
   height: auto;
+  max-width: calc(100% - 104px);
+  max-height: calc(100% - 16px);
+  margin: auto;
+  left: 8px;
+  right: 96px;
+  top: 8px;
+  bottom: 8px;
   object-fit: contain;
-  filter: drop-shadow(0 18px 28px rgba(0,0,0,0.55));
-  transform: translateY(4px);
+  object-position: center;
+  filter: drop-shadow(0 10px 18px rgba(0,0,0,0.55));
+  pointer-events: none;
 }
 .overlay-knob {
   position: absolute;
-  right: 12px;
-  bottom: 12px;
-  padding: 8px 10px 6px;
-  border-radius: 12px;
-  background: rgba(10,10,14,0.55);
+  right: 8px;
+  bottom: 8px;
+  padding: 6px 8px 4px;
+  border-radius: 10px;
+  background: rgba(10,10,14,0.6);
   border: 1px solid rgba(255,255,255,0.06);
   backdrop-filter: blur(6px);
+  z-index: 2;
+}
+.overlay-knob .knob-main {
+  width: 64px;
+  height: 64px;
 }
 
+/* ——— Amp card ——— */
+.card-amp {
+  gap: 8px;
+}
 .amp-hero {
+  position: relative;
+  flex: 1 1 0;
+  min-height: 64px;
   border-radius: 12px;
   overflow: hidden;
   border: 1px solid var(--border);
   background: #101014;
-  display: grid;
-  place-items: center;
-  min-height: 140px;
-  max-height: 180px;
 }
 .amp-hero img {
-  width: 100%;
-  height: 100%;
+  position: absolute;
+  inset: 8px 12px;
+  width: calc(100% - 24px);
+  height: calc(100% - 16px);
   object-fit: contain;
-  display: block;
+  object-position: center;
 }
 
 .knob-row {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  padding: 16px 8px 12px;
-  border-radius: 12px;
+  gap: 4px;
+  padding: 8px 4px 6px;
+  border-radius: 10px;
   background:
     radial-gradient(ellipse at 50% 0%, rgba(255,136,80,0.12), transparent 60%),
     linear-gradient(180deg, #262630 0%, #17171e 100%);
   border: 1px solid var(--border);
+  flex: 0 0 auto;
+}
+.knob-row .knob,
+.knob-row .knob-main {
+  width: 56px;
+  height: 56px;
+}
+.knob-row .knob-wrap {
+  min-width: 0;
+  gap: 2px;
+}
+.card-amp .hw-toggle.inline {
+  margin-top: 0;
+  flex: 0 0 auto;
 }
 
+/* ——— Cabinet card ——— */
+.card-cab {
+  gap: 8px;
+}
 .cab-hero {
   position: relative;
-  flex: 1;
-  min-height: 160px;
+  flex: 1 1 auto;
+  min-height: 0;
   border-radius: 12px;
   overflow: hidden;
   border: 1px solid var(--border);
-  background: #121218;
-  display: grid;
-  place-items: center;
+  background:
+    radial-gradient(circle at 50% 40%, rgba(255,136,80,0.06), transparent 55%),
+    linear-gradient(180deg, #1a1a22 0%, #101016 100%);
 }
 .cab-hero img#cabArt {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-  opacity: 0.95;
+  position: absolute;
+  inset: 12px;
+  width: calc(100% - 24px);
+  height: calc(100% - 24px);
+  object-fit: contain;
+  object-position: center;
+  opacity: 0.98;
+  filter: drop-shadow(0 8px 16px rgba(0,0,0,0.45));
+  pointer-events: none;
 }
 .cab-led {
   position: absolute;
-  top: 12px;
-  right: 12px;
+  top: 10px;
+  right: 10px;
   width: 22px;
   height: 22px;
   object-fit: contain;
   filter: drop-shadow(0 0 10px rgba(255,136,80,0.75));
   opacity: 0.25;
   transition: opacity 0.15s ease;
+  z-index: 2;
 }
 .cab-led.on { opacity: 1; }
 
@@ -455,14 +539,58 @@ html, body {
   color: var(--text-muted);
   font-size: 11px;
   padding: 0 4px;
+  flex-shrink: 0;
+  min-height: 18px;
 }
 
-@media (max-width: 1100px) {
-  .workspace { grid-template-columns: 1fr 1.2fr; }
+/* Narrower than default plugin width — stack cab under gate/amp */
+@media (max-width: 980px) {
+  .workspace {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr);
+    grid-template-rows: minmax(0, 1.15fr) minmax(140px, 0.85fr);
+  }
   .card-cab { grid-column: 1 / -1; }
 }
-@media (max-width: 860px) {
-  .workspace { grid-template-columns: 1fr; }
-  .control-bar { flex-wrap: wrap; height: auto; }
+
+@media (max-width: 760px) {
+  .workspace {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: none;
+    overflow: auto;
+  }
+  .card-cab { grid-column: auto; }
+  .card {
+    min-height: 220px;
+  }
+  .control-bar {
+    flex-wrap: wrap;
+    height: auto;
+    min-height: 0;
+  }
   .io-group.out { margin-left: 0; }
+  .preset-group { min-width: 0; flex: 1 1 100%; order: 5; }
+}
+
+/* Taller windows: give art more room, enlarge amp knobs */
+@media (min-height: 780px) {
+  .knob-row .knob,
+  .knob-row .knob-main {
+    width: 68px;
+    height: 68px;
+  }
+  .knob-row {
+    padding: 12px 6px 10px;
+  }
+  .overlay-knob .knob-main {
+    width: 72px;
+    height: 72px;
+  }
+}
+
+@media (min-height: 900px) {
+  .knob-row .knob,
+  .knob-row .knob-main {
+    width: 76px;
+    height: 76px;
+  }
 }

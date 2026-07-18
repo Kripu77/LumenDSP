@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" role="img" aria-label="LumenDSP">
+  <defs>
+    <linearGradient id="bg" x1="12" y1="4" x2="52" y2="60" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#2a2a36"/>
+      <stop offset="1" stop-color="#121218"/>
+    </linearGradient>
+    <linearGradient id="lumen" x1="18" y1="14" x2="46" y2="50" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#ffb080"/>
+      <stop offset="0.55" stop-color="#ff8850"/>
+      <stop offset="1" stop-color="#2ec868"/>
+    </linearGradient>
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="1.6" result="b"/>
+      <feMerge>
+        <feMergeNode in="b"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <rect x="2" y="2" width="60" height="60" rx="14" fill="url(#bg)" stroke="#454556" stroke-width="1"/>
+  <rect x="3.5" y="3.5" width="57" height="57" rx="12.5" stroke="url(#lumen)" stroke-opacity="0.35" stroke-width="1"/>
+  <path filter="url(#glow)" stroke="url(#lumen)" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"
+        d="M22 16v28c0 2.2 1.8 4 4 4h16"/>
+  <circle cx="42" cy="48" r="2.2" fill="#2ec868"/>
+</svg>

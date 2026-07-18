@@ -38,11 +38,17 @@ private:
     void handleOpenAudioSettings();
     float readParameter(const juce::String& parameterId) const;
 
+    void ensureStandaloneInputUnmuted();
+
     LumenDSPAudioProcessor& audioProcessor;
     juce::File webResourceRoot;
     LumenWebBrowser webView;
     std::unique_ptr<juce::FileChooser> fileChooser;
     bool webReady = false;
+    bool lastModelLoading = false;
+    bool lastModelLoaded = false;
+    juce::String lastModelName;
+    juce::String lastStatus;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(LumenDSPAudioProcessorEditor)
 };
