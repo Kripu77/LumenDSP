@@ -23,7 +23,7 @@ The core tone always comes from **your** `.nam` file. LumenDSP does not replace 
 | Tone | Three-band EQ (post-amp, pre-cab) |
 | Presets | Named presets storing model path, IR path, and all control values |
 | Formats | Standalone desktop app and VST3 plugin |
-| UI | Production multi-stage UI (chrome + amp/EQ/cab/input stages), LED meters, hardware-style panels |
+| UI | WebView frontend (HTML/CSS/JS) with dense dark rack layout, JSON bridge to C++ engine |
 
 ### Signal flow
 

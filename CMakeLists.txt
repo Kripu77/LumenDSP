@@ -120,22 +120,10 @@ target_sources(LumenDSP
         Source/audio/AudioPipeline.cpp
         Source/presets/PresetManager.cpp
         Source/presets/FactoryContentInstaller.cpp
-        Source/ui/LumenLookAndFeel.cpp
-        Source/ui/KnobComponent.cpp
-        Source/ui/LedMeterComponent.cpp
-        Source/ui/FileSlotComponent.cpp
-        Source/ui/PresetBarComponent.cpp
-        Source/ui/TopChromeComponent.cpp
-        Source/ui/SectionNavComponent.cpp
-        Source/ui/SignalFlowStrip.cpp
-        Source/ui/InputStageComponent.cpp
-        Source/ui/PedalModuleComponent.cpp
-        Source/ui/AmpFaceplateComponent.cpp
-        Source/ui/EqRackComponent.cpp
-        Source/ui/CabStageComponent.cpp
 )
 
 set(LUMENDSP_FACTORY_CONTENT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/Resources/FactoryContent")
+set(LUMENDSP_WEB_UI_DIR "${CMAKE_CURRENT_SOURCE_DIR}/Resources/web")
 
 
 target_include_directories(LumenDSP
@@ -145,7 +133,7 @@ target_include_directories(LumenDSP
 
 target_compile_definitions(LumenDSP
     PUBLIC
-        JUCE_WEB_BROWSER=0
+        JUCE_WEB_BROWSER=1
         JUCE_USE_CURL=0
         JUCE_VST3_CAN_REPLACE_VST2=0
         JUCE_REPORT_APP_USAGE=0
@@ -162,6 +150,7 @@ target_link_libraries(LumenDSP
         juce::juce_dsp
         juce::juce_gui_basics
         juce::juce_gui_extra
+        juce::juce_javascript
     PUBLIC
         juce::juce_recommended_config_flags
         juce::juce_recommended_lto_flags
@@ -178,7 +167,12 @@ if(TARGET LumenDSP_Standalone)
             COMMAND ${CMAKE_COMMAND} -E copy_directory
                     "${LUMENDSP_FACTORY_CONTENT_DIR}"
                     "$<TARGET_FILE_DIR:LumenDSP_Standalone>/../Resources/FactoryContent"
-            COMMENT "Embedding factory content in standalone app bundle"
+            COMMAND ${CMAKE_COMMAND} -E make_directory
+                    "$<TARGET_FILE_DIR:LumenDSP_Standalone>/../Resources/web"
+            COMMAND ${CMAKE_COMMAND} -E copy_directory
+                    "${LUMENDSP_WEB_UI_DIR}"
+                    "$<TARGET_FILE_DIR:LumenDSP_Standalone>/../Resources/web"
+            COMMENT "Embedding factory content and web UI in standalone app bundle"
             VERBATIM
         )
     else()
@@ -188,7 +182,12 @@ if(TARGET LumenDSP_Standalone)
             COMMAND ${CMAKE_COMMAND} -E copy_directory
                     "${LUMENDSP_FACTORY_CONTENT_DIR}"
                     "$<TARGET_FILE_DIR:LumenDSP_Standalone>/FactoryContent"
-            COMMENT "Copying factory content next to standalone executable"
+            COMMAND ${CMAKE_COMMAND} -E make_directory
+                    "$<TARGET_FILE_DIR:LumenDSP_Standalone>/web"
+            COMMAND ${CMAKE_COMMAND} -E copy_directory
+                    "${LUMENDSP_WEB_UI_DIR}"
+                    "$<TARGET_FILE_DIR:LumenDSP_Standalone>/web"
+            COMMENT "Copying factory content and web UI next to standalone executable"
             VERBATIM
         )
     endif()
@@ -202,7 +201,12 @@ if(TARGET LumenDSP_VST3)
             COMMAND ${CMAKE_COMMAND} -E copy_directory
                     "${LUMENDSP_FACTORY_CONTENT_DIR}"
                     "$<TARGET_FILE_DIR:LumenDSP_VST3>/../Resources/FactoryContent"
-            COMMENT "Embedding factory content in VST3 bundle"
+            COMMAND ${CMAKE_COMMAND} -E make_directory
+                    "$<TARGET_FILE_DIR:LumenDSP_VST3>/../Resources/web"
+            COMMAND ${CMAKE_COMMAND} -E copy_directory
+                    "${LUMENDSP_WEB_UI_DIR}"
+                    "$<TARGET_FILE_DIR:LumenDSP_VST3>/../Resources/web"
+            COMMENT "Embedding factory content and web UI in VST3 bundle"
             VERBATIM
         )
     else()
@@ -212,7 +216,12 @@ if(TARGET LumenDSP_VST3)
             COMMAND ${CMAKE_COMMAND} -E copy_directory
                     "${LUMENDSP_FACTORY_CONTENT_DIR}"
                     "$<TARGET_FILE_DIR:LumenDSP_VST3>/FactoryContent"
-            COMMENT "Copying factory content next to VST3 module"
+            COMMAND ${CMAKE_COMMAND} -E make_directory
+                    "$<TARGET_FILE_DIR:LumenDSP_VST3>/web"
+            COMMAND ${CMAKE_COMMAND} -E copy_directory
+                    "${LUMENDSP_WEB_UI_DIR}"
+                    "$<TARGET_FILE_DIR:LumenDSP_VST3>/web"
+            COMMENT "Copying factory content and web UI next to VST3 module"
             VERBATIM
         )
     endif()

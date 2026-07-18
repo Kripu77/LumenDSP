@@ -1,346 +1,368 @@
 #include "PluginEditor.h"
+#include "parameters/ParameterIds.h"
 
 #if JucePlugin_Build_Standalone
  #include <juce_audio_plugin_client/Standalone/juce_StandaloneFilterWindow.h>
 #endif
 
+namespace
+{
+
+juce::String escapeForJavascriptString(const juce::String& input)
+{
+    return input.replace("\\", "\\\\")
+        .replace("'", "\\'")
+        .replace("\n", "\\n")
+        .replace("\r", "");
+}
+
+} // namespace
+
+bool LumenWebBrowser::pageAboutToLoad(const juce::String& newURL)
+{
+    if (newURL.startsWith("http://juce.backend")
+        || newURL.startsWith("https://juce.backend")
+        || newURL.startsWith("file:")
+        || newURL.startsWith("data:"))
+        return true;
+
+    return false;
+}
+
 LumenDSPAudioProcessorEditor::LumenDSPAudioProcessorEditor(LumenDSPAudioProcessor& audioProcessorToEdit)
     : AudioProcessorEditor(&audioProcessorToEdit)
     , audioProcessor(audioProcessorToEdit)
+    , webResourceRoot(getWebResourceRoot())
+    , webView([this]() {
+        auto options = juce::WebBrowserComponent::Options{}
+                           .withNativeIntegrationEnabled()
+                           .withKeepPageLoadedWhenBrowserIsHidden()
+                           .withEventListener("lumenMessage", [this](const juce::var& payload) {
+                               const auto message = payload.isString()
+                                                        ? payload.toString()
+                                                        : juce::JSON::toString(payload);
+                               if (message.isNotEmpty())
+                                   handleWebMessage(message);
+                           })
+                           .withNativeFunction(
+                               "lumenPostMessage",
+                               [this](const juce::Array<juce::var>& args, auto complete) {
+                                   if (!args.isEmpty())
+                                   {
+                                       const auto& arg = args.getReference(0);
+                                       const auto message = arg.isString()
+                                                                ? arg.toString()
+                                                                : juce::JSON::toString(arg);
+                                       handleWebMessage(message);
+                                   }
+                                   complete(juce::var());
+                               })
+                           .withUserScript(R"JS(
+window.lumenPostMessage = function(payload) {
+  try {
+    const data = (typeof payload === 'string') ? payload : JSON.stringify(payload);
+    if (window.__JUCE__ && window.__JUCE__.backend && window.__JUCE__.backend.emitEvent)
+      window.__JUCE__.backend.emitEvent('lumenMessage', data);
+  } catch (e) {}
+};
+)JS");
+
+#if JUCE_WINDOWS
+        options = options.withBackend(juce::WebBrowserComponent::Options::Backend::webview2)
+                      .withWinWebView2Options(
+                          juce::WebBrowserComponent::Options::WinWebView2{}.withUserDataFolder(
+                              juce::File::getSpecialLocation(juce::File::tempDirectory)
+                                  .getChildFile("LumenDSPWebView2")));
+#endif
+
+#if JUCE_WEB_BROWSER_RESOURCE_PROVIDER_AVAILABLE
+        options = options.withResourceProvider(
+            [this](const auto& url) { return getResource(url); },
+            juce::String{ "http://juce.backend/" });
+#endif
+
+        return options;
+    }())
 {
-    setLookAndFeel(&lookAndFeel);
-    setSize(lumen::design::windowWidthPixels, lumen::design::windowHeightPixels);
-    setResizeLimits(
-        lumen::design::windowMinimumWidthPixels,
-        lumen::design::windowMinimumHeightPixels,
-        1500,
-        980);
+    setSize(1100, 720);
+    setResizeLimits(920, 620, 1600, 1000);
     setResizable(true, true);
 
-    addAndMakeVisible(topChrome);
-    addAndMakeVisible(signalPath);
-    addChildComponent(inputStage);
-    addAndMakeVisible(ampStage);
-    addChildComponent(eqStage);
-    addChildComponent(cabStage);
+    addAndMakeVisible(webView);
 
-    statusLabel.setFont(lumen::design::microFont());
-    statusLabel.setColour(juce::Label::textColourId, lumen::design::textMuted());
-    statusLabel.setJustificationType(juce::Justification::centredLeft);
-    addAndMakeVisible(statusLabel);
+#if JUCE_WEB_BROWSER_RESOURCE_PROVIDER_AVAILABLE
+    webView.goToURL(juce::WebBrowserComponent::getResourceProviderRoot());
+#else
+    const auto indexFile = webResourceRoot.getChildFile("index.html");
+    if (indexFile.existsAsFile())
+        webView.goToURL(juce::URL(indexFile).toString(false));
+#endif
 
-    setupControlAttachments();
-    setupFileSlots();
-    setupPresetBar();
-    setupSectionNavigation();
-    refreshPresetList();
-    refreshFileSlotLabels();
-    refreshHardwareState();
-    showSection(lumen::ui::EditorSection::amp);
-
-    topChrome.getAudioButton().onClick = [this]() { showAudioSettings(); };
-
-    startTimerHz(static_cast<int>(lumen::design::uiTimerIntervalHertz));
+    startTimerHz(30);
 }
 
 LumenDSPAudioProcessorEditor::~LumenDSPAudioProcessorEditor()
 {
     stopTimer();
-    setLookAndFeel(nullptr);
 }
 
 void LumenDSPAudioProcessorEditor::paint(juce::Graphics& graphics)
 {
-    graphics.fillAll(lumen::design::bgPrimary());
+    graphics.fillAll(juce::Colour::fromRGB(17, 17, 22));
 }
 
 void LumenDSPAudioProcessorEditor::resized()
 {
-    auto bounds = getLocalBounds().reduced(12);
-
-    topChrome.setBounds(bounds.removeFromTop(lumen::design::topChromeHeightPixels));
-    bounds.removeFromTop(10);
-    signalPath.setBounds(bounds.removeFromTop(lumen::design::signalPathHeightPixels));
-    bounds.removeFromTop(10);
-    statusLabel.setBounds(bounds.removeFromBottom(lumen::design::bottomStatusHeightPixels));
-    bounds.removeFromBottom(4);
-
-    inputStage.setBounds(bounds);
-    ampStage.setBounds(bounds);
-    eqStage.setBounds(bounds);
-    cabStage.setBounds(bounds);
+    webView.setBounds(getLocalBounds());
 }
 
 void LumenDSPAudioProcessorEditor::timerCallback()
 {
-    refreshMeters();
-    refreshFileSlotLabels();
-    refreshHardwareState();
+    if (!webReady)
+        return;
+
+    pushMetersToWeb();
 }
 
-void LumenDSPAudioProcessorEditor::setupControlAttachments()
+void LumenDSPAudioProcessorEditor::handleWebMessage(const juce::String& message)
 {
-    auto& state = audioProcessor.getValueTreeState();
+    const auto parsed = juce::JSON::parse(message);
+    if (!parsed.isObject())
+        return;
 
-    inputGainAttachment = std::make_unique<SliderAttachment>(
-        state, lumen::parameters::inputGainId, topChrome.getInputKnob().getSlider());
-    gateAttachment = std::make_unique<SliderAttachment>(
-        state, lumen::parameters::noiseGateThresholdId, topChrome.getGateKnob().getSlider());
-    outputAttachment = std::make_unique<SliderAttachment>(
-        state, lumen::parameters::outputLevelId, topChrome.getOutputKnob().getSlider());
-    gateEnableAttachment = std::make_unique<ButtonAttachment>(
-        state, lumen::parameters::noiseGateEnabledId, topChrome.getGateEnableButton());
+    const auto type = parsed.getProperty("type", {}).toString();
 
-    auto& gatePedalSlider = inputStage.getGatePedal().getPrimaryKnob().getSlider();
-    gatePedalSlider.setRange(
-        lumen::parameters::ranges::noiseGateThresholdMinimumDb,
-        lumen::parameters::ranges::noiseGateThresholdMaximumDb,
-        lumen::parameters::ranges::noiseGateThresholdStepDb);
-    gatePedalSlider.setValue(topChrome.getGateKnob().getSlider().getValue(), juce::dontSendNotification);
-    gatePedalSlider.onValueChange = [this]() {
-        topChrome.getGateKnob().getSlider().setValue(
-            inputStage.getGatePedal().getPrimaryKnob().getSlider().getValue(),
-            juce::sendNotificationSync);
-    };
-    topChrome.getGateKnob().getSlider().onValueChange = [this]() {
-        inputStage.getGatePedal().getPrimaryKnob().getSlider().setValue(
-            topChrome.getGateKnob().getSlider().getValue(),
-            juce::dontSendNotification);
-    };
-    inputStage.getGatePedal().getEnableButton().onClick = [this]() {
-        topChrome.getGateEnableButton().setToggleState(
-            inputStage.getGatePedal().getEnableButton().getToggleState(),
-            juce::sendNotificationSync);
-    };
-    topChrome.getGateEnableButton().onClick = [this]() {
-        inputStage.getGatePedal().getEnableButton().setToggleState(
-            topChrome.getGateEnableButton().getToggleState(),
-            juce::dontSendNotification);
-    };
+    if (type == "ready")
+    {
+        webReady = true;
+        pushStateToWeb();
+        return;
+    }
 
-    bassAttachment = std::make_unique<SliderAttachment>(
-        state, lumen::parameters::bassGainId, ampStage.getBassKnob().getSlider());
-    midAttachment = std::make_unique<SliderAttachment>(
-        state, lumen::parameters::midGainId, ampStage.getMidKnob().getSlider());
-    trebleAttachment = std::make_unique<SliderAttachment>(
-        state, lumen::parameters::trebleGainId, ampStage.getTrebleKnob().getSlider());
-    eqEnableAttachment = std::make_unique<ButtonAttachment>(
-        state, lumen::parameters::eqEnabledId, ampStage.getEqEnableButton());
+    if (type == "setParameter")
+    {
+        const auto parameterId = parsed.getProperty("id", {}).toString();
+        const float value = static_cast<float>(static_cast<double>(parsed.getProperty("value", 0.0)));
+        handleSetParameter(parameterId, value);
+        return;
+    }
 
-    auto syncRange = [](juce::Slider& destination, juce::Slider& source) {
-        destination.setRange(source.getMinimum(), source.getMaximum(), source.getInterval());
-        destination.setValue(source.getValue(), juce::dontSendNotification);
-    };
-    syncRange(eqStage.getBassSlider(), ampStage.getBassKnob().getSlider());
-    syncRange(eqStage.getMidSlider(), ampStage.getMidKnob().getSlider());
-    syncRange(eqStage.getTrebleSlider(), ampStage.getTrebleKnob().getSlider());
+    if (type == "loadPreset")
+    {
+        audioProcessor.applyPreset(parsed.getProperty("name", {}).toString());
+        pushStateToWeb();
+        return;
+    }
 
-    eqStage.getBassSlider().onValueChange = [this]() {
-        ampStage.getBassKnob().getSlider().setValue(eqStage.getBassSlider().getValue(), juce::sendNotificationSync);
-    };
-    eqStage.getMidSlider().onValueChange = [this]() {
-        ampStage.getMidKnob().getSlider().setValue(eqStage.getMidSlider().getValue(), juce::sendNotificationSync);
-    };
-    eqStage.getTrebleSlider().onValueChange = [this]() {
-        ampStage.getTrebleKnob().getSlider().setValue(eqStage.getTrebleSlider().getValue(), juce::sendNotificationSync);
-    };
-    ampStage.getBassKnob().getSlider().onValueChange = [this]() {
-        eqStage.getBassSlider().setValue(ampStage.getBassKnob().getSlider().getValue(), juce::dontSendNotification);
-    };
-    ampStage.getMidKnob().getSlider().onValueChange = [this]() {
-        eqStage.getMidSlider().setValue(ampStage.getMidKnob().getSlider().getValue(), juce::dontSendNotification);
-    };
-    ampStage.getTrebleKnob().getSlider().onValueChange = [this]() {
-        eqStage.getTrebleSlider().setValue(ampStage.getTrebleKnob().getSlider().getValue(), juce::dontSendNotification);
-    };
+    if (type == "savePreset")
+    {
+        audioProcessor.storePreset(parsed.getProperty("name", {}).toString());
+        pushStateToWeb();
+        return;
+    }
 
-    eqStage.getEnableButton().setToggleState(ampStage.getEqEnableButton().getToggleState(), juce::dontSendNotification);
-    eqStage.getEnableButton().onClick = [this]() {
-        ampStage.getEqEnableButton().setToggleState(
-            eqStage.getEnableButton().getToggleState(),
-            juce::sendNotificationSync);
-    };
-    ampStage.getEqEnableButton().onClick = [this]() {
-        eqStage.getEnableButton().setToggleState(
-            ampStage.getEqEnableButton().getToggleState(),
-            juce::dontSendNotification);
-    };
+    if (type == "browseNam")
+    {
+        handleBrowseNam();
+        return;
+    }
 
-    cabEnableAttachment = std::make_unique<ButtonAttachment>(
-        state, lumen::parameters::cabEnabledId, cabStage.getEnableButton());
+    if (type == "browseIr")
+    {
+        handleBrowseIr();
+        return;
+    }
+
+    if (type == "openAudioSettings")
+        handleOpenAudioSettings();
 }
 
-void LumenDSPAudioProcessorEditor::setupFileSlots()
+void LumenDSPAudioProcessorEditor::pushStateToWeb()
 {
-    ampStage.getModelSlot().onFileChosen = [this](const juce::File& file) {
-        ampStage.getModelSlot().setBusy(true);
-        ampStage.getModelSlot().setStatusText("Loading model...");
-        audioProcessor.requestNamLoad(file);
-    };
-
-    cabStage.getIrSlot().onFileChosen = [this](const juce::File& file) {
-        cabStage.getIrSlot().setBusy(true);
-        cabStage.getIrSlot().setStatusText("Loading IR...");
-        audioProcessor.requestIrLoad(file);
-    };
+    emitToWeb(buildStateObject());
 }
 
-void LumenDSPAudioProcessorEditor::setupPresetBar()
+void LumenDSPAudioProcessorEditor::pushMetersToWeb()
 {
-    auto& presetBar = topChrome.getPresetBar();
-
-    presetBar.onSaveRequested = [this]() {
-        const auto name = topChrome.getPresetBar().getEditorPresetName();
-        if (name.isEmpty())
-            return;
-        if (audioProcessor.storePreset(name))
-            refreshPresetList();
-    };
-
-    presetBar.onLoadRequested = [this]() {
-        const auto name = topChrome.getPresetBar().getSelectedPresetName();
-        if (name.isEmpty())
-            return;
-        audioProcessor.applyPreset(name);
-        refreshFileSlotLabels();
-    };
-
-    presetBar.onDeleteRequested = [this]() {
-        const auto name = topChrome.getPresetBar().getSelectedPresetName();
-        if (name.isEmpty())
-            return;
-        audioProcessor.getPresetManager().deletePreset(name);
-        refreshPresetList();
-    };
-
-    presetBar.onPresetSelected = [this](const juce::String& name) {
-        if (name.isEmpty())
-            return;
-        audioProcessor.applyPreset(name);
-        refreshFileSlotLabels();
-    };
+    auto* object = new juce::DynamicObject();
+    object->setProperty("type", "meters");
+    object->setProperty("inputDb", audioProcessor.getAudioPipeline().getInputMeter().getPeakLevelDb());
+    object->setProperty("inputHoldDb", audioProcessor.getAudioPipeline().getInputMeter().getPeakHoldLevelDb());
+    object->setProperty("outputDb", audioProcessor.getAudioPipeline().getOutputMeter().getPeakLevelDb());
+    object->setProperty("outputHoldDb", audioProcessor.getAudioPipeline().getOutputMeter().getPeakHoldLevelDb());
+    emitToWeb(juce::var(object));
 }
 
-void LumenDSPAudioProcessorEditor::setupSectionNavigation()
+void LumenDSPAudioProcessorEditor::emitToWeb(const juce::var& payload)
 {
-    signalPath.onSectionChanged = [this](lumen::ui::EditorSection section) {
-        showSection(section);
-    };
+    const auto json = juce::JSON::toString(payload, false);
+    const auto script = "window.__lumenReceive && window.__lumenReceive(" + json + ");";
+    webView.evaluateJavascript(script);
 }
 
-void LumenDSPAudioProcessorEditor::showSection(lumen::ui::EditorSection section)
+juce::var LumenDSPAudioProcessorEditor::buildStateObject() const
 {
-    inputStage.setVisible(section == lumen::ui::EditorSection::input);
-    ampStage.setVisible(section == lumen::ui::EditorSection::amp);
-    eqStage.setVisible(section == lumen::ui::EditorSection::eq);
-    cabStage.setVisible(section == lumen::ui::EditorSection::cab);
-    signalPath.setActiveSection(section);
-}
+    auto* object = new juce::DynamicObject();
+    object->setProperty("type", "state");
 
-void LumenDSPAudioProcessorEditor::refreshPresetList()
-{
-    auto& presetManager = audioProcessor.getPresetManager();
-    topChrome.getPresetBar().setPresetNames(
-        presetManager.getPresetNames(),
-        presetManager.getCurrentPresetName());
-}
+    auto* parameters = new juce::DynamicObject();
+    parameters->setProperty("inputGain", readParameter(lumen::parameters::inputGainId));
+    parameters->setProperty("noiseGateThreshold", readParameter(lumen::parameters::noiseGateThresholdId));
+    parameters->setProperty("noiseGateEnabled", readParameter(lumen::parameters::noiseGateEnabledId) > 0.5f);
+    parameters->setProperty("outputLevel", readParameter(lumen::parameters::outputLevelId));
+    parameters->setProperty("bassGain", readParameter(lumen::parameters::bassGainId));
+    parameters->setProperty("midGain", readParameter(lumen::parameters::midGainId));
+    parameters->setProperty("trebleGain", readParameter(lumen::parameters::trebleGainId));
+    parameters->setProperty("eqEnabled", readParameter(lumen::parameters::eqEnabledId) > 0.5f);
+    parameters->setProperty("cabEnabled", readParameter(lumen::parameters::cabEnabledId) > 0.5f);
+    object->setProperty("parameters", juce::var(parameters));
 
-void LumenDSPAudioProcessorEditor::refreshFileSlotLabels()
-{
-    auto& pipeline = audioProcessor.getAudioPipeline();
-    auto& namEngine = pipeline.getNamEngine();
-    auto& irConvolver = pipeline.getIrConvolver();
+    juce::Array<juce::var> presets;
+    for (const auto& name : audioProcessor.getPresetManager().getPresetNames())
+        presets.add(name);
+    object->setProperty("presets", presets);
+    object->setProperty("currentPreset", audioProcessor.getPresetManager().getCurrentPresetName());
 
+    const auto& namEngine = audioProcessor.getAudioPipeline().getNamEngine();
+    const auto& ir = audioProcessor.getAudioPipeline().getIrConvolver();
+    object->setProperty("namLoaded", namEngine.isModelLoaded());
+    object->setProperty("namName", namEngine.getLoadedModelName());
+    object->setProperty("irLoaded", ir.isLoaded());
+    object->setProperty("irName", ir.getLoadedFileName());
+
+    juce::String status = "Ready";
     if (namEngine.isModelLoading())
-    {
-        ampStage.getModelSlot().setBusy(true);
-        ampStage.getModelSlot().setStatusText("Loading model...");
-        ampStage.setModelStatus({}, false, true);
-        signalPath.setNodeStatus(lumen::ui::EditorSection::amp, false, "Loading...");
-        statusLabel.setText("Loading NAM model...", juce::dontSendNotification);
-    }
+        status = "Loading NAM model...";
     else if (namEngine.isModelLoaded())
-    {
-        ampStage.getModelSlot().setBusy(false);
-        ampStage.getModelSlot().setFileName(namEngine.getLoadedModelName());
-        ampStage.getModelSlot().setStatusText("Ready");
-        ampStage.setModelStatus(namEngine.getLoadedModelName(), true, false);
-        signalPath.setNodeStatus(lumen::ui::EditorSection::amp, true, namEngine.getLoadedModelName());
-        statusLabel.setText("Model: " + namEngine.getLoadedModelName(), juce::dontSendNotification);
-    }
-    else
-    {
-        ampStage.getModelSlot().setBusy(false);
-        const auto error = namEngine.getLastErrorMessage();
-        ampStage.getModelSlot().setStatusText(error.isNotEmpty() ? error : "Drop a .nam capture");
-        ampStage.setModelStatus({}, false, false);
-        signalPath.setNodeStatus(lumen::ui::EditorSection::amp, false, "No model");
-        statusLabel.setText(error.isNotEmpty() ? error : "Load a NAM model or choose a factory preset", juce::dontSendNotification);
-    }
+        status = "Model: " + namEngine.getLoadedModelName();
+    else if (namEngine.getLastErrorMessage().isNotEmpty())
+        status = namEngine.getLastErrorMessage();
+    object->setProperty("status", status);
 
-    if (irConvolver.isLoaded())
-    {
-        cabStage.getIrSlot().setBusy(false);
-        cabStage.getIrSlot().setFileName(irConvolver.getLoadedFileName());
-        cabStage.getIrSlot().setStatusText("Ready");
-        cabStage.setIrStatus(irConvolver.getLoadedFileName(), true);
-        signalPath.setNodeStatus(lumen::ui::EditorSection::cab, true, irConvolver.getLoadedFileName());
-    }
-    else
-    {
-        cabStage.getIrSlot().setBusy(false);
-        cabStage.getIrSlot().setStatusText("Drop a .wav IR");
-        cabStage.setIrStatus({}, false);
-        signalPath.setNodeStatus(lumen::ui::EditorSection::cab, false, "No IR");
-    }
+    return juce::var(object);
 }
 
-void LumenDSPAudioProcessorEditor::refreshMeters()
+juce::File LumenDSPAudioProcessorEditor::getWebResourceRoot() const
 {
-    auto& pipeline = audioProcessor.getAudioPipeline();
-    topChrome.getInputMeter().setLevels(
-        pipeline.getInputMeter().getPeakLevelDb(),
-        pipeline.getInputMeter().getPeakHoldLevelDb());
-    topChrome.getOutputMeter().setLevels(
-        pipeline.getOutputMeter().getPeakLevelDb(),
-        pipeline.getOutputMeter().getPeakHoldLevelDb());
+    const auto executable = juce::File::getSpecialLocation(juce::File::currentExecutableFile);
+
+#if JUCE_MAC
+    const auto bundleWeb = executable.getParentDirectory()
+                               .getParentDirectory()
+                               .getChildFile("Resources")
+                               .getChildFile("web");
+    if (bundleWeb.isDirectory())
+        return bundleWeb;
+#endif
+
+    const auto beside = executable.getParentDirectory().getChildFile("web");
+    if (beside.isDirectory())
+        return beside;
+
+    const auto cwd = juce::File::getCurrentWorkingDirectory().getChildFile("Resources").getChildFile("web");
+    if (cwd.isDirectory())
+        return cwd;
+
+    return juce::File::getCurrentWorkingDirectory()
+        .getChildFile("..")
+        .getChildFile("Resources")
+        .getChildFile("web");
 }
 
-void LumenDSPAudioProcessorEditor::refreshHardwareState()
+std::optional<juce::WebBrowserComponent::Resource> LumenDSPAudioProcessorEditor::getResource(const juce::String& url)
 {
-    auto& state = audioProcessor.getValueTreeState();
-    const bool gateOn = state.getRawParameterValue(lumen::parameters::noiseGateEnabledId)->load() > 0.5f;
-    const bool eqOn = state.getRawParameterValue(lumen::parameters::eqEnabledId)->load() > 0.5f;
-    inputStage.getGatePedal().setEngaged(gateOn);
+    auto path = url.fromFirstOccurrenceOf("://", false, false);
+    path = path.fromFirstOccurrenceOf("/", false, false);
+    if (path.isEmpty() || path == "juce.backend" || path.endsWithIgnoreCase("juce.backend/"))
+        path = "index.html";
 
-    const float gateThreshold = state.getRawParameterValue(lumen::parameters::noiseGateThresholdId)->load();
-    if (std::abs(inputStage.getGatePedal().getPrimaryKnob().getSlider().getValue() - gateThreshold) > 0.05)
-        inputStage.getGatePedal().getPrimaryKnob().getSlider().setValue(gateThreshold, juce::dontSendNotification);
+    path = path.upToFirstOccurrenceOf("?", false, false);
+    path = juce::URL::removeEscapeChars(path);
 
-    if (std::abs(eqStage.getBassSlider().getValue() - ampStage.getBassKnob().getSlider().getValue()) > 0.05)
-        eqStage.getBassSlider().setValue(ampStage.getBassKnob().getSlider().getValue(), juce::dontSendNotification);
-    if (std::abs(eqStage.getMidSlider().getValue() - ampStage.getMidKnob().getSlider().getValue()) > 0.05)
-        eqStage.getMidSlider().setValue(ampStage.getMidKnob().getSlider().getValue(), juce::dontSendNotification);
-    if (std::abs(eqStage.getTrebleSlider().getValue() - ampStage.getTrebleKnob().getSlider().getValue()) > 0.05)
-        eqStage.getTrebleSlider().setValue(ampStage.getTrebleKnob().getSlider().getValue(), juce::dontSendNotification);
+    auto file = webResourceRoot.getChildFile(path);
+    if (!file.existsAsFile())
+        file = webResourceRoot.getChildFile("index.html");
 
-    eqStage.getEnableButton().setToggleState(ampStage.getEqEnableButton().getToggleState(), juce::dontSendNotification);
+    if (!file.existsAsFile())
+        return std::nullopt;
 
-    signalPath.setNodeStatus(
-        lumen::ui::EditorSection::input,
-        gateOn,
-        gateOn ? ("Gate " + juce::String(gateThreshold, 1) + " dB") : "Gate off");
-    signalPath.setNodeStatus(
-        lumen::ui::EditorSection::eq,
-        eqOn,
-        eqOn ? "Tone active" : "Bypassed");
+    juce::MemoryBlock block;
+    if (!file.loadFileAsData(block))
+        return std::nullopt;
 
-    eqStage.repaint();
-    cabStage.repaint();
-    ampStage.repaint();
+    juce::WebBrowserComponent::Resource resource;
+    resource.data.resize(static_cast<size_t>(block.getSize()));
+    if (block.getSize() > 0)
+        std::memcpy(resource.data.data(), block.getData(), static_cast<size_t>(block.getSize()));
+    resource.mimeType = getMimeForExtension(file.getFileExtension().toLowerCase());
+    return resource;
 }
 
-void LumenDSPAudioProcessorEditor::showAudioSettings()
+juce::String LumenDSPAudioProcessorEditor::getMimeForExtension(const juce::String& extension) const
+{
+    if (extension == ".html" || extension == ".htm")
+        return "text/html";
+    if (extension == ".css")
+        return "text/css";
+    if (extension == ".js")
+        return "application/javascript";
+    if (extension == ".svg")
+        return "image/svg+xml";
+    if (extension == ".png")
+        return "image/png";
+    if (extension == ".jpg" || extension == ".jpeg")
+        return "image/jpeg";
+    if (extension == ".woff2")
+        return "font/woff2";
+    return "application/octet-stream";
+}
+
+void LumenDSPAudioProcessorEditor::handleSetParameter(const juce::String& parameterId, float value)
+{
+    auto* parameter = audioProcessor.getValueTreeState().getParameter(parameterId);
+    if (parameter == nullptr)
+        return;
+
+    if (auto* ranged = dynamic_cast<juce::RangedAudioParameter*>(parameter))
+    {
+        ranged->setValueNotifyingHost(ranged->convertTo0to1(value));
+        return;
+    }
+
+    parameter->setValueNotifyingHost(value);
+}
+
+void LumenDSPAudioProcessorEditor::handleBrowseNam()
+{
+    fileChooser = std::make_unique<juce::FileChooser>("Select NAM model", juce::File{}, "*.nam");
+    constexpr auto flags = juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles;
+    fileChooser->launchAsync(flags, [this](const juce::FileChooser& chooser) {
+        const auto result = chooser.getResult();
+        if (result.existsAsFile())
+        {
+            audioProcessor.requestNamLoad(result);
+            juce::Timer::callAfterDelay(400, [this]() { pushStateToWeb(); });
+            juce::Timer::callAfterDelay(1200, [this]() { pushStateToWeb(); });
+        }
+    });
+}
+
+void LumenDSPAudioProcessorEditor::handleBrowseIr()
+{
+    fileChooser = std::make_unique<juce::FileChooser>("Select cabinet IR", juce::File{}, "*.wav");
+    constexpr auto flags = juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles;
+    fileChooser->launchAsync(flags, [this](const juce::FileChooser& chooser) {
+        const auto result = chooser.getResult();
+        if (result.existsAsFile())
+        {
+            audioProcessor.requestIrLoad(result);
+            juce::Timer::callAfterDelay(400, [this]() { pushStateToWeb(); });
+            juce::Timer::callAfterDelay(1200, [this]() { pushStateToWeb(); });
+        }
+    });
+}
+
+void LumenDSPAudioProcessorEditor::handleOpenAudioSettings()
 {
 #if JucePlugin_Build_Standalone
     if (auto* holder = juce::StandalonePluginHolder::getInstance())
@@ -349,10 +371,11 @@ void LumenDSPAudioProcessorEditor::showAudioSettings()
         return;
     }
 #endif
+}
 
-    juce::AlertWindow::showMessageBoxAsync(
-        juce::AlertWindow::InfoIcon,
-        "Audio Settings",
-        "Device selection is available in the standalone build. "
-        "When running as a VST3, choose input and output devices in your DAW.");
+float LumenDSPAudioProcessorEditor::readParameter(const juce::String& parameterId) const
+{
+    if (auto* value = audioProcessor.getValueTreeState().getRawParameterValue(parameterId))
+        return value->load();
+    return 0.0f;
 }

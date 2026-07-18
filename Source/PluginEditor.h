@@ -2,14 +2,14 @@
 
 #include <JuceHeader.h>
 #include "PluginProcessor.h"
-#include "ui/AmpFaceplateComponent.h"
-#include "ui/CabStageComponent.h"
-#include "ui/EqRackComponent.h"
-#include "ui/InputStageComponent.h"
-#include "ui/LumenLookAndFeel.h"
-#include "ui/SectionNavComponent.h"
-#include "ui/SignalFlowStrip.h"
-#include "ui/TopChromeComponent.h"
+#include <optional>
+
+class LumenWebBrowser : public juce::WebBrowserComponent
+{
+public:
+    using juce::WebBrowserComponent::WebBrowserComponent;
+    bool pageAboutToLoad(const juce::String& newURL) override;
+};
 
 class LumenDSPAudioProcessorEditor : public juce::AudioProcessorEditor,
                                      private juce::Timer
@@ -21,42 +21,28 @@ public:
     void paint(juce::Graphics& graphics) override;
     void resized() override;
 
-private:
-    using SliderAttachment = juce::AudioProcessorValueTreeState::SliderAttachment;
-    using ButtonAttachment = juce::AudioProcessorValueTreeState::ButtonAttachment;
+    void handleWebMessage(const juce::String& message);
+    void pushStateToWeb();
+    void pushMetersToWeb();
 
+private:
     void timerCallback() override;
-    void setupControlAttachments();
-    void setupFileSlots();
-    void setupPresetBar();
-    void setupSectionNavigation();
-    void showSection(lumen::ui::EditorSection section);
-    void refreshPresetList();
-    void refreshFileSlotLabels();
-    void refreshMeters();
-    void refreshHardwareState();
-    void showAudioSettings();
+    void emitToWeb(const juce::var& payload);
+    juce::var buildStateObject() const;
+    juce::File getWebResourceRoot() const;
+    std::optional<juce::WebBrowserComponent::Resource> getResource(const juce::String& url);
+    juce::String getMimeForExtension(const juce::String& extension) const;
+    void handleSetParameter(const juce::String& parameterId, float value);
+    void handleBrowseNam();
+    void handleBrowseIr();
+    void handleOpenAudioSettings();
+    float readParameter(const juce::String& parameterId) const;
 
     LumenDSPAudioProcessor& audioProcessor;
-    lumen::ui::LumenLookAndFeel lookAndFeel;
-
-    lumen::ui::TopChromeComponent topChrome;
-    lumen::ui::SignalFlowStrip signalPath;
-    lumen::ui::InputStageComponent inputStage;
-    lumen::ui::AmpFaceplateComponent ampStage;
-    lumen::ui::EqRackComponent eqStage;
-    lumen::ui::CabStageComponent cabStage;
-    juce::Label statusLabel;
-
-    std::unique_ptr<SliderAttachment> inputGainAttachment;
-    std::unique_ptr<SliderAttachment> gateAttachment;
-    std::unique_ptr<SliderAttachment> outputAttachment;
-    std::unique_ptr<SliderAttachment> bassAttachment;
-    std::unique_ptr<SliderAttachment> midAttachment;
-    std::unique_ptr<SliderAttachment> trebleAttachment;
-    std::unique_ptr<ButtonAttachment> gateEnableAttachment;
-    std::unique_ptr<ButtonAttachment> eqEnableAttachment;
-    std::unique_ptr<ButtonAttachment> cabEnableAttachment;
+    juce::File webResourceRoot;
+    LumenWebBrowser webView;
+    std::unique_ptr<juce::FileChooser> fileChooser;
+    bool webReady = false;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(LumenDSPAudioProcessorEditor)
 };
