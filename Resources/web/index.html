@@ -52,6 +52,7 @@
           <div class="knob-value" id="val-outputLevel">0.0 dB</div>
         </div>
         <div class="meter-col" id="output-meter" aria-label="Output meter"></div>
+        <button type="button" id="btnLibrary" class="btn">Library</button>
         <button type="button" id="btnAudio" class="btn btn-accent">Audio</button>
       </div>
     </header>
@@ -275,6 +276,36 @@
     </section>
 
     <div id="popoverBackdrop" class="popover-backdrop" hidden></div>
+
+    <div id="libraryPopover" class="popover popover-library" hidden role="dialog" aria-label="Library">
+      <div class="popover-head library-head">
+        <div class="library-title-block">
+          <h2>Library</h2>
+          <p class="library-subtitle" id="librarySubtitle">NAM models and cabinet IRs</p>
+        </div>
+        <button type="button" class="popover-icon-btn" id="btnLibraryClose" title="Close">✕</button>
+      </div>
+      <div class="library-toolbar">
+        <div class="seg-toggle library-tabs" role="tablist">
+          <button type="button" class="seg-btn active" data-library-tab="models">Models</button>
+          <button type="button" class="seg-btn" data-library-tab="irs">IRs</button>
+        </div>
+        <div class="library-search-wrap">
+          <span class="library-search-icon" aria-hidden="true">⌕</span>
+          <input id="librarySearch" class="library-search" type="search" placeholder="Search library…" autocomplete="off" />
+        </div>
+        <button type="button" class="btn btn-soft" id="btnLibraryImport">Import</button>
+        <button type="button" class="library-fav-chip" id="libraryFavoritesOnly" aria-pressed="false" title="Show favorites only">
+          <span class="library-fav-chip-icon">★</span>
+          <span>Favorites</span>
+        </button>
+      </div>
+      <div class="library-list" id="libraryList" role="listbox"></div>
+      <div class="library-foot">
+        <span id="libraryCount">0 items</span>
+        <span class="library-hint">Click to load · star to favorite</span>
+      </div>
+    </div>
 
     <div id="tunerPopover" class="popover popover-tuner" hidden role="dialog" aria-label="Tuner">
       <div class="popover-head">

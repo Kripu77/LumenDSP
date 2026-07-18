@@ -5,6 +5,7 @@
 #include "parameters/ParameterIds.h"
 #include "presets/FactoryContentInstaller.h"
 #include "presets/PresetManager.h"
+#include "presets/ResourceLibrary.h"
 
 class LumenDSPAudioProcessor : public juce::AudioProcessor
 {
@@ -38,6 +39,8 @@ public:
     juce::AudioProcessorValueTreeState& getValueTreeState() noexcept;
     lumen::audio::AudioPipeline& getAudioPipeline() noexcept;
     lumen::presets::PresetManager& getPresetManager() noexcept;
+    lumen::presets::ResourceLibrary& getResourceLibrary() noexcept;
+    const lumen::presets::ResourceLibrary& getResourceLibrary() const noexcept;
 
     void requestNamLoad(const juce::File& modelFile);
     void requestIrLoad(const juce::File& irFile);
@@ -63,6 +66,7 @@ private:
     juce::AudioProcessorValueTreeState apvts;
     lumen::audio::AudioPipeline audioPipeline;
     lumen::presets::PresetManager presetManager;
+    lumen::presets::ResourceLibrary resourceLibrary;
     juce::ThreadPool backgroundLoadPool{1};
     juce::String factoryStatusMessage;
     juce::String defaultPresetName{"01 Glass Clean"};

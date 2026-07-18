@@ -126,6 +126,7 @@ target_sources(LumenDSP
         Source/audio/AudioPipeline.cpp
         Source/presets/PresetManager.cpp
         Source/presets/FactoryContentInstaller.cpp
+        Source/presets/ResourceLibrary.cpp
 )
 
 set(LUMENDSP_FACTORY_CONTENT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/Resources/FactoryContent")

@@ -177,6 +177,16 @@ lumen::presets::PresetManager& LumenDSPAudioProcessor::getPresetManager() noexce
     return presetManager;
 }
 
+lumen::presets::ResourceLibrary& LumenDSPAudioProcessor::getResourceLibrary() noexcept
+{
+    return resourceLibrary;
+}
+
+const lumen::presets::ResourceLibrary& LumenDSPAudioProcessor::getResourceLibrary() const noexcept
+{
+    return resourceLibrary;
+}
+
 void LumenDSPAudioProcessor::requestNamLoad(const juce::File& modelFile)
 {
     backgroundLoadPool.addJob([this, modelFile]() {

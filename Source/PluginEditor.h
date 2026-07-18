@@ -25,17 +25,20 @@ public:
     void pushStateToWeb();
     void pushMetersToWeb();
     void pushPracticeToWeb();
+    void pushLibraryToWeb();
 
 private:
     void timerCallback() override;
     void emitToWeb(const juce::var& payload);
     juce::var buildStateObject() const;
+    juce::var buildLibraryObject() const;
     juce::File getWebResourceRoot() const;
     std::optional<juce::WebBrowserComponent::Resource> getResource(const juce::String& url);
     juce::String getMimeForExtension(const juce::String& extension) const;
     void handleSetParameter(const juce::String& parameterId, float value);
     void handleBrowseNam();
     void handleBrowseIr();
+    void handleImportResource(const juce::String& kind);
     void handleOpenAudioSettings();
     float readParameter(const juce::String& parameterId) const;
 

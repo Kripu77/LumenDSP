@@ -70,6 +70,10 @@
     openPopover: null,
     tunerMode: "cents",
     liveTuner: true,
+    libraryTab: "models",
+    librarySearch: "",
+    libraryFavoritesOnly: false,
+    library: { models: [], irs: [] },
   };
 
   const tapTimes = [];
@@ -511,11 +515,14 @@
     const backdrop = $("popoverBackdrop");
     const tuner = $("tunerPopover");
     const metro = $("metroPopover");
+    const library = $("libraryPopover");
     if (backdrop) backdrop.hidden = true;
     if (tuner) tuner.hidden = true;
     if (metro) metro.hidden = true;
+    if (library) library.hidden = true;
     $("btnTuner")?.setAttribute("aria-pressed", "false");
     $("btnMetro")?.setAttribute("aria-pressed", "false");
+    $("btnLibrary")?.setAttribute("aria-pressed", "false");
   }
 
   function openPopover(name) {
@@ -535,6 +542,104 @@
       $("metroPopover").hidden = false;
       $("btnMetro")?.setAttribute("aria-pressed", "true");
     }
+    if (name === "library") {
+      $("libraryPopover").hidden = false;
+      $("btnLibrary")?.setAttribute("aria-pressed", "true");
+      send({ type: "refreshLibrary" });
+      renderLibraryList();
+    }
+  }
+
+  function filteredLibraryItems() {
+    const source = state.libraryTab === "irs" ? state.library.irs : state.library.models;
+    const query = state.librarySearch.trim().toLowerCase();
+    return source.filter((item) => {
+      if (state.libraryFavoritesOnly && !item.favorite) return false;
+      if (!query) return true;
+      return String(item.name || "").toLowerCase().includes(query);
+    });
+  }
+
+  function renderLibraryList() {
+    const root = $("libraryList");
+    const count = $("libraryCount");
+    const subtitle = $("librarySubtitle");
+    if (!root) return;
+
+    const isIrs = state.libraryTab === "irs";
+    const items = filteredLibraryItems();
+    const total = isIrs ? state.library.irs.length : state.library.models.length;
+    const favCount = (isIrs ? state.library.irs : state.library.models).filter((i) => i.favorite).length;
+
+    if (count) {
+      count.textContent = state.libraryFavoritesOnly
+        ? `${items.length} favorite${items.length === 1 ? "" : "s"}`
+        : `${items.length} of ${total}`;
+    }
+    if (subtitle) {
+      subtitle.textContent = isIrs
+        ? "Cabinet impulse responses"
+        : "Neural amp models";
+    }
+
+    if (!items.length) {
+      const label = isIrs ? "IRs" : "models";
+      root.innerHTML = `
+        <div class="library-empty">
+          <strong>No matching ${label}</strong>
+          ${state.libraryFavoritesOnly
+            ? "Star items to build a favorites list, or turn off the filter."
+            : "Try another search, or import a file into your library."}
+        </div>`;
+      return;
+    }
+
+    const activeName = isIrs
+      ? (state.irLoaded ? state.irName : "")
+      : (state.namLoaded ? state.namName : "");
+
+    const favorites = items.filter((item) => item.favorite);
+    const rest = items.filter((item) => !item.favorite);
+    const groups = [];
+    if (favorites.length && !state.libraryFavoritesOnly)
+      groups.push({ label: "Favorites", items: favorites });
+    if (rest.length)
+      groups.push({
+        label: state.libraryFavoritesOnly ? "Favorites" : favorites.length ? "All" : "",
+        items: rest.length ? rest : favorites,
+      });
+    if (state.libraryFavoritesOnly)
+      groups.splice(0, groups.length, { label: "", items });
+
+    const typeLabel = isIrs ? "IR" : "NAM";
+    const typeClass = isIrs ? "ir" : "nam";
+
+    root.innerHTML = groups
+      .map((group) => {
+        const heading = group.label
+          ? `<div class="library-section-label">${group.label}</div>`
+          : "";
+        const rows = group.items
+          .map((item) => {
+            const active = activeName && item.name === activeName;
+            return `
+      <div class="library-item ${active ? "active" : ""}" role="option">
+        <button type="button" class="library-star ${item.favorite ? "on" : ""}" data-star-path="${escapeHtml(item.path)}" title="Favorite">${item.favorite ? "★" : "☆"}</button>
+        <div class="library-type ${typeClass}" aria-hidden="true">${typeLabel}</div>
+        <button type="button" class="library-item-main" data-load-path="${escapeHtml(item.path)}" data-load-kind="${item.kind}">
+          <span class="library-item-name">${escapeHtml(item.name)}</span>
+          <span class="library-item-meta">${item.source === "user" ? "Imported to your library" : "Factory content"}</span>
+        </button>
+        <div class="library-item-aside">
+          ${active ? `<span class="library-loaded">Loaded</span>` : ""}
+          <span class="library-badge ${item.source === "user" ? "user" : ""}">${item.source === "user" ? "User" : "Factory"}</span>
+        </div>
+      </div>`;
+          })
+          .join("");
+        return heading + rows;
+      })
+      .join("");
   }
 
   function paintBeats(beatInBar, beatsPerBar, running) {
@@ -636,9 +741,57 @@
       const name = $("presetName").value.trim() || $("presetSelect").value;
       if (name) send({ type: "savePreset", name });
     });
-    $("btnBrowseNam").addEventListener("click", () => send({ type: "browseNam" }));
-    $("btnBrowseIr").addEventListener("click", () => send({ type: "browseIr" }));
+    $("btnBrowseNam").addEventListener("click", () => openPopover("library"));
+    $("btnBrowseIr").addEventListener("click", () => {
+      state.libraryTab = "irs";
+      document.querySelectorAll("[data-library-tab]").forEach((btn) => {
+        btn.classList.toggle("active", btn.getAttribute("data-library-tab") === "irs");
+      });
+      openPopover("library");
+    });
     $("btnAudio")?.addEventListener("click", () => send({ type: "openAudioSettings" }));
+    $("btnLibrary")?.addEventListener("click", () => openPopover("library"));
+    $("btnLibraryClose")?.addEventListener("click", closePopovers);
+    $("btnLibraryImport")?.addEventListener("click", () => {
+      send({ type: "importResource", kind: state.libraryTab === "irs" ? "ir" : "nam" });
+    });
+    $("librarySearch")?.addEventListener("input", (event) => {
+      state.librarySearch = event.target.value || "";
+      renderLibraryList();
+    });
+    $("libraryFavoritesOnly")?.addEventListener("click", () => {
+      state.libraryFavoritesOnly = !state.libraryFavoritesOnly;
+      $("libraryFavoritesOnly")?.setAttribute(
+        "aria-pressed",
+        state.libraryFavoritesOnly ? "true" : "false"
+      );
+      renderLibraryList();
+    });
+    document.querySelectorAll("[data-library-tab]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        state.libraryTab = btn.getAttribute("data-library-tab") || "models";
+        document.querySelectorAll("[data-library-tab]").forEach((el) => {
+          el.classList.toggle("active", el === btn);
+        });
+        renderLibraryList();
+      });
+    });
+    $("libraryList")?.addEventListener("click", (event) => {
+      const star = event.target.closest("[data-star-path]");
+      if (star) {
+        event.preventDefault();
+        send({ type: "toggleFavorite", path: star.getAttribute("data-star-path") });
+        return;
+      }
+      const load = event.target.closest("[data-load-path]");
+      if (load) {
+        send({
+          type: "loadResource",
+          kind: load.getAttribute("data-load-kind"),
+          path: load.getAttribute("data-load-path"),
+        });
+      }
+    });
 
     $("btnTuner")?.addEventListener("click", () => openPopover("tuner"));
     $("btnMetro")?.addEventListener("click", () => openPopover("metro"));
@@ -682,11 +835,18 @@
 
     if (data.type === "state") {
       applyState(data);
+      if (state.openPopover === "library") renderLibraryList();
     } else if (data.type === "meters") {
       paintMeter("input-meter", data.inputDb ?? -60);
       paintMeter("output-meter", data.outputDb ?? -60);
     } else if (data.type === "practice") {
       paintPractice(data);
+    } else if (data.type === "library") {
+      state.library = {
+        models: Array.isArray(data.models) ? data.models : [],
+        irs: Array.isArray(data.irs) ? data.irs : [],
+      };
+      renderLibraryList();
     } else if (data.type === "status") {
       $("footerStatus").textContent = data.message || "";
     }

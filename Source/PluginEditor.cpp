@@ -176,6 +176,7 @@ void LumenDSPAudioProcessorEditor::handleWebMessage(const juce::String& message)
     {
         webReady = true;
         pushStateToWeb();
+        pushLibraryToWeb();
         return;
     }
 
@@ -213,6 +214,43 @@ void LumenDSPAudioProcessorEditor::handleWebMessage(const juce::String& message)
         return;
     }
 
+    if (type == "refreshLibrary")
+    {
+        audioProcessor.getResourceLibrary().refresh();
+        pushLibraryToWeb();
+        return;
+    }
+
+    if (type == "loadResource")
+    {
+        const auto kind = parsed.getProperty("kind", {}).toString();
+        const auto path = parsed.getProperty("path", {}).toString();
+        const juce::File file(path);
+        if (!file.existsAsFile())
+            return;
+
+        if (kind == "nam")
+            audioProcessor.requestNamLoad(file);
+        else if (kind == "ir")
+            audioProcessor.requestIrLoad(file);
+
+        pushStateToWeb();
+        return;
+    }
+
+    if (type == "toggleFavorite")
+    {
+        audioProcessor.getResourceLibrary().toggleFavorite(parsed.getProperty("path", {}).toString());
+        pushLibraryToWeb();
+        return;
+    }
+
+    if (type == "importResource")
+    {
+        handleImportResource(parsed.getProperty("kind", {}).toString());
+        return;
+    }
+
     if (type == "openAudioSettings")
         handleOpenAudioSettings();
 }
@@ -231,6 +269,37 @@ void LumenDSPAudioProcessorEditor::pushMetersToWeb()
     object->setProperty("outputDb", audioProcessor.getAudioPipeline().getOutputMeter().getPeakLevelDb());
     object->setProperty("outputHoldDb", audioProcessor.getAudioPipeline().getOutputMeter().getPeakHoldLevelDb());
     emitToWeb(juce::var(object));
+}
+
+void LumenDSPAudioProcessorEditor::pushLibraryToWeb()
+{
+    emitToWeb(buildLibraryObject());
+}
+
+juce::var LumenDSPAudioProcessorEditor::buildLibraryObject() const
+{
+    auto* object = new juce::DynamicObject();
+    object->setProperty("type", "library");
+
+    auto toArray = [](const juce::Array<lumen::presets::ResourceEntry>& entries) {
+        juce::Array<juce::var> list;
+        for (const auto& entry : entries)
+        {
+            auto* item = new juce::DynamicObject();
+            item->setProperty("name", entry.name);
+            item->setProperty("path", entry.path);
+            item->setProperty("kind", entry.kind);
+            item->setProperty("source", entry.source);
+            item->setProperty("favorite", entry.favorite);
+            list.add(juce::var(item));
+        }
+        return list;
+    };
+
+    const auto& library = audioProcessor.getResourceLibrary();
+    object->setProperty("models", toArray(library.getModels()));
+    object->setProperty("irs", toArray(library.getIrs()));
+    return juce::var(object);
 }
 
 void LumenDSPAudioProcessorEditor::pushPracticeToWeb()
@@ -469,6 +538,41 @@ void LumenDSPAudioProcessorEditor::handleBrowseIr()
             juce::Timer::callAfterDelay(400, [this]() { pushStateToWeb(); });
             juce::Timer::callAfterDelay(1200, [this]() { pushStateToWeb(); });
         }
+    });
+}
+
+void LumenDSPAudioProcessorEditor::handleImportResource(const juce::String& kind)
+{
+    const bool isNam = kind == "nam";
+    const auto title = isNam ? "Import NAM model into library" : "Import IR into library";
+    const auto patterns = isNam ? "*.nam" : "*.wav";
+
+    fileChooser = std::make_unique<juce::FileChooser>(title, juce::File{}, patterns);
+    constexpr auto flags = juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles;
+    fileChooser->launchAsync(flags, [this, kind](const juce::FileChooser& chooser) {
+        const auto result = chooser.getResult();
+        if (!result.existsAsFile())
+            return;
+
+        juce::String error;
+        juce::File imported;
+        if (!audioProcessor.getResourceLibrary().importFile(result, kind, error, &imported))
+        {
+            auto* status = new juce::DynamicObject();
+            status->setProperty("type", "status");
+            status->setProperty("message", error);
+            emitToWeb(juce::var(status));
+            return;
+        }
+
+        pushLibraryToWeb();
+
+        if (kind == "nam")
+            audioProcessor.requestNamLoad(imported);
+        else if (kind == "ir")
+            audioProcessor.requestIrLoad(imported);
+
+        juce::Timer::callAfterDelay(400, [this]() { pushStateToWeb(); });
     });
 }
 
