@@ -12,12 +12,12 @@ PresetBarComponent::PresetBarComponent()
     };
     addAndMakeVisible(presetCombo);
 
-    nameEditor.setTextToShowWhenEmpty("Name", design::chromeTextMuted());
     nameEditor.setFont(design::bodyFont());
     nameEditor.setColour(juce::TextEditor::backgroundColourId, juce::Colours::transparentBlack);
     nameEditor.setColour(juce::TextEditor::outlineColourId, juce::Colours::transparentBlack);
     nameEditor.setColour(juce::TextEditor::focusedOutlineColourId, juce::Colours::transparentBlack);
-    nameEditor.setColour(juce::TextEditor::textColourId, design::chromeTextPrimary());
+    nameEditor.setColour(juce::TextEditor::textColourId, design::textPrimary());
+    nameEditor.setTextToShowWhenEmpty("Name", design::textMuted());
     addAndMakeVisible(nameEditor);
 
     saveButton.onClick = [this]() {
@@ -41,10 +41,10 @@ PresetBarComponent::PresetBarComponent()
 void PresetBarComponent::paint(juce::Graphics& graphics)
 {
     auto bounds = getLocalBounds().toFloat().reduced(0.5f);
-    graphics.setColour(design::chromeSurfaceRaised());
-    graphics.fillRoundedRectangle(bounds, 20.0f);
-    graphics.setColour(design::chromeBorder());
-    graphics.drawRoundedRectangle(bounds, 20.0f, 1.0f);
+    graphics.setColour(design::bgElevated());
+    graphics.fillRoundedRectangle(bounds, 18.0f);
+    graphics.setColour(design::borderLight());
+    graphics.drawRoundedRectangle(bounds, 18.0f, 1.0f);
 
     graphics.setColour(design::accent());
     graphics.fillEllipse(12.0f, bounds.getCentreY() - 4.0f, 8.0f, 8.0f);

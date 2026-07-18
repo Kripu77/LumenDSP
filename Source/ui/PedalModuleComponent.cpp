@@ -15,16 +15,16 @@ PedalModuleComponent::PedalModuleComponent(
     titleLabel.setText(title, juce::dontSendNotification);
     titleLabel.setFont(design::hardwareBrandFont());
     titleLabel.setJustificationType(juce::Justification::centred);
-    titleLabel.setColour(juce::Label::textColourId, design::metalTextPrimary());
+    titleLabel.setColour(juce::Label::textColourId, design::textPrimary());
     addAndMakeVisible(titleLabel);
 
     subtitleLabel.setText(subtitle, juce::dontSendNotification);
     subtitleLabel.setFont(design::microFont());
     subtitleLabel.setJustificationType(juce::Justification::centred);
-    subtitleLabel.setColour(juce::Label::textColourId, design::metalTextMuted());
+    subtitleLabel.setColour(juce::Label::textColourId, design::textMuted());
     addAndMakeVisible(subtitleLabel);
 
-    enableButton.setColour(juce::ToggleButton::textColourId, design::metalTextSecondary());
+    enableButton.setColour(juce::ToggleButton::textColourId, design::textSecondary());
     addAndMakeVisible(primaryKnob);
     addAndMakeVisible(enableButton);
 }
@@ -137,12 +137,12 @@ juce::Colour PedalModuleComponent::finishColour() const
     switch (pedalFinish)
     {
         case Finish::olive:
-            return juce::Colour::fromRGB(78, 92, 74);
+            return juce::Colour::fromRGB(48, 58, 50);
         case Finish::charcoal:
-            return juce::Colour::fromRGB(40, 44, 50);
+            return juce::Colour::fromRGB(34, 34, 42);
         case Finish::steel:
         default:
-            return juce::Colour::fromRGB(118, 124, 132);
+            return juce::Colour::fromRGB(42, 42, 52);
     }
 }
 

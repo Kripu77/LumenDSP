@@ -15,8 +15,7 @@ void LedMeterComponent::paint(juce::Graphics& graphics)
     auto labelArea = bounds.removeFromBottom(static_cast<float>(design::spacingTwoUnitsPixels));
     auto meterArea = bounds.reduced(1.5f, 0.0f);
 
-    graphics.setColour(
-        visualTheme == Theme::chrome ? design::chromeTextMuted() : design::metalTextMuted());
+    graphics.setColour(design::textMuted());
     graphics.setFont(design::microFont());
     graphics.drawText(labelText, labelArea, juce::Justification::centred);
 
@@ -51,12 +50,9 @@ void LedMeterComponent::paint(juce::Graphics& graphics)
         if (isActive)
             graphics.setColour(colourForSegment(segmentIndex));
         else if (isHold)
-            graphics.setColour(
-                visualTheme == Theme::chrome ? design::chromeTextSecondary().withAlpha(0.85f)
-                                             : design::metalTextSecondary().withAlpha(0.85f));
+            graphics.setColour(design::textSecondary().withAlpha(0.85f));
         else
-            graphics.setColour(
-                visualTheme == Theme::chrome ? design::meterInactive() : design::meterInactiveDark());
+            graphics.setColour(design::meterInactive());
 
         graphics.fillRoundedRectangle(segmentBounds, 1.4f);
     }

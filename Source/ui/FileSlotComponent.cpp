@@ -14,11 +14,8 @@ FileSlotComponent::FileSlotComponent(const juce::String& titleText, const juce::
 void FileSlotComponent::paint(juce::Graphics& graphics)
 {
     auto bounds = getLocalBounds().toFloat().reduced(0.5f);
-    const auto fill = dragActive
-                          ? design::accentSoft()
-                          : (darkTheme ? design::metalDeep().withAlpha(0.75f) : design::chromeSurfaceRaised());
-    const auto border = dragActive || busy ? design::accent()
-                                           : (darkTheme ? design::metalBorder() : design::chromeBorder());
+    const auto fill = dragActive ? design::accentSoft() : design::bgTertiary();
+    const auto border = dragActive || busy ? design::accent() : design::borderLight();
 
     graphics.setColour(fill);
     graphics.fillRoundedRectangle(bounds, static_cast<float>(design::controlCornerRadiusPixels));
@@ -31,17 +28,17 @@ void FileSlotComponent::paint(juce::Graphics& graphics)
     content.removeFromRight(100);
     auto fileNameArea = content;
 
-    graphics.setColour(darkTheme ? design::metalTextSecondary() : design::chromeTextSecondary());
+    graphics.setColour(design::textSecondary());
     graphics.setFont(design::sectionFont());
     graphics.drawText(title, titleArea, juce::Justification::centredLeft);
 
-    graphics.setColour(darkTheme ? design::metalTextPrimary() : design::chromeTextPrimary());
+    graphics.setColour(design::textPrimary());
     graphics.setFont(design::bodyFont());
     graphics.drawFittedText(displayedFileName, fileNameArea, juce::Justification::centredLeft, 1);
 
     if (statusText.isNotEmpty())
     {
-        graphics.setColour(busy ? design::accent() : (darkTheme ? design::metalTextMuted() : design::chromeTextMuted()));
+        graphics.setColour(busy ? design::accent() : design::textMuted());
         graphics.setFont(design::microFont());
         graphics.drawText(statusText, statusArea, juce::Justification::centredLeft);
     }

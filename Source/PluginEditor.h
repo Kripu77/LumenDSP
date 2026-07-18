@@ -8,6 +8,7 @@
 #include "ui/InputStageComponent.h"
 #include "ui/LumenLookAndFeel.h"
 #include "ui/SectionNavComponent.h"
+#include "ui/SignalFlowStrip.h"
 #include "ui/TopChromeComponent.h"
 
 class LumenDSPAudioProcessorEditor : public juce::AudioProcessorEditor,
@@ -40,11 +41,12 @@ private:
     lumen::ui::LumenLookAndFeel lookAndFeel;
 
     lumen::ui::TopChromeComponent topChrome;
-    lumen::ui::SectionNavComponent sectionNav;
+    lumen::ui::SignalFlowStrip signalPath;
     lumen::ui::InputStageComponent inputStage;
     lumen::ui::AmpFaceplateComponent ampStage;
     lumen::ui::EqRackComponent eqStage;
     lumen::ui::CabStageComponent cabStage;
+    juce::Label statusLabel;
 
     std::unique_ptr<SliderAttachment> inputGainAttachment;
     std::unique_ptr<SliderAttachment> gateAttachment;

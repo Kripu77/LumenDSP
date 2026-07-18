@@ -6,42 +6,36 @@ namespace lumen::design
 {
 
 inline constexpr int spacingUnitPixels = 8;
-inline constexpr int spacingHalfUnitPixels = spacingUnitPixels / 2;
-inline constexpr int spacingTwoUnitsPixels = spacingUnitPixels * 2;
-inline constexpr int spacingThreeUnitsPixels = spacingUnitPixels * 3;
-inline constexpr int spacingFourUnitsPixels = spacingUnitPixels * 4;
-inline constexpr int spacingFiveUnitsPixels = spacingUnitPixels * 5;
-inline constexpr int spacingSixUnitsPixels = spacingUnitPixels * 6;
-inline constexpr int spacingEightUnitsPixels = spacingUnitPixels * 8;
+inline constexpr int spacingHalfUnitPixels = 4;
+inline constexpr int spacingTwoUnitsPixels = 16;
+inline constexpr int spacingThreeUnitsPixels = 24;
+inline constexpr int spacingFourUnitsPixels = 32;
 
-inline constexpr int windowWidthPixels = 1120;
-inline constexpr int windowHeightPixels = 720;
-inline constexpr int windowMinimumWidthPixels = 960;
-inline constexpr int windowMinimumHeightPixels = 640;
+inline constexpr int windowWidthPixels = 1080;
+inline constexpr int windowHeightPixels = 700;
+inline constexpr int windowMinimumWidthPixels = 920;
+inline constexpr int windowMinimumHeightPixels = 600;
 
-inline constexpr int topChromeHeightPixels = 108;
-inline constexpr int bottomNavHeightPixels = 72;
-inline constexpr int chromeControlSizePixels = 56;
-inline constexpr int chromeMeterWidthPixels = 10;
-inline constexpr int chromeMeterHeightPixels = 72;
+inline constexpr int topChromeHeightPixels = 96;
+inline constexpr int signalPathHeightPixels = 88;
+inline constexpr int bottomStatusHeightPixels = 28;
 
-inline constexpr int panelCornerRadiusPixels = 16;
-inline constexpr int controlCornerRadiusPixels = 10;
+inline constexpr int panelCornerRadiusPixels = 10;
+inline constexpr int controlCornerRadiusPixels = 8;
 inline constexpr int pedalCornerRadiusPixels = 14;
-inline constexpr int knobSizePixels = 68;
-inline constexpr int faceplateKnobSizePixels = 64;
-inline constexpr int chromeKnobSizePixels = 52;
+inline constexpr int knobSizePixels = 52;
+inline constexpr int chromeKnobSizePixels = 44;
 inline constexpr int knobValueArcThicknessPixels = 3;
-inline constexpr int knobPointerLengthPixels = 16;
+inline constexpr int knobPointerLengthPixels = 10;
 inline constexpr int knobPointerThicknessPixels = 2;
 inline constexpr float knobStartAngleRadians = juce::MathConstants<float>::pi * 1.25f;
 inline constexpr float knobEndAngleRadians = juce::MathConstants<float>::pi * 2.75f;
-inline constexpr float knobDragSensitivityPixelsPerFullRange = 180.0f;
+inline constexpr float knobDragSensitivityPixelsPerFullRange = 170.0f;
 
-inline constexpr int meterSegmentCount = 28;
-inline constexpr int meterWidthPixels = 12;
-inline constexpr int meterHeightPixels = 200;
+inline constexpr int meterSegmentCount = 22;
+inline constexpr int meterWidthPixels = 10;
 inline constexpr int meterSegmentGapPixels = 2;
+inline constexpr float sectionActiveIndicatorHeightPixels = 3.0f;
 inline constexpr float meterPeakHoldSeconds = 1.2f;
 inline constexpr float meterDecayPerSecond = 8.0f;
 inline constexpr float meterFloorDb = -60.0f;
@@ -49,160 +43,79 @@ inline constexpr float meterCeilingDb = 0.0f;
 inline constexpr float meterWarningThresholdDb = -6.0f;
 inline constexpr float meterClipThresholdDb = -0.5f;
 
-inline constexpr int sectionNavIconSizePixels = 36;
-inline constexpr int sectionNavItemWidthPixels = 72;
-inline constexpr float sectionActiveIndicatorHeightPixels = 3.0f;
-
-inline constexpr int titleFontHeightPoints = 18;
-inline constexpr int brandFontHeightPoints = 20;
-inline constexpr int sectionFontHeightPoints = 12;
+inline constexpr int titleFontHeightPoints = 16;
+inline constexpr int brandFontHeightPoints = 15;
+inline constexpr int sectionFontHeightPoints = 11;
 inline constexpr int bodyFontHeightPoints = 12;
-inline constexpr int valueFontHeightPoints = 11;
-inline constexpr int microFontHeightPoints = 10;
-inline constexpr int hardwareLabelFontHeightPoints = 11;
-inline constexpr int hardwareBrandFontHeightPoints = 16;
+inline constexpr int valueFontHeightPoints = 10;
+inline constexpr int microFontHeightPoints = 9;
+inline constexpr int hardwareLabelFontHeightPoints = 10;
+inline constexpr int hardwareBrandFontHeightPoints = 14;
 
-inline constexpr float panelBackgroundAlpha = 1.0f;
 inline constexpr float controlHoverBrightnessLift = 0.06f;
-inline constexpr float animationDurationSeconds = 0.22f;
-inline constexpr float stageFadeDurationSeconds = 0.16f;
 inline constexpr double uiTimerIntervalHertz = 30.0;
 
-inline constexpr float shadowOpacity = 0.18f;
-inline constexpr float shadowRadiusPixels = 24.0f;
-inline constexpr float hardwareBevelHighlightAlpha = 0.14f;
-inline constexpr float hardwareBevelShadowAlpha = 0.35f;
-inline constexpr float ledGlowAlpha = 0.55f;
+inline juce::Colour bgPrimary() { return juce::Colour::fromRGB(17, 17, 22); }
+inline juce::Colour bgSecondary() { return juce::Colour::fromRGB(24, 24, 30); }
+inline juce::Colour bgTertiary() { return juce::Colour::fromRGB(30, 30, 37); }
+inline juce::Colour bgSurface() { return juce::Colour::fromRGB(32, 32, 42); }
+inline juce::Colour bgElevated() { return juce::Colour::fromRGB(38, 38, 48); }
+inline juce::Colour bgCard() { return juce::Colour::fromRGB(34, 34, 42); }
+inline juce::Colour bgHeader() { return juce::Colour::fromRGB(14, 14, 19); }
 
-inline juce::Colour studioBackdropTop()
-{
-    return juce::Colour::fromRGB(198, 206, 216);
-}
+inline juce::Colour borderLight() { return juce::Colour::fromRGB(44, 44, 56); }
+inline juce::Colour borderMedium() { return juce::Colour::fromRGB(38, 38, 48); }
+inline juce::Colour borderStrong() { return juce::Colour::fromRGB(58, 58, 72); }
 
-inline juce::Colour studioBackdropBottom()
-{
-    return juce::Colour::fromRGB(168, 178, 192);
-}
+inline juce::Colour textPrimary() { return juce::Colour::fromRGB(235, 235, 244); }
+inline juce::Colour textSecondary() { return juce::Colour::fromRGB(200, 200, 216); }
+inline juce::Colour textTertiary() { return juce::Colour::fromRGB(160, 160, 180); }
+inline juce::Colour textMuted() { return juce::Colour::fromRGB(130, 130, 150); }
 
-inline juce::Colour chromeSurface()
-{
-    return juce::Colour::fromRGB(236, 240, 245);
-}
+inline juce::Colour accent() { return juce::Colour::fromRGB(255, 136, 80); }
+inline juce::Colour accentHover() { return juce::Colour::fromRGB(255, 152, 96); }
+inline juce::Colour accentDark() { return juce::Colour::fromRGB(232, 104, 56); }
+inline juce::Colour accentSoft() { return accent().withAlpha(0.18f); }
 
-inline juce::Colour chromeSurfaceRaised()
-{
-    return juce::Colour::fromRGB(248, 250, 252);
-}
+inline juce::Colour success() { return juce::Colour::fromRGB(46, 200, 104); }
+inline juce::Colour successDim() { return juce::Colour::fromRGB(32, 140, 72); }
 
-inline juce::Colour chromeBorder()
-{
-    return juce::Colour::fromRGB(196, 204, 214);
-}
+inline juce::Colour knobRing() { return success(); }
+inline juce::Colour knobRingTrack() { return juce::Colours::white.withAlpha(0.08f); }
+inline juce::Colour knobBodyFrom() { return juce::Colour::fromRGB(69, 69, 88); }
+inline juce::Colour knobBodyTo() { return juce::Colour::fromRGB(24, 24, 30); }
+inline juce::Colour knobIndicator() { return juce::Colour::fromRGB(220, 220, 230); }
 
-inline juce::Colour chromeTextPrimary()
-{
-    return juce::Colour::fromRGB(42, 48, 58);
-}
+inline juce::Colour meterNormal() { return success(); }
+inline juce::Colour meterWarning() { return juce::Colour::fromRGB(242, 184, 72); }
+inline juce::Colour meterClip() { return juce::Colour::fromRGB(220, 96, 96); }
+inline juce::Colour meterInactive() { return juce::Colour::fromRGB(48, 48, 60); }
 
-inline juce::Colour chromeTextSecondary()
-{
-    return juce::Colour::fromRGB(96, 106, 120);
-}
+inline juce::Colour nodeInput() { return juce::Colour::fromRGB(104, 168, 104); }
+inline juce::Colour nodeAmp() { return accent(); }
+inline juce::Colour nodeEq() { return juce::Colour::fromRGB(104, 136, 184); }
+inline juce::Colour nodeCab() { return juce::Colour::fromRGB(168, 136, 104); }
 
-inline juce::Colour chromeTextMuted()
-{
-    return juce::Colour::fromRGB(132, 142, 156);
-}
+inline juce::Colour ledWarm() { return accent(); }
+inline juce::Colour ledWarmDim() { return accentDark(); }
+inline juce::Colour ledCool() { return success(); }
 
-inline juce::Colour metalDeep()
-{
-    return juce::Colour::fromRGB(28, 31, 36);
-}
+inline juce::Colour chromeSurface() { return bgSecondary(); }
+inline juce::Colour chromeSurfaceRaised() { return bgElevated(); }
+inline juce::Colour chromeBorder() { return borderLight(); }
+inline juce::Colour chromeTextPrimary() { return textPrimary(); }
+inline juce::Colour chromeTextSecondary() { return textSecondary(); }
+inline juce::Colour chromeTextMuted() { return textMuted(); }
 
-inline juce::Colour metalPanel()
-{
-    return juce::Colour::fromRGB(38, 42, 48);
-}
-
-inline juce::Colour metalRaised()
-{
-    return juce::Colour::fromRGB(52, 57, 64);
-}
-
-inline juce::Colour metalBorder()
-{
-    return juce::Colour::fromRGB(72, 78, 88);
-}
-
-inline juce::Colour metalTextPrimary()
-{
-    return juce::Colour::fromRGB(236, 240, 244);
-}
-
-inline juce::Colour metalTextSecondary()
-{
-    return juce::Colour::fromRGB(164, 172, 184);
-}
-
-inline juce::Colour metalTextMuted()
-{
-    return juce::Colour::fromRGB(118, 126, 138);
-}
-
-inline juce::Colour accent()
-{
-    return juce::Colour::fromRGB(56, 168, 255);
-}
-
-inline juce::Colour accentDim()
-{
-    return juce::Colour::fromRGB(32, 96, 160);
-}
-
-inline juce::Colour accentSoft()
-{
-    return accent().withAlpha(0.16f);
-}
-
-inline juce::Colour ledWarm()
-{
-    return juce::Colour::fromRGB(255, 120, 48);
-}
-
-inline juce::Colour ledWarmDim()
-{
-    return juce::Colour::fromRGB(140, 64, 28);
-}
-
-inline juce::Colour ledCool()
-{
-    return juce::Colour::fromRGB(72, 196, 255);
-}
-
-inline juce::Colour meterNormal()
-{
-    return accent();
-}
-
-inline juce::Colour meterWarning()
-{
-    return juce::Colour::fromRGB(242, 184, 72);
-}
-
-inline juce::Colour meterClip()
-{
-    return juce::Colour::fromRGB(240, 88, 96);
-}
-
-inline juce::Colour meterInactive()
-{
-    return juce::Colour::fromRGB(210, 216, 224);
-}
-
-inline juce::Colour meterInactiveDark()
-{
-    return juce::Colour::fromRGB(48, 54, 62);
-}
+inline juce::Colour metalDeep() { return bgPrimary(); }
+inline juce::Colour metalPanel() { return bgCard(); }
+inline juce::Colour metalRaised() { return bgElevated(); }
+inline juce::Colour metalBorder() { return borderStrong(); }
+inline juce::Colour metalTextPrimary() { return textPrimary(); }
+inline juce::Colour metalTextSecondary() { return textSecondary(); }
+inline juce::Colour metalTextMuted() { return textMuted(); }
+inline juce::Colour studioBackdropTop() { return bgPrimary(); }
+inline juce::Colour studioBackdropBottom() { return juce::Colour::fromRGB(12, 12, 16); }
 
 inline juce::Font brandFont()
 {
@@ -246,68 +159,37 @@ inline juce::Font hardwareBrandFont()
 
 inline void fillStudioBackdrop(juce::Graphics& graphics, juce::Rectangle<float> bounds)
 {
-    juce::ColourGradient gradient(
-        studioBackdropTop(),
-        bounds.getCentreX(),
-        bounds.getY(),
-        studioBackdropBottom(),
-        bounds.getCentreX(),
-        bounds.getBottom(),
-        false);
-    graphics.setGradientFill(gradient);
+    graphics.setColour(bgPrimary());
     graphics.fillRect(bounds);
 }
 
-inline void drawSoftShadow(
-    juce::Graphics& graphics,
-    juce::Rectangle<float> bounds,
-    float cornerRadius,
-    float opacity = shadowOpacity)
+inline void drawSoftShadow(juce::Graphics& graphics, juce::Rectangle<float> bounds, float cornerRadius, float opacity = 0.45f)
 {
-    for (int layerIndex = 4; layerIndex >= 1; --layerIndex)
+    for (int layer = 3; layer >= 1; --layer)
     {
-        const float expand = static_cast<float>(layerIndex) * 3.0f;
-        const float alpha = opacity * (0.08f / static_cast<float>(layerIndex));
-        graphics.setColour(juce::Colours::black.withAlpha(alpha));
-        graphics.fillRoundedRectangle(bounds.expanded(expand).translated(0.0f, expand * 0.35f), cornerRadius + expand * 0.25f);
+        const float expand = static_cast<float>(layer) * 2.5f;
+        graphics.setColour(juce::Colours::black.withAlpha(opacity * (0.12f / static_cast<float>(layer))));
+        graphics.fillRoundedRectangle(bounds.expanded(expand).translated(0.0f, expand * 0.4f), cornerRadius + expand * 0.2f);
     }
 }
 
-inline void drawMetalPanel(
-    juce::Graphics& graphics,
-    juce::Rectangle<float> bounds,
-    float cornerRadius)
+inline void drawCard(juce::Graphics& graphics, juce::Rectangle<float> bounds, float cornerRadius = 10.0f)
 {
-    drawSoftShadow(graphics, bounds, cornerRadius, 0.22f);
-
-    juce::ColourGradient body(
-        metalRaised(),
-        bounds.getX(),
-        bounds.getY(),
-        metalDeep(),
-        bounds.getX(),
-        bounds.getBottom(),
-        false);
-    graphics.setGradientFill(body);
+    drawSoftShadow(graphics, bounds, cornerRadius, 0.5f);
+    graphics.setColour(bgCard());
     graphics.fillRoundedRectangle(bounds, cornerRadius);
-
-    graphics.setColour(juce::Colours::white.withAlpha(hardwareBevelHighlightAlpha));
-    graphics.drawRoundedRectangle(bounds.reduced(1.0f), cornerRadius - 1.0f, 1.0f);
-
-    graphics.setColour(juce::Colours::black.withAlpha(hardwareBevelShadowAlpha));
-    graphics.drawRoundedRectangle(bounds, cornerRadius, 1.2f);
+    graphics.setColour(borderLight());
+    graphics.drawRoundedRectangle(bounds, cornerRadius, 1.0f);
 }
 
-inline void drawChromePanel(
-    juce::Graphics& graphics,
-    juce::Rectangle<float> bounds,
-    float cornerRadius)
+inline void drawMetalPanel(juce::Graphics& graphics, juce::Rectangle<float> bounds, float cornerRadius)
 {
-    drawSoftShadow(graphics, bounds, cornerRadius, 0.12f);
-    graphics.setColour(chromeSurfaceRaised());
-    graphics.fillRoundedRectangle(bounds, cornerRadius);
-    graphics.setColour(chromeBorder());
-    graphics.drawRoundedRectangle(bounds, cornerRadius, 1.0f);
+    drawCard(graphics, bounds, cornerRadius);
+}
+
+inline void drawChromePanel(juce::Graphics& graphics, juce::Rectangle<float> bounds, float cornerRadius)
+{
+    drawCard(graphics, bounds, cornerRadius);
 }
 
 } // namespace lumen::design

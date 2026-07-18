@@ -5,137 +5,149 @@ namespace lumen::ui
 
 SignalFlowStrip::SignalFlowStrip()
 {
-    stages[static_cast<size_t>(Stage::input)].label = "Input";
-    stages[static_cast<size_t>(Stage::amp)].label = "Amp";
-    stages[static_cast<size_t>(Stage::eq)].label = "EQ";
-    stages[static_cast<size_t>(Stage::cab)].label = "Cab";
-    stages[static_cast<size_t>(Stage::output)].label = "Output";
-
-    for (auto& stage : stages)
-        stage.active = true;
+    nodes[static_cast<size_t>(EditorSection::input)] = {EditorSection::input, "INPUT", "Gain / Gate", true, {}};
+    nodes[static_cast<size_t>(EditorSection::amp)] = {EditorSection::amp, "AMP", "NAM Model", false, {}};
+    nodes[static_cast<size_t>(EditorSection::eq)] = {EditorSection::eq, "EQ", "Tone Stack", true, {}};
+    nodes[static_cast<size_t>(EditorSection::cab)] = {EditorSection::cab, "CAB", "Impulse", false, {}};
 }
 
 void SignalFlowStrip::paint(juce::Graphics& graphics)
 {
-    auto panelBounds = getLocalBounds().toFloat().reduced(0.5f);
-    graphics.setColour(design::backgroundPanel().withAlpha(design::panelBackgroundAlpha));
-    graphics.fillRoundedRectangle(panelBounds, static_cast<float>(design::panelCornerRadiusPixels));
-    graphics.setColour(design::borderSubtle());
-    graphics.drawRoundedRectangle(panelBounds, static_cast<float>(design::panelCornerRadiusPixels), 1.0f);
+    auto bounds = getLocalBounds().toFloat();
+    graphics.setColour(design::bgSecondary());
+    graphics.fillRoundedRectangle(bounds, 10.0f);
+    graphics.setColour(design::borderLight());
+    graphics.drawRoundedRectangle(bounds.reduced(0.5f), 10.0f, 1.0f);
 
-    for (size_t stageIndex = 0; stageIndex < stages.size(); ++stageIndex)
+    for (size_t index = 0; index < nodes.size(); ++index)
     {
-        drawStage(graphics, stages[stageIndex]);
-
-        if (stageIndex + 1 < stages.size())
+        if (index + 1 < nodes.size())
         {
-            drawConnector(
-                graphics,
-                stages[stageIndex].bounds,
-                stages[stageIndex + 1].bounds,
-                stages[stageIndex].active && stages[stageIndex + 1].active);
+            const auto from = nodes[index].bounds;
+            const auto to = nodes[index + 1].bounds;
+            const float y = from.getCentreY();
+            const bool live = nodes[index].active && nodes[index + 1].active;
+            graphics.setColour(live ? design::success().withAlpha(0.65f) : design::borderStrong());
+            graphics.drawLine(from.getRight() + 2.0f, y, to.getX() - 2.0f, y, 2.0f);
+            juce::Path arrow;
+            arrow.addTriangle(to.getX() - 2.0f, y, to.getX() - 8.0f, y - 4.0f, to.getX() - 8.0f, y + 4.0f);
+            graphics.fillPath(arrow);
         }
+
+        drawNode(graphics, nodes[index], nodes[index].section == activeSection);
     }
 }
 
 void SignalFlowStrip::resized()
 {
-    layoutStages();
+    layoutNodes();
 }
 
-void SignalFlowStrip::setStageActive(Stage stage, bool isActive)
+void SignalFlowStrip::mouseUp(const juce::MouseEvent& event)
 {
-    const auto index = static_cast<size_t>(stage);
-
-    if (index >= stages.size())
+    if (!event.mouseWasClicked())
         return;
 
-    stages[index].active = isActive;
-    repaint();
-}
-
-void SignalFlowStrip::setStageLabel(Stage stage, const juce::String& label)
-{
-    const auto index = static_cast<size_t>(stage);
-
-    if (index >= stages.size())
-        return;
-
-    stages[index].label = label;
-    repaint();
-}
-
-void SignalFlowStrip::layoutStages()
-{
-    auto content = getLocalBounds().reduced(design::spacingTwoUnitsPixels).toFloat();
-    const float stageCount = static_cast<float>(stages.size());
-    const float connectorWidth = static_cast<float>(design::signalFlowConnectorWidthPixels);
-    const float totalConnectorWidth = connectorWidth * (stageCount - 1.0f);
-    const float stageWidth = (content.getWidth() - totalConnectorWidth) / stageCount;
-    const float stageHeight = static_cast<float>(design::signalFlowNodeHeightPixels);
-    const float stageY = content.getCentreY() - stageHeight * 0.5f;
-
-    float stageX = content.getX();
-
-    for (auto& stage : stages)
+    for (const auto& node : nodes)
     {
-        stage.bounds = juce::Rectangle<float>(stageX, stageY, stageWidth, stageHeight);
-        stageX += stageWidth + connectorWidth;
+        if (node.bounds.contains(event.position))
+        {
+            setActiveSection(node.section);
+            if (onSectionChanged)
+                onSectionChanged(node.section);
+            break;
+        }
     }
 }
 
-void SignalFlowStrip::drawStage(juce::Graphics& graphics, const StageVisual& stageVisual) const
+void SignalFlowStrip::setActiveSection(EditorSection section)
 {
-    auto fillColour = stageVisual.active ? design::backgroundElevated() : design::backgroundControl();
-    auto borderColour = stageVisual.active ? design::accent() : design::borderSubtle();
-    auto textColour = stageVisual.active ? design::textPrimary() : design::textMuted();
+    activeSection = section;
+    repaint();
+}
 
-    if (stageVisual.active)
+void SignalFlowStrip::setNodeStatus(EditorSection section, bool isActive, const juce::String& detail)
+{
+    const auto index = static_cast<size_t>(section);
+    if (index >= nodes.size())
+        return;
+
+    nodes[index].active = isActive;
+    if (detail.isNotEmpty())
+        nodes[index].detail = detail;
+    repaint();
+}
+
+EditorSection SignalFlowStrip::getActiveSection() const noexcept
+{
+    return activeSection;
+}
+
+void SignalFlowStrip::layoutNodes()
+{
+    auto content = getLocalBounds().reduced(14, 12).toFloat();
+    const float gap = 28.0f;
+    const float nodeWidth = (content.getWidth() - gap * static_cast<float>(nodes.size() - 1)) / static_cast<float>(nodes.size());
+
+    for (size_t index = 0; index < nodes.size(); ++index)
     {
-        graphics.setColour(design::accent().withAlpha(design::signalFlowActiveGlowAlpha));
-        graphics.fillRoundedRectangle(
-            stageVisual.bounds.expanded(2.0f),
-            static_cast<float>(design::controlCornerRadiusPixels));
+        nodes[index].bounds = juce::Rectangle<float>(
+            content.getX() + static_cast<float>(index) * (nodeWidth + gap),
+            content.getY(),
+            nodeWidth,
+            content.getHeight());
+    }
+}
+
+void SignalFlowStrip::drawNode(juce::Graphics& graphics, const Node& node, bool selected) const
+{
+    auto bounds = node.bounds;
+    const auto colour = colourForSection(node.section);
+
+    if (selected)
+    {
+        graphics.setColour(colour.withAlpha(0.16f));
+        graphics.fillRoundedRectangle(bounds, 10.0f);
+        graphics.setColour(colour);
+        graphics.drawRoundedRectangle(bounds, 10.0f, 1.6f);
+    }
+    else
+    {
+        graphics.setColour(design::bgElevated());
+        graphics.fillRoundedRectangle(bounds, 10.0f);
+        graphics.setColour(design::borderLight());
+        graphics.drawRoundedRectangle(bounds, 10.0f, 1.0f);
     }
 
-    graphics.setColour(fillColour);
-    graphics.fillRoundedRectangle(
-        stageVisual.bounds,
-        static_cast<float>(design::controlCornerRadiusPixels));
-    graphics.setColour(borderColour);
-    graphics.drawRoundedRectangle(
-        stageVisual.bounds,
-        static_cast<float>(design::controlCornerRadiusPixels),
-        1.2f);
+    auto led = juce::Rectangle<float>(bounds.getX() + 10.0f, bounds.getCentreY() - 4.0f, 8.0f, 8.0f);
+    graphics.setColour(node.active ? colour : design::textMuted());
+    graphics.fillEllipse(led);
+    if (node.active)
+    {
+        graphics.setColour(colour.withAlpha(0.3f));
+        graphics.fillEllipse(led.expanded(3.0f));
+    }
 
-    graphics.setColour(textColour);
+    auto text = bounds.reduced(24.0f, 8.0f);
+    graphics.setColour(selected ? design::textPrimary() : design::textSecondary());
     graphics.setFont(design::sectionFont());
-    graphics.drawText(stageVisual.label, stageVisual.bounds, juce::Justification::centred);
+    graphics.drawText(node.title, text.removeFromTop(18.0f), juce::Justification::centredLeft);
+    graphics.setColour(design::textMuted());
+    graphics.setFont(design::microFont());
+    graphics.drawFittedText(node.detail, text.toNearestInt(), juce::Justification::centredLeft, 1);
 }
 
-void SignalFlowStrip::drawConnector(
-    juce::Graphics& graphics,
-    const juce::Rectangle<float>& fromBounds,
-    const juce::Rectangle<float>& toBounds,
-    bool active) const
+juce::Colour SignalFlowStrip::colourForSection(EditorSection section) const
 {
-    const float startX = fromBounds.getRight();
-    const float endX = toBounds.getX();
-    const float midY = fromBounds.getCentreY();
-    const float arrowSize = 5.0f;
-
-    graphics.setColour(active ? design::accent() : design::borderSubtle());
-    graphics.drawLine(startX + 2.0f, midY, endX - arrowSize - 2.0f, midY, 1.5f);
-
-    juce::Path arrow;
-    arrow.addTriangle(
-        endX - 2.0f,
-        midY,
-        endX - 2.0f - arrowSize,
-        midY - arrowSize * 0.6f,
-        endX - 2.0f - arrowSize,
-        midY + arrowSize * 0.6f);
-    graphics.fillPath(arrow);
+    switch (section)
+    {
+        case EditorSection::input: return design::nodeInput();
+        case EditorSection::amp: return design::nodeAmp();
+        case EditorSection::eq: return design::nodeEq();
+        case EditorSection::cab: return design::nodeCab();
+        case EditorSection::count: break;
+    }
+    return design::textMuted();
 }
 
 } // namespace lumen::ui

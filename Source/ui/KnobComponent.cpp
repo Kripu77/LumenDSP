@@ -37,9 +37,9 @@ KnobComponent::KnobComponent(const juce::String& labelText, const juce::String& 
     setStyle(style);
     addAndMakeVisible(slider);
 
-    titleLabel.setText(labelText, juce::dontSendNotification);
+    titleLabel.setText(labelText.toUpperCase(), juce::dontSendNotification);
     titleLabel.setJustificationType(juce::Justification::centred);
-    titleLabel.setFont(design::sectionFont());
+    titleLabel.setFont(design::microFont());
     addAndMakeVisible(titleLabel);
 
     valueLabel.setJustificationType(juce::Justification::centred);
@@ -60,10 +60,9 @@ KnobComponent::~KnobComponent()
 void KnobComponent::resized()
 {
     auto bounds = getLocalBounds();
-    titleLabel.setBounds(bounds.removeFromTop(labelHeightPixels));
-    valueLabel.setBounds(bounds.removeFromBottom(valueHeightPixels));
-    bounds.reduce(0, sliderVerticalPaddingPixels);
-    slider.setBounds(bounds);
+    titleLabel.setBounds(bounds.removeFromTop(14));
+    valueLabel.setBounds(bounds.removeFromBottom(14));
+    slider.setBounds(bounds.reduced(2));
 }
 
 void KnobComponent::paint(juce::Graphics&)
@@ -78,19 +77,9 @@ juce::Slider& KnobComponent::getSlider() noexcept
 void KnobComponent::setStyle(Style style)
 {
     visualStyle = style;
-    slider.getProperties().set("metalStyle", style == Style::metal);
-
-    if (style == Style::metal)
-    {
-        titleLabel.setColour(juce::Label::textColourId, design::metalTextSecondary());
-        valueLabel.setColour(juce::Label::textColourId, design::metalTextPrimary());
-    }
-    else
-    {
-        titleLabel.setColour(juce::Label::textColourId, design::chromeTextSecondary());
-        valueLabel.setColour(juce::Label::textColourId, design::chromeTextPrimary());
-    }
-
+    slider.getProperties().set("metalStyle", true);
+    titleLabel.setColour(juce::Label::textColourId, design::textMuted());
+    valueLabel.setColour(juce::Label::textColourId, design::textTertiary());
     slider.repaint();
 }
 

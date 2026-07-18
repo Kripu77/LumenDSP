@@ -127,6 +127,7 @@ target_sources(LumenDSP
         Source/ui/PresetBarComponent.cpp
         Source/ui/TopChromeComponent.cpp
         Source/ui/SectionNavComponent.cpp
+        Source/ui/SignalFlowStrip.cpp
         Source/ui/InputStageComponent.cpp
         Source/ui/PedalModuleComponent.cpp
         Source/ui/AmpFaceplateComponent.cpp
