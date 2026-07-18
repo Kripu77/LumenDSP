@@ -291,6 +291,10 @@ lumen::audio::PipelineControlState LumenDSPAudioProcessor::readControlState() co
     controlState.trebleGainDb = apvts.getRawParameterValue(lumen::parameters::trebleGainId)->load();
     controlState.eqEnabled = apvts.getRawParameterValue(lumen::parameters::eqEnabledId)->load() > 0.5f;
     controlState.cabEnabled = apvts.getRawParameterValue(lumen::parameters::cabEnabledId)->load() > 0.5f;
+    controlState.metronomeEnabled =
+        apvts.getRawParameterValue(lumen::parameters::metronomeEnabledId)->load() > 0.5f;
+    controlState.metronomeBpm = apvts.getRawParameterValue(lumen::parameters::metronomeBpmId)->load();
+    controlState.metronomeVolume = apvts.getRawParameterValue(lumen::parameters::metronomeVolumeId)->load();
     return controlState;
 }
 

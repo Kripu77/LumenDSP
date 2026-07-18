@@ -56,6 +56,7 @@
       </div>
     </header>
 
+
     <section class="signal-path" id="signalPath" aria-label="Signal path"></section>
 
     <main class="workspace">
@@ -137,9 +138,105 @@
       </section>
     </main>
 
-    <footer class="status-bar">
-      <span id="footerStatus">Starting…</span>
-      <span id="footerHint">LumenDSP · NAM</span>
+    <div id="popoverBackdrop" class="popover-backdrop" hidden></div>
+
+    <div id="tunerPopover" class="popover popover-tuner" hidden role="dialog" aria-label="Tuner">
+      <div class="popover-head">
+        <h2>Tuner</h2>
+        <div class="popover-head-actions">
+          <button type="button" class="popover-icon-btn" id="btnTunerClose" title="Close">✕</button>
+        </div>
+      </div>
+      <div class="tuner-stage">
+        <div class="tuner-scale-ends">
+          <span>-50</span>
+          <span>+50</span>
+        </div>
+        <div class="tuner-line-wrap">
+          <div class="tuner-line"></div>
+          <div class="tuner-orb" id="tunerOrb">
+            <span id="tunerNote">--</span>
+          </div>
+        </div>
+        <div class="tuner-meta">
+          <span id="tunerCents">—</span>
+          <span id="tunerHz">— Hz</span>
+        </div>
+      </div>
+      <div class="popover-foot">
+        <div class="seg-toggle" role="group" aria-label="Display mode">
+          <button type="button" class="seg-btn active" data-tuner-mode="cents">Cents</button>
+          <button type="button" class="seg-btn" data-tuner-mode="hz">Hz</button>
+        </div>
+        <label class="live-toggle">
+          <input type="checkbox" id="liveTuner" checked />
+          <span class="live-switch" aria-hidden="true"></span>
+          <span>Live Tuner</span>
+        </label>
+        <div class="ref-pitch" title="Reference pitch">
+          <span id="refPitchLabel">440.0</span>
+        </div>
+      </div>
+    </div>
+
+    <div id="metroPopover" class="popover popover-metro" hidden role="dialog" aria-label="Metronome">
+      <div class="popover-head">
+        <h2>Metronome</h2>
+        <button type="button" class="popover-icon-btn" id="btnMetroClose" title="Close">✕</button>
+      </div>
+      <div class="metro-top">
+        <div class="metro-field">
+          <span class="metro-field-label">VOLUME</span>
+          <div class="knob-wrap mini" data-param="metronomeVolume">
+            <div class="knob knob-mini" id="knob-metronomeVolume"></div>
+            <div class="knob-value" id="val-metronomeVolume">35%</div>
+          </div>
+        </div>
+      </div>
+      <div class="metro-main">
+        <div class="metro-bpm-block">
+          <span class="metro-field-label">BPM</span>
+          <div class="metro-bpm-row">
+            <div class="metro-bpm-step">
+              <button type="button" id="btnTempoPlus" class="dock-step">▲</button>
+              <button type="button" id="btnTempoMinus" class="dock-step">▼</button>
+            </div>
+            <div class="metro-bpm-value" id="metroBpmBig">120.0</div>
+            <button type="button" class="metro-tap-btn" id="btnTap">TAP</button>
+          </div>
+        </div>
+        <button type="button" class="metro-play-btn" id="metronomeEnabled" aria-pressed="false" title="Start / stop">
+          <span id="metroPlayIcon">▶</span>
+        </button>
+      </div>
+      <div class="metro-beats" id="metroBeats" aria-hidden="true">
+        <span class="beat-dot accent"></span>
+        <span class="beat-dot"></span>
+        <span class="beat-dot"></span>
+        <span class="beat-dot"></span>
+      </div>
+    </div>
+
+    <footer class="dock-bar" aria-label="Practice tools">
+      <div class="dock-left">
+        <button type="button" class="dock-item" id="btnTuner" aria-pressed="false">TUNER</button>
+        <span class="dock-pipe">|</span>
+        <button type="button" class="dock-item dock-tap-group" id="btnDockTap" title="Tap tempo">
+          <span>TAP</span>
+          <span class="dock-value" id="dockBpm">120.0 BPM</span>
+          <span class="dock-chevrons" aria-hidden="true">↕</span>
+        </button>
+        <span class="dock-pipe">|</span>
+        <button type="button" class="dock-item" id="btnMetro" aria-pressed="false">
+          METRONOME
+          <span class="dock-play" id="dockMetroPlay" aria-hidden="true">▶</span>
+        </button>
+        <span class="dock-pipe">|</span>
+        <button type="button" class="dock-item" id="btnAudio">SETTINGS</button>
+      </div>
+      <div class="dock-right">
+        <span class="dock-status" id="footerStatus">Starting…</span>
+      </div>
     </footer>
   </div>
   <script src="app.js"></script>

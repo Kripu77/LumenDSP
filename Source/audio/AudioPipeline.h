@@ -3,9 +3,11 @@
 #include <JuceHeader.h>
 #include "audio/IrConvolver.h"
 #include "audio/LevelMeter.h"
+#include "audio/Metronome.h"
 #include "audio/NamEngine.h"
 #include "audio/NoiseGate.h"
 #include "audio/ThreeBandEq.h"
+#include "audio/Tuner.h"
 
 namespace lumen::audio
 {
@@ -21,6 +23,9 @@ struct PipelineControlState
     float trebleGainDb = 0.0f;
     bool eqEnabled = true;
     bool cabEnabled = true;
+    bool metronomeEnabled = false;
+    float metronomeBpm = 120.0f;
+    float metronomeVolume = 0.35f;
 };
 
 class AudioPipeline
@@ -35,11 +40,15 @@ public:
     IrConvolver& getIrConvolver() noexcept;
     LevelMeter& getInputMeter() noexcept;
     LevelMeter& getOutputMeter() noexcept;
+    Tuner& getTuner() noexcept;
+    Metronome& getMetronome() noexcept;
 
     const NamEngine& getNamEngine() const noexcept;
     const IrConvolver& getIrConvolver() const noexcept;
     const LevelMeter& getInputMeter() const noexcept;
     const LevelMeter& getOutputMeter() const noexcept;
+    const Tuner& getTuner() const noexcept;
+    const Metronome& getMetronome() const noexcept;
 
 private:
     static constexpr int monoMeterChannelIndex = 0;
@@ -53,6 +62,8 @@ private:
     IrConvolver irConvolver;
     LevelMeter inputMeter;
     LevelMeter outputMeter;
+    Tuner tuner;
+    Metronome metronome;
 
     PipelineControlState controls{};
     bool prepared = false;

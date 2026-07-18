@@ -117,6 +117,8 @@ target_sources(LumenDSP
         Source/audio/NoiseGate.cpp
         Source/audio/ThreeBandEq.cpp
         Source/audio/LevelMeter.cpp
+        Source/audio/Tuner.cpp
+        Source/audio/Metronome.cpp
         Source/audio/AudioPipeline.cpp
         Source/presets/PresetManager.cpp
         Source/presets/FactoryContentInstaller.cpp

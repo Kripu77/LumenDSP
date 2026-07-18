@@ -14,6 +14,9 @@ inline constexpr const char* midGainId = "midGain";
 inline constexpr const char* trebleGainId = "trebleGain";
 inline constexpr const char* eqEnabledId = "eqEnabled";
 inline constexpr const char* cabEnabledId = "cabEnabled";
+inline constexpr const char* metronomeEnabledId = "metronomeEnabled";
+inline constexpr const char* metronomeBpmId = "metronomeBpm";
+inline constexpr const char* metronomeVolumeId = "metronomeVolume";
 
 namespace ranges
 {
@@ -41,6 +44,17 @@ inline constexpr float eqGainStepDb = 0.1f;
 inline constexpr bool noiseGateEnabledDefault = true;
 inline constexpr bool eqEnabledDefault = true;
 inline constexpr bool cabEnabledDefault = true;
+inline constexpr bool metronomeEnabledDefault = false;
+
+inline constexpr float metronomeBpmMinimum = 40.0f;
+inline constexpr float metronomeBpmMaximum = 240.0f;
+inline constexpr float metronomeBpmDefault = 120.0f;
+inline constexpr float metronomeBpmStep = 1.0f;
+
+inline constexpr float metronomeVolumeMinimum = 0.0f;
+inline constexpr float metronomeVolumeMaximum = 1.0f;
+inline constexpr float metronomeVolumeDefault = 0.35f;
+inline constexpr float metronomeVolumeStep = 0.01f;
 
 } // namespace ranges
 
@@ -122,6 +136,30 @@ inline juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout
             ranges::outputLevelStepDb),
         ranges::outputLevelDefaultDb,
         juce::AudioParameterFloatAttributes().withLabel("dB")));
+
+    parameters.push_back(std::make_unique<juce::AudioParameterBool>(
+        juce::ParameterID{metronomeEnabledId, 1},
+        "Metronome",
+        ranges::metronomeEnabledDefault));
+
+    parameters.push_back(std::make_unique<juce::AudioParameterFloat>(
+        juce::ParameterID{metronomeBpmId, 1},
+        "Tempo",
+        juce::NormalisableRange<float>(
+            ranges::metronomeBpmMinimum,
+            ranges::metronomeBpmMaximum,
+            ranges::metronomeBpmStep),
+        ranges::metronomeBpmDefault,
+        juce::AudioParameterFloatAttributes().withLabel("BPM")));
+
+    parameters.push_back(std::make_unique<juce::AudioParameterFloat>(
+        juce::ParameterID{metronomeVolumeId, 1},
+        "Click Level",
+        juce::NormalisableRange<float>(
+            ranges::metronomeVolumeMinimum,
+            ranges::metronomeVolumeMaximum,
+            ranges::metronomeVolumeStep),
+        ranges::metronomeVolumeDefault));
 
     return {parameters.begin(), parameters.end()};
 }

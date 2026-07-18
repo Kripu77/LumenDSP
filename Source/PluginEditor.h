@@ -24,6 +24,7 @@ public:
     void handleWebMessage(const juce::String& message);
     void pushStateToWeb();
     void pushMetersToWeb();
+    void pushPracticeToWeb();
 
 private:
     void timerCallback() override;

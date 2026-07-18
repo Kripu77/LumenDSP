@@ -146,6 +146,7 @@ void LumenDSPAudioProcessorEditor::timerCallback()
     }
 
     pushMetersToWeb();
+    pushPracticeToWeb();
 }
 
 void LumenDSPAudioProcessorEditor::ensureStandaloneInputUnmuted()
@@ -232,6 +233,27 @@ void LumenDSPAudioProcessorEditor::pushMetersToWeb()
     emitToWeb(juce::var(object));
 }
 
+void LumenDSPAudioProcessorEditor::pushPracticeToWeb()
+{
+    const auto& pipeline = audioProcessor.getAudioPipeline();
+    const auto& tuner = pipeline.getTuner();
+    const auto& metro = pipeline.getMetronome();
+    auto* object = new juce::DynamicObject();
+    object->setProperty("type", "practice");
+    object->setProperty("note", tuner.getNoteName());
+    object->setProperty("frequencyHz", tuner.getFrequencyHz());
+    object->setProperty("cents", tuner.getCentsOffset());
+    object->setProperty("locked", tuner.isLocked());
+    object->setProperty(
+        "metronomeEnabled",
+        readParameter(lumen::parameters::metronomeEnabledId) > 0.5f);
+    object->setProperty("metronomeBpm", readParameter(lumen::parameters::metronomeBpmId));
+    object->setProperty("metronomeVolume", readParameter(lumen::parameters::metronomeVolumeId));
+    object->setProperty("beatInBar", metro.getBeatInBar());
+    object->setProperty("beatsPerBar", metro.getBeatsPerBar());
+    emitToWeb(juce::var(object));
+}
+
 void LumenDSPAudioProcessorEditor::emitToWeb(const juce::var& payload)
 {
     const auto json = juce::JSON::toString(payload, false);
@@ -254,6 +276,11 @@ juce::var LumenDSPAudioProcessorEditor::buildStateObject() const
     parameters->setProperty("trebleGain", readParameter(lumen::parameters::trebleGainId));
     parameters->setProperty("eqEnabled", readParameter(lumen::parameters::eqEnabledId) > 0.5f);
     parameters->setProperty("cabEnabled", readParameter(lumen::parameters::cabEnabledId) > 0.5f);
+    parameters->setProperty(
+        "metronomeEnabled",
+        readParameter(lumen::parameters::metronomeEnabledId) > 0.5f);
+    parameters->setProperty("metronomeBpm", readParameter(lumen::parameters::metronomeBpmId));
+    parameters->setProperty("metronomeVolume", readParameter(lumen::parameters::metronomeVolumeId));
     object->setProperty("parameters", juce::var(parameters));
 
     juce::Array<juce::var> presets;

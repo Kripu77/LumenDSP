@@ -6,6 +6,8 @@
     bassGain: { min: -12, max: 12, unit: "dB", decimals: 1 },
     midGain: { min: -12, max: 12, unit: "dB", decimals: 1 },
     trebleGain: { min: -12, max: 12, unit: "dB", decimals: 1 },
+    metronomeBpm: { min: 40, max: 240, unit: "BPM", decimals: 0 },
+    metronomeVolume: { min: 0, max: 1, unit: "%", decimals: 0, asPercent: true },
   };
 
   const TOGGLE_ON = "assets/signal-path/toggle-on.png";
@@ -22,6 +24,9 @@
       trebleGain: 0,
       eqEnabled: true,
       cabEnabled: true,
+      metronomeEnabled: false,
+      metronomeBpm: 120,
+      metronomeVolume: 0.35,
     },
     presets: [],
     currentPreset: "",
@@ -30,7 +35,12 @@
     namLoaded: false,
     irLoaded: false,
     status: "Connecting…",
+    openPopover: null,
+    tunerMode: "cents",
+    liveTuner: true,
   };
+
+  const tapTimes = [];
 
   const $ = (id) => document.getElementById(id);
 
@@ -54,6 +64,8 @@
   function formatValue(id, value) {
     const meta = PARAMS[id];
     if (!meta) return String(value);
+    if (meta.asPercent)
+      return `${Math.round(Number(value) * 100)} ${meta.unit}`;
     return `${Number(value).toFixed(meta.decimals)} ${meta.unit}`;
   }
 
@@ -188,12 +200,27 @@
     setToggle("noiseGateEnabled", state.parameters.noiseGateEnabled);
     setToggle("eqEnabled", state.parameters.eqEnabled);
     setToggle("cabEnabled", state.parameters.cabEnabled);
+    setToggle("metronomeEnabled", state.parameters.metronomeEnabled);
 
     $("namName").textContent = state.namLoaded ? state.namName : "None loaded";
     $("irName").textContent = state.irLoaded ? state.irName : "None loaded";
     $("namStatus").textContent = state.namLoaded ? state.namName : "No model";
     $("namStatus").className = `status ${state.namLoaded ? "ok" : "warn"}`;
     $("footerStatus").textContent = state.status || "";
+
+    const dockBpm = $("dockBpm");
+    if (dockBpm && state.parameters.metronomeBpm !== undefined)
+      dockBpm.textContent = `${Number(state.parameters.metronomeBpm).toFixed(1)} BPM`;
+    const big = $("metroBpmBig");
+    if (big && state.parameters.metronomeBpm !== undefined)
+      big.textContent = Number(state.parameters.metronomeBpm).toFixed(1);
+    const play = $("metroPlayIcon");
+    if (play) play.textContent = state.parameters.metronomeEnabled ? "■" : "▶";
+    const dockPlay = $("dockMetroPlay");
+    if (dockPlay) {
+      dockPlay.textContent = state.parameters.metronomeEnabled ? "■" : "▶";
+      dockPlay.classList.toggle("on", !!state.parameters.metronomeEnabled);
+    }
 
     const cabLed = $("cabLed");
     if (cabLed) cabLed.classList.toggle("on", !!state.parameters.cabEnabled && !!state.irLoaded);
@@ -264,11 +291,148 @@
     });
   }
 
+  function setTempo(bpm) {
+    const meta = PARAMS.metronomeBpm;
+    const next = Math.min(meta.max, Math.max(meta.min, Math.round(Number(bpm) * 10) / 10));
+    state.parameters.metronomeBpm = next;
+    const dock = $("dockBpm");
+    const big = $("metroBpmBig");
+    if (dock) dock.textContent = `${next.toFixed(1)} BPM`;
+    if (big) big.textContent = next.toFixed(1);
+    send({ type: "setParameter", id: "metronomeBpm", value: next });
+  }
+
+  function nudgeTempo(delta) {
+    setTempo((state.parameters.metronomeBpm ?? 120) + delta);
+  }
+
+  function handleTapTempo() {
+    const now = performance.now();
+    if (tapTimes.length && now - tapTimes[tapTimes.length - 1] > 2000)
+      tapTimes.length = 0;
+    tapTimes.push(now);
+    if (tapTimes.length > 6) tapTimes.shift();
+    if (tapTimes.length < 2) return;
+
+    let total = 0;
+    for (let i = 1; i < tapTimes.length; i += 1)
+      total += tapTimes[i] - tapTimes[i - 1];
+    setTempo(60000 / (total / (tapTimes.length - 1)));
+  }
+
+  function closePopovers() {
+    state.openPopover = null;
+    const backdrop = $("popoverBackdrop");
+    const tuner = $("tunerPopover");
+    const metro = $("metroPopover");
+    if (backdrop) backdrop.hidden = true;
+    if (tuner) tuner.hidden = true;
+    if (metro) metro.hidden = true;
+    $("btnTuner")?.setAttribute("aria-pressed", "false");
+    $("btnMetro")?.setAttribute("aria-pressed", "false");
+  }
+
+  function openPopover(name) {
+    if (state.openPopover === name) {
+      closePopovers();
+      return;
+    }
+    closePopovers();
+    state.openPopover = name;
+    const backdrop = $("popoverBackdrop");
+    if (backdrop) backdrop.hidden = false;
+    if (name === "tuner") {
+      $("tunerPopover").hidden = false;
+      $("btnTuner")?.setAttribute("aria-pressed", "true");
+    }
+    if (name === "metro") {
+      $("metroPopover").hidden = false;
+      $("btnMetro")?.setAttribute("aria-pressed", "true");
+    }
+  }
+
+  function paintBeats(beatInBar, beatsPerBar, running) {
+    const root = $("metroBeats");
+    if (!root) return;
+    const dots = [...root.querySelectorAll(".beat-dot")];
+    dots.forEach((dot, index) => {
+      if (index >= beatsPerBar) {
+        dot.style.display = "none";
+        return;
+      }
+      dot.style.display = "";
+      const active = running && index === beatInBar;
+      dot.classList.toggle("on", active);
+    });
+  }
+
+  function paintPractice(data) {
+    const live = state.liveTuner;
+    const locked = live && !!data.locked;
+    const cents = locked ? Math.max(-50, Math.min(50, Number(data.cents) || 0)) : 0;
+    const hz = locked ? Number(data.frequencyHz) || 0 : 0;
+
+    const note = $("tunerNote");
+    const centsEl = $("tunerCents");
+    const hzEl = $("tunerHz");
+    const orb = $("tunerOrb");
+
+    if (note) note.textContent = locked ? (data.note || "--") : "--";
+    if (centsEl) {
+      centsEl.textContent = locked
+        ? `${cents > 0 ? "+" : ""}${Math.round(cents)} ¢`
+        : "—";
+      centsEl.style.display = state.tunerMode === "cents" ? "" : "none";
+    }
+    if (hzEl) {
+      hzEl.textContent = locked ? `${hz.toFixed(1)} Hz` : "— Hz";
+      hzEl.style.display = state.tunerMode === "hz" ? "" : "none";
+    }
+    if (orb) {
+      const shift = (cents / 50) * 42;
+      orb.style.transform = `translateX(${shift}%)`;
+      orb.classList.toggle("in-tune", locked && Math.abs(cents) < 5);
+    }
+
+    if (data.metronomeEnabled !== undefined) {
+      state.parameters.metronomeEnabled = !!data.metronomeEnabled;
+      setToggle("metronomeEnabled", data.metronomeEnabled);
+      const dockPlay = $("dockMetroPlay");
+      if (dockPlay) {
+        dockPlay.textContent = data.metronomeEnabled ? "■" : "▶";
+        dockPlay.classList.toggle("on", !!data.metronomeEnabled);
+      }
+      const icon = $("metroPlayIcon");
+      if (icon) icon.textContent = data.metronomeEnabled ? "■" : "▶";
+      $("btnMetro")?.classList.toggle("running", !!data.metronomeEnabled);
+    }
+
+    if (data.metronomeBpm !== undefined) {
+      state.parameters.metronomeBpm = data.metronomeBpm;
+      const dock = $("dockBpm");
+      const big = $("metroBpmBig");
+      if (dock) dock.textContent = `${Number(data.metronomeBpm).toFixed(1)} BPM`;
+      if (big) big.textContent = Number(data.metronomeBpm).toFixed(1);
+    }
+
+    if (data.metronomeVolume !== undefined) {
+      state.parameters.metronomeVolume = data.metronomeVolume;
+      setKnob("metronomeVolume", data.metronomeVolume);
+    }
+
+    paintBeats(
+      Number(data.beatInBar) || 0,
+      Number(data.beatsPerBar) || 4,
+      !!data.metronomeEnabled
+    );
+  }
+
   function bindControls() {
     bindToggle("noiseGateEnabled", "noiseGateEnabled");
     bindToggle("noiseGateEnabledCard", "noiseGateEnabled");
     bindToggle("eqEnabled", "eqEnabled");
     bindToggle("cabEnabled", "cabEnabled");
+    bindToggle("metronomeEnabled", "metronomeEnabled");
 
     $("presetSelect").addEventListener("change", (event) => {
       send({ type: "loadPreset", name: event.target.value });
@@ -282,7 +446,35 @@
     });
     $("btnBrowseNam").addEventListener("click", () => send({ type: "browseNam" }));
     $("btnBrowseIr").addEventListener("click", () => send({ type: "browseIr" }));
-    $("btnAudio").addEventListener("click", () => send({ type: "openAudioSettings" }));
+    $("btnAudio")?.addEventListener("click", () => send({ type: "openAudioSettings" }));
+
+    $("btnTuner")?.addEventListener("click", () => openPopover("tuner"));
+    $("btnMetro")?.addEventListener("click", () => openPopover("metro"));
+    $("btnTunerClose")?.addEventListener("click", closePopovers);
+    $("btnMetroClose")?.addEventListener("click", closePopovers);
+    $("popoverBackdrop")?.addEventListener("click", closePopovers);
+
+    $("btnTap")?.addEventListener("click", handleTapTempo);
+    $("btnDockTap")?.addEventListener("click", handleTapTempo);
+    $("btnTempoMinus")?.addEventListener("click", () => nudgeTempo(-1));
+    $("btnTempoPlus")?.addEventListener("click", () => nudgeTempo(1));
+
+    document.querySelectorAll("[data-tuner-mode]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        state.tunerMode = btn.getAttribute("data-tuner-mode") || "cents";
+        document.querySelectorAll("[data-tuner-mode]").forEach((el) => {
+          el.classList.toggle("active", el === btn);
+        });
+        const centsEl = $("tunerCents");
+        const hzEl = $("tunerHz");
+        if (centsEl) centsEl.style.display = state.tunerMode === "cents" ? "" : "none";
+        if (hzEl) hzEl.style.display = state.tunerMode === "hz" ? "" : "none";
+      });
+    });
+
+    $("liveTuner")?.addEventListener("change", (event) => {
+      state.liveTuner = !!event.target.checked;
+    });
   }
 
   window.__lumenReceive = function receive(message) {
@@ -301,6 +493,8 @@
     } else if (data.type === "meters") {
       paintMeter("input-meter", data.inputDb ?? -60);
       paintMeter("output-meter", data.outputDb ?? -60);
+    } else if (data.type === "practice") {
+      paintPractice(data);
     } else if (data.type === "status") {
       $("footerStatus").textContent = data.message || "";
     }
