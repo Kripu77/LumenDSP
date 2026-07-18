@@ -37,16 +37,20 @@ struct PipelineControlState
     float compressorMix = 1.0f;
 
     bool driveEnabled = false;
+    int driveMode = 0;
     float driveAmount = 0.35f;
     float driveTone = 0.5f;
     float driveLevel = 0.7f;
 
     bool delayEnabled = false;
+    bool delaySync = false;
+    int delayDivision = 0;
     float delayTimeMs = 380.0f;
     float delayFeedback = 0.25f;
     float delayMix = 0.2f;
 
     bool reverbEnabled = false;
+    int reverbCharacter = 0;
     float reverbSize = 0.4f;
     float reverbDamping = 0.5f;
     float reverbMix = 0.18f;

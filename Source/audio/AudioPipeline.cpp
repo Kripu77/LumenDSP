@@ -50,6 +50,7 @@ void AudioPipeline::setControlState(const PipelineControlState& controlState)
     compressor.setMix(controls.compressorMix);
 
     drive.setEnabled(controls.driveEnabled);
+    drive.setMode(static_cast<DriveMode>(juce::jlimit(0, 3, controls.driveMode)));
     drive.setDrive(controls.driveAmount);
     drive.setTone(controls.driveTone);
     drive.setLevel(controls.driveLevel);
@@ -62,11 +63,15 @@ void AudioPipeline::setControlState(const PipelineControlState& controlState)
     irConvolver.setEnabled(controls.cabEnabled);
 
     delay.setEnabled(controls.delayEnabled);
+    delay.setSyncEnabled(controls.delaySync);
+    delay.setDivision(static_cast<DelayDivision>(juce::jlimit(0, 5, controls.delayDivision)));
+    delay.setTempoBpm(controls.metronomeBpm);
     delay.setTimeMs(controls.delayTimeMs);
     delay.setFeedback(controls.delayFeedback);
     delay.setMix(controls.delayMix);
 
     reverb.setEnabled(controls.reverbEnabled);
+    reverb.setCharacter(static_cast<ReverbCharacter>(juce::jlimit(0, 3, controls.reverbCharacter)));
     reverb.setRoomSize(controls.reverbSize);
     reverb.setDamping(controls.reverbDamping);
     reverb.setMix(controls.reverbMix);

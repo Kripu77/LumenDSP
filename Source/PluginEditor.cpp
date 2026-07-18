@@ -75,8 +75,8 @@ window.lumenPostMessage = function(payload) {
         return options;
     }())
 {
-    setSize(1120, 760);
-    setResizeLimits(960, 640, 1800, 1200);
+    setSize(1320, 920);
+    setResizeLimits(1040, 720, 2000, 1400);
     setResizable(true, true);
 
     addAndMakeVisible(webView);
@@ -292,17 +292,29 @@ juce::var LumenDSPAudioProcessorEditor::buildStateObject() const
     putFloat("compressorRatio", lumen::parameters::compressorRatioId);
     putFloat("compressorMix", lumen::parameters::compressorMixId);
 
+    auto putChoice = [&](const char* key, const char* id) {
+        if (auto* choice = dynamic_cast<juce::AudioParameterChoice*>(
+                audioProcessor.getValueTreeState().getParameter(id)))
+            parameters->setProperty(key, choice->getIndex());
+        else
+            parameters->setProperty(key, juce::roundToInt(readParameter(id)));
+    };
+
     putBool("driveEnabled", lumen::parameters::driveEnabledId);
+    putChoice("driveMode", lumen::parameters::driveModeId);
     putFloat("driveAmount", lumen::parameters::driveAmountId);
     putFloat("driveTone", lumen::parameters::driveToneId);
     putFloat("driveLevel", lumen::parameters::driveLevelId);
 
     putBool("delayEnabled", lumen::parameters::delayEnabledId);
+    putBool("delaySync", lumen::parameters::delaySyncId);
+    putChoice("delayDivision", lumen::parameters::delayDivisionId);
     putFloat("delayTime", lumen::parameters::delayTimeId);
     putFloat("delayFeedback", lumen::parameters::delayFeedbackId);
     putFloat("delayMix", lumen::parameters::delayMixId);
 
     putBool("reverbEnabled", lumen::parameters::reverbEnabledId);
+    putChoice("reverbCharacter", lumen::parameters::reverbCharacterId);
     putFloat("reverbSize", lumen::parameters::reverbSizeId);
     putFloat("reverbDamping", lumen::parameters::reverbDampingId);
     putFloat("reverbMix", lumen::parameters::reverbMixId);

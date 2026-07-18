@@ -11,10 +11,10 @@ inline constexpr int spacingTwoUnitsPixels = 16;
 inline constexpr int spacingThreeUnitsPixels = 24;
 inline constexpr int spacingFourUnitsPixels = 32;
 
-inline constexpr int windowWidthPixels = 1080;
-inline constexpr int windowHeightPixels = 700;
-inline constexpr int windowMinimumWidthPixels = 920;
-inline constexpr int windowMinimumHeightPixels = 600;
+inline constexpr int windowWidthPixels = 1320;
+inline constexpr int windowHeightPixels = 920;
+inline constexpr int windowMinimumWidthPixels = 1040;
+inline constexpr int windowMinimumHeightPixels = 720;
 
 inline constexpr int topChromeHeightPixels = 96;
 inline constexpr int signalPathHeightPixels = 88;

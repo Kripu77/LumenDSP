@@ -24,16 +24,20 @@ inline constexpr const char* compressorRatioId = "compressorRatio";
 inline constexpr const char* compressorMixId = "compressorMix";
 
 inline constexpr const char* driveEnabledId = "driveEnabled";
+inline constexpr const char* driveModeId = "driveMode";
 inline constexpr const char* driveAmountId = "driveAmount";
 inline constexpr const char* driveToneId = "driveTone";
 inline constexpr const char* driveLevelId = "driveLevel";
 
 inline constexpr const char* delayEnabledId = "delayEnabled";
+inline constexpr const char* delaySyncId = "delaySync";
+inline constexpr const char* delayDivisionId = "delayDivision";
 inline constexpr const char* delayTimeId = "delayTime";
 inline constexpr const char* delayFeedbackId = "delayFeedback";
 inline constexpr const char* delayMixId = "delayMix";
 
 inline constexpr const char* reverbEnabledId = "reverbEnabled";
+inline constexpr const char* reverbCharacterId = "reverbCharacter";
 inline constexpr const char* reverbSizeId = "reverbSize";
 inline constexpr const char* reverbDampingId = "reverbDamping";
 inline constexpr const char* reverbMixId = "reverbMix";
@@ -82,16 +86,20 @@ inline constexpr float compressorRatioMaximum = 20.0f;
 inline constexpr float compressorRatioDefault = 4.0f;
 inline constexpr float compressorMixDefault = 1.0f;
 
+inline constexpr int driveModeDefault = 0;
 inline constexpr float driveAmountDefault = 0.35f;
 inline constexpr float driveToneDefault = 0.5f;
 inline constexpr float driveLevelDefault = 0.7f;
 
+inline constexpr bool delaySyncDefault = false;
+inline constexpr int delayDivisionDefault = 0;
 inline constexpr float delayTimeMinimumMs = 1.0f;
 inline constexpr float delayTimeMaximumMs = 1000.0f;
 inline constexpr float delayTimeDefaultMs = 380.0f;
 inline constexpr float delayFeedbackDefault = 0.25f;
 inline constexpr float delayMixDefault = 0.2f;
 
+inline constexpr int reverbCharacterDefault = 0;
 inline constexpr float reverbSizeDefault = 0.4f;
 inline constexpr float reverbDampingDefault = 0.5f;
 inline constexpr float reverbMixDefault = 0.18f;
@@ -135,6 +143,20 @@ inline void addBool(
         defaultValue));
 }
 
+inline void addChoice(
+    std::vector<std::unique_ptr<juce::RangedAudioParameter>>& parameters,
+    const char* id,
+    const juce::String& name,
+    const juce::StringArray& choices,
+    int defaultIndex)
+{
+    parameters.push_back(std::make_unique<juce::AudioParameterChoice>(
+        juce::ParameterID{id, 1},
+        name,
+        choices,
+        defaultIndex));
+}
+
 } // namespace detail
 
 inline juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout()
@@ -151,6 +173,7 @@ inline juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout
     detail::addFloat(parameters, compressorMixId, "Comp Mix", ranges::unitMinimum, ranges::unitMaximum, ranges::compressorMixDefault, 0.01f);
 
     detail::addBool(parameters, driveEnabledId, "Drive On", ranges::driveEnabledDefault);
+    detail::addChoice(parameters, driveModeId, "Drive Mode", { "Soft", "Hard", "Tube", "Boost" }, ranges::driveModeDefault);
     detail::addFloat(parameters, driveAmountId, "Drive", ranges::unitMinimum, ranges::unitMaximum, ranges::driveAmountDefault, 0.01f);
     detail::addFloat(parameters, driveToneId, "Drive Tone", ranges::unitMinimum, ranges::unitMaximum, ranges::driveToneDefault, 0.01f);
     detail::addFloat(parameters, driveLevelId, "Drive Level", ranges::unitMinimum, ranges::unitMaximum, ranges::driveLevelDefault, 0.01f);
@@ -162,11 +185,24 @@ inline juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout
     detail::addBool(parameters, cabEnabledId, "Cab On", ranges::cabEnabledDefault);
 
     detail::addBool(parameters, delayEnabledId, "Delay On", ranges::delayEnabledDefault);
+    detail::addBool(parameters, delaySyncId, "Delay Sync", ranges::delaySyncDefault);
+    detail::addChoice(
+        parameters,
+        delayDivisionId,
+        "Delay Div",
+        { "1/4", "1/8", "1/8 D", "1/16", "1/4 D", "1/2" },
+        ranges::delayDivisionDefault);
     detail::addFloat(parameters, delayTimeId, "Delay Time", ranges::delayTimeMinimumMs, ranges::delayTimeMaximumMs, ranges::delayTimeDefaultMs, 1.0f, "ms");
     detail::addFloat(parameters, delayFeedbackId, "Delay Fdbk", ranges::unitMinimum, ranges::unitMaximum, ranges::delayFeedbackDefault, 0.01f);
     detail::addFloat(parameters, delayMixId, "Delay Mix", ranges::unitMinimum, ranges::unitMaximum, ranges::delayMixDefault, 0.01f);
 
     detail::addBool(parameters, reverbEnabledId, "Reverb On", ranges::reverbEnabledDefault);
+    detail::addChoice(
+        parameters,
+        reverbCharacterId,
+        "Reverb Style",
+        { "Room", "Hall", "Plate", "Ambient" },
+        ranges::reverbCharacterDefault);
     detail::addFloat(parameters, reverbSizeId, "Reverb Size", ranges::unitMinimum, ranges::unitMaximum, ranges::reverbSizeDefault, 0.01f);
     detail::addFloat(parameters, reverbDampingId, "Reverb Damp", ranges::unitMinimum, ranges::unitMaximum, ranges::reverbDampingDefault, 0.01f);
     detail::addFloat(parameters, reverbMixId, "Reverb Mix", ranges::unitMinimum, ranges::unitMaximum, ranges::reverbMixDefault, 0.01f);

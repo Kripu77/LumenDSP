@@ -174,6 +174,12 @@
             <span>On</span>
           </button>
         </div>
+        <div class="fx-choice" data-choice="driveMode">
+          <button type="button" class="fx-chip active" data-value="0">Soft</button>
+          <button type="button" class="fx-chip" data-value="1">Hard</button>
+          <button type="button" class="fx-chip" data-value="2">Tube</button>
+          <button type="button" class="fx-chip" data-value="3">Boost</button>
+        </div>
         <div class="fx-knobs">
           <div class="knob-wrap mini" data-param="driveAmount">
             <div class="knob knob-mini" id="knob-driveAmount"></div>
@@ -201,8 +207,22 @@
             <span>On</span>
           </button>
         </div>
+        <div class="fx-row-tools">
+          <button type="button" class="hw-toggle compact" id="delaySync" aria-pressed="false">
+            <img src="assets/signal-path/toggle-off.png" alt="" data-role="toggle-img" />
+            <span>Sync</span>
+          </button>
+          <div class="fx-choice" data-choice="delayDivision" id="delayDivisionGroup">
+            <button type="button" class="fx-chip active" data-value="0">1/4</button>
+            <button type="button" class="fx-chip" data-value="1">1/8</button>
+            <button type="button" class="fx-chip" data-value="2">1/8D</button>
+            <button type="button" class="fx-chip" data-value="3">1/16</button>
+            <button type="button" class="fx-chip" data-value="4">1/4D</button>
+            <button type="button" class="fx-chip" data-value="5">1/2</button>
+          </div>
+        </div>
         <div class="fx-knobs">
-          <div class="knob-wrap mini" data-param="delayTime">
+          <div class="knob-wrap mini" data-param="delayTime" id="delayTimeWrap">
             <div class="knob knob-mini" id="knob-delayTime"></div>
             <div class="knob-label">TIME</div>
             <div class="knob-value" id="val-delayTime">380 ms</div>
@@ -227,6 +247,12 @@
             <img src="assets/signal-path/toggle-off.png" alt="" data-role="toggle-img" />
             <span>On</span>
           </button>
+        </div>
+        <div class="fx-choice" data-choice="reverbCharacter">
+          <button type="button" class="fx-chip active" data-value="0">Room</button>
+          <button type="button" class="fx-chip" data-value="1">Hall</button>
+          <button type="button" class="fx-chip" data-value="2">Plate</button>
+          <button type="button" class="fx-chip" data-value="3">Amb</button>
         </div>
         <div class="fx-knobs">
           <div class="knob-wrap mini" data-param="reverbSize">

@@ -6,14 +6,8 @@ namespace lumen::audio
 void ReverbFx::prepare(const juce::dsp::ProcessSpec& processSpec)
 {
     reverb.prepare(processSpec);
-    params.roomSize = 0.4f;
-    params.damping = 0.5f;
-    params.width = 1.0f;
-    params.freezeMode = 0.0f;
-    params.wetLevel = 0.18f;
-    params.dryLevel = 0.82f;
-    reverb.setParameters(params);
     prepared = true;
+    applyParameters();
     reset();
 }
 
@@ -27,15 +21,21 @@ void ReverbFx::setEnabled(bool shouldEnable) noexcept
     enabled = shouldEnable;
 }
 
+void ReverbFx::setCharacter(ReverbCharacter newCharacter) noexcept
+{
+    character = newCharacter;
+    applyParameters();
+}
+
 void ReverbFx::setRoomSize(float size01) noexcept
 {
-    params.roomSize = juce::jlimit(0.0f, 1.0f, size01);
+    size = juce::jlimit(0.0f, 1.0f, size01);
     applyParameters();
 }
 
 void ReverbFx::setDamping(float damping01) noexcept
 {
-    params.damping = juce::jlimit(0.0f, 1.0f, damping01);
+    damping = juce::jlimit(0.0f, 1.0f, damping01);
     applyParameters();
 }
 
@@ -47,8 +47,42 @@ void ReverbFx::setMix(float mix01) noexcept
 
 void ReverbFx::applyParameters()
 {
+    float sizeBias = 0.0f;
+    float dampBias = 0.0f;
+    float width = 1.0f;
+
+    switch (character)
+    {
+        case ReverbCharacter::hall:
+            sizeBias = 0.25f;
+            dampBias = -0.15f;
+            width = 1.0f;
+            break;
+        case ReverbCharacter::plate:
+            sizeBias = 0.05f;
+            dampBias = -0.28f;
+            width = 0.85f;
+            break;
+        case ReverbCharacter::ambient:
+            sizeBias = 0.35f;
+            dampBias = 0.2f;
+            width = 1.0f;
+            break;
+        case ReverbCharacter::room:
+        default:
+            sizeBias = -0.1f;
+            dampBias = 0.05f;
+            width = 0.7f;
+            break;
+    }
+
+    params.roomSize = juce::jlimit(0.0f, 1.0f, size + sizeBias);
+    params.damping = juce::jlimit(0.0f, 1.0f, damping + dampBias);
+    params.width = width;
+    params.freezeMode = 0.0f;
     params.wetLevel = mix;
     params.dryLevel = 1.0f - mix;
+
     if (prepared)
         reverb.setParameters(params);
 }

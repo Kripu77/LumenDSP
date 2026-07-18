@@ -44,14 +44,18 @@
       compressorRatio: 4,
       compressorMix: 1,
       driveEnabled: false,
+      driveMode: 0,
       driveAmount: 0.35,
       driveTone: 0.5,
       driveLevel: 0.7,
       delayEnabled: false,
+      delaySync: false,
+      delayDivision: 0,
       delayTime: 380,
       delayFeedback: 0.25,
       delayMix: 0.2,
       reverbEnabled: false,
+      reverbCharacter: 0,
       reverbSize: 0.4,
       reverbDamping: 0.5,
       reverbMix: 0.18,
@@ -202,6 +206,7 @@
       const cabLed = $("cabLed");
       if (cabLed) cabLed.classList.toggle("on", next && state.irLoaded);
     }
+    updateFxModuleClasses();
     renderSignalPath();
   }
 
@@ -229,7 +234,9 @@
       {
         id: "drive",
         title: "DRIVE",
-        detail: p.driveEnabled ? `${Math.round(p.driveAmount * 100)}%` : "Off",
+        detail: p.driveEnabled
+          ? ["Soft", "Hard", "Tube", "Boost"][Math.round(p.driveMode) || 0]
+          : "Off",
         on: !!p.driveEnabled,
         toggle: "driveEnabled",
         focus: '.fx-module[data-fx="drive"]',
@@ -261,7 +268,11 @@
       {
         id: "delay",
         title: "DELAY",
-        detail: p.delayEnabled ? `${Math.round(p.delayTime)} ms` : "Off",
+        detail: p.delayEnabled
+          ? (p.delaySync
+            ? ["1/4", "1/8", "1/8D", "1/16", "1/4D", "1/2"][Math.round(p.delayDivision) || 0]
+            : `${Math.round(p.delayTime)} ms`)
+          : "Off",
         on: !!p.delayEnabled,
         toggle: "delayEnabled",
         focus: '.fx-module[data-fx="delay"]',
@@ -269,7 +280,9 @@
       {
         id: "reverb",
         title: "REVERB",
-        detail: p.reverbEnabled ? `${Math.round(p.reverbMix * 100)}%` : "Off",
+        detail: p.reverbEnabled
+          ? ["Room", "Hall", "Plate", "Amb"][Math.round(p.reverbCharacter) || 0]
+          : "Off",
         on: !!p.reverbEnabled,
         toggle: "reverbEnabled",
         focus: '.fx-module[data-fx="reverb"]',
@@ -322,18 +335,13 @@
     setToggle("compressorEnabled", state.parameters.compressorEnabled);
     setToggle("driveEnabled", state.parameters.driveEnabled);
     setToggle("delayEnabled", state.parameters.delayEnabled);
+    setToggle("delaySync", state.parameters.delaySync);
     setToggle("reverbEnabled", state.parameters.reverbEnabled);
 
-    document.querySelectorAll(".fx-module").forEach((mod) => {
-      const key = mod.getAttribute("data-fx");
-      const enabled =
-        key === "comp" ? state.parameters.compressorEnabled
-        : key === "drive" ? state.parameters.driveEnabled
-        : key === "delay" ? state.parameters.delayEnabled
-        : key === "reverb" ? state.parameters.reverbEnabled
-        : false;
-      mod.classList.toggle("on", !!enabled);
-    });
+    syncChoiceChips("driveMode", state.parameters.driveMode);
+    syncChoiceChips("delayDivision", state.parameters.delayDivision);
+    syncChoiceChips("reverbCharacter", state.parameters.reverbCharacter);
+    updateFxModuleClasses();
 
     $("namName").textContent = state.namLoaded ? state.namName : "None loaded";
     $("irName").textContent = state.irLoaded ? state.irName : "None loaded";
@@ -407,6 +415,50 @@
     });
   }
 
+  function updateFxModuleClasses() {
+    document.querySelectorAll(".fx-module").forEach((mod) => {
+      const key = mod.getAttribute("data-fx");
+      const enabled =
+        key === "comp" ? state.parameters.compressorEnabled
+        : key === "drive" ? state.parameters.driveEnabled
+        : key === "delay" ? state.parameters.delayEnabled
+        : key === "reverb" ? state.parameters.reverbEnabled
+        : false;
+      mod.classList.toggle("on", !!enabled);
+      if (key === "delay")
+        mod.classList.toggle("sync-on", !!state.parameters.delaySync);
+    });
+  }
+
+  function syncChoiceChips(choiceId, value) {
+    const group = document.querySelector(`.fx-choice[data-choice="${choiceId}"]`);
+    if (!group) return;
+    const index = Math.round(Number(value) || 0);
+    group.querySelectorAll(".fx-chip").forEach((chip) => {
+      chip.classList.toggle("active", Number(chip.dataset.value) === index);
+    });
+  }
+
+  function setChoiceParam(choiceId, value) {
+    const index = Math.round(Number(value) || 0);
+    state.parameters[choiceId] = index;
+    syncChoiceChips(choiceId, index);
+    send({ type: "setParameter", id: choiceId, value: index });
+    renderSignalPath();
+  }
+
+  function bindChoiceGroups() {
+    document.querySelectorAll(".fx-choice[data-choice]").forEach((group) => {
+      if (group.dataset.bound === "1") return;
+      group.dataset.bound = "1";
+      group.addEventListener("click", (event) => {
+        const chip = event.target.closest(".fx-chip");
+        if (!chip || !group.contains(chip)) return;
+        setChoiceParam(group.getAttribute("data-choice"), chip.dataset.value);
+      });
+    });
+  }
+
   function bindToggle(buttonId, paramId) {
     const el = $(buttonId);
     if (!el) return;
@@ -417,16 +469,7 @@
       if (paramId === "noiseGateEnabled") setToggle("noiseGateEnabled", next);
       send({ type: "setParameter", id: paramId, value: next ? 1 : 0 });
       renderSignalPath();
-      document.querySelectorAll(".fx-module").forEach((mod) => {
-        const key = mod.getAttribute("data-fx");
-        const enabled =
-          key === "comp" ? state.parameters.compressorEnabled
-          : key === "drive" ? state.parameters.driveEnabled
-          : key === "delay" ? state.parameters.delayEnabled
-          : key === "reverb" ? state.parameters.reverbEnabled
-          : false;
-        mod.classList.toggle("on", !!enabled);
-      });
+      updateFxModuleClasses();
       if (paramId === "cabEnabled") {
         const cabLed = $("cabLed");
         if (cabLed) cabLed.classList.toggle("on", next && state.irLoaded);
@@ -579,7 +622,9 @@
     bindToggle("compressorEnabled", "compressorEnabled");
     bindToggle("driveEnabled", "driveEnabled");
     bindToggle("delayEnabled", "delayEnabled");
+    bindToggle("delaySync", "delaySync");
     bindToggle("reverbEnabled", "reverbEnabled");
+    bindChoiceGroups();
 
     $("presetSelect").addEventListener("change", (event) => {
       send({ type: "loadPreset", name: event.target.value });

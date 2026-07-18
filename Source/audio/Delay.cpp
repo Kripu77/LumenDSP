@@ -11,10 +11,12 @@ void Delay::prepare(const juce::dsp::ProcessSpec& processSpec)
         static_cast<int>(sampleRate * maximumDelayMs * 0.001) + 8);
     const int channels = juce::jmax(1, static_cast<int>(processSpec.numChannels));
 
-    delayLines.assign(static_cast<size_t>(channels), std::vector<float>(static_cast<size_t>(maxSamples), 0.0f));
+    delayLines.assign(
+        static_cast<size_t>(channels),
+        std::vector<float>(static_cast<size_t>(maxSamples), 0.0f));
     writeIndex = 0;
     prepared = true;
-    setTimeMs(380.0f);
+    updateDelaySamples();
     reset();
 }
 
@@ -32,10 +34,29 @@ void Delay::setEnabled(bool shouldEnable) noexcept
 
 void Delay::setTimeMs(float timeMs) noexcept
 {
-    const float clamped = juce::jlimit(1.0f, maximumDelayMs, timeMs);
-    delaySamples = juce::jmax(1, static_cast<int>(sampleRate * clamped * 0.001));
-    if (!delayLines.empty())
-        delaySamples = juce::jmin(delaySamples, static_cast<int>(delayLines[0].size()) - 1);
+    manualTimeMs = juce::jlimit(1.0f, maximumDelayMs, timeMs);
+    if (!syncEnabled)
+        updateDelaySamples();
+}
+
+void Delay::setSyncEnabled(bool shouldSync) noexcept
+{
+    syncEnabled = shouldSync;
+    updateDelaySamples();
+}
+
+void Delay::setDivision(DelayDivision newDivision) noexcept
+{
+    division = newDivision;
+    if (syncEnabled)
+        updateDelaySamples();
+}
+
+void Delay::setTempoBpm(float bpm) noexcept
+{
+    tempoBpm = juce::jlimit(40.0f, 240.0f, bpm);
+    if (syncEnabled)
+        updateDelaySamples();
 }
 
 void Delay::setFeedback(float feedback01) noexcept
@@ -46,6 +67,37 @@ void Delay::setFeedback(float feedback01) noexcept
 void Delay::setMix(float mix01) noexcept
 {
     mix = juce::jlimit(0.0f, 1.0f, mix01);
+}
+
+float Delay::getEffectiveTimeMs() const noexcept
+{
+    if (!syncEnabled)
+        return manualTimeMs;
+
+    const float beats = beatsForDivision(division);
+    return (60000.0f / tempoBpm) * beats;
+}
+
+float Delay::beatsForDivision(DelayDivision value)
+{
+    switch (value)
+    {
+        case DelayDivision::eighth: return 0.5f;
+        case DelayDivision::eighthDotted: return 0.75f;
+        case DelayDivision::sixteenth: return 0.25f;
+        case DelayDivision::quarterDotted: return 1.5f;
+        case DelayDivision::half: return 2.0f;
+        case DelayDivision::quarter:
+        default: return 1.0f;
+    }
+}
+
+void Delay::updateDelaySamples()
+{
+    const float timeMs = juce::jlimit(1.0f, maximumDelayMs, getEffectiveTimeMs());
+    delaySamples = juce::jmax(1, static_cast<int>(sampleRate * timeMs * 0.001));
+    if (!delayLines.empty())
+        delaySamples = juce::jmin(delaySamples, static_cast<int>(delayLines[0].size()) - 1);
 }
 
 void Delay::process(juce::AudioBuffer<float>& buffer)

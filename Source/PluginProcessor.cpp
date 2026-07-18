@@ -285,6 +285,11 @@ lumen::audio::PipelineControlState LumenDSPAudioProcessor::readControlState() co
     auto readBool = [&readFloat](const char* id) {
         return readFloat(id) > 0.5f;
     };
+    auto readChoice = [this](const char* id) {
+        if (auto* choice = dynamic_cast<juce::AudioParameterChoice*>(apvts.getParameter(id)))
+            return choice->getIndex();
+        return juce::roundToInt(apvts.getRawParameterValue(id)->load());
+    };
 
     lumen::audio::PipelineControlState controlState;
     controlState.inputGainDb = readFloat(lumen::parameters::inputGainId);
@@ -306,16 +311,20 @@ lumen::audio::PipelineControlState LumenDSPAudioProcessor::readControlState() co
     controlState.compressorMix = readFloat(lumen::parameters::compressorMixId);
 
     controlState.driveEnabled = readBool(lumen::parameters::driveEnabledId);
+    controlState.driveMode = readChoice(lumen::parameters::driveModeId);
     controlState.driveAmount = readFloat(lumen::parameters::driveAmountId);
     controlState.driveTone = readFloat(lumen::parameters::driveToneId);
     controlState.driveLevel = readFloat(lumen::parameters::driveLevelId);
 
     controlState.delayEnabled = readBool(lumen::parameters::delayEnabledId);
+    controlState.delaySync = readBool(lumen::parameters::delaySyncId);
+    controlState.delayDivision = readChoice(lumen::parameters::delayDivisionId);
     controlState.delayTimeMs = readFloat(lumen::parameters::delayTimeId);
     controlState.delayFeedback = readFloat(lumen::parameters::delayFeedbackId);
     controlState.delayMix = readFloat(lumen::parameters::delayMixId);
 
     controlState.reverbEnabled = readBool(lumen::parameters::reverbEnabledId);
+    controlState.reverbCharacter = readChoice(lumen::parameters::reverbCharacterId);
     controlState.reverbSize = readFloat(lumen::parameters::reverbSizeId);
     controlState.reverbDamping = readFloat(lumen::parameters::reverbDampingId);
     controlState.reverbMix = readFloat(lumen::parameters::reverbMixId);
