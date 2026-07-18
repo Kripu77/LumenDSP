@@ -123,9 +123,15 @@ target_sources(LumenDSP
         Source/ui/LumenLookAndFeel.cpp
         Source/ui/KnobComponent.cpp
         Source/ui/LedMeterComponent.cpp
-        Source/ui/SignalFlowStrip.cpp
         Source/ui/FileSlotComponent.cpp
         Source/ui/PresetBarComponent.cpp
+        Source/ui/TopChromeComponent.cpp
+        Source/ui/SectionNavComponent.cpp
+        Source/ui/InputStageComponent.cpp
+        Source/ui/PedalModuleComponent.cpp
+        Source/ui/AmpFaceplateComponent.cpp
+        Source/ui/EqRackComponent.cpp
+        Source/ui/CabStageComponent.cpp
 )
 
 set(LUMENDSP_FACTORY_CONTENT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/Resources/FactoryContent")

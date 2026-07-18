@@ -3,8 +3,9 @@
 namespace lumen::ui
 {
 
-LedMeterComponent::LedMeterComponent(const juce::String& meterLabel)
+LedMeterComponent::LedMeterComponent(const juce::String& meterLabel, Theme theme)
     : labelText(meterLabel)
+    , visualTheme(theme)
 {
 }
 
@@ -12,16 +13,16 @@ void LedMeterComponent::paint(juce::Graphics& graphics)
 {
     auto bounds = getLocalBounds().toFloat();
     auto labelArea = bounds.removeFromBottom(static_cast<float>(design::spacingTwoUnitsPixels));
-    auto meterArea = bounds.reduced(2.0f, 0.0f);
+    auto meterArea = bounds.reduced(1.5f, 0.0f);
 
-    graphics.setColour(design::textMuted());
+    graphics.setColour(
+        visualTheme == Theme::chrome ? design::chromeTextMuted() : design::metalTextMuted());
     graphics.setFont(design::microFont());
     graphics.drawText(labelText, labelArea, juce::Justification::centred);
 
-    const float segmentTotalHeight = meterArea.getHeight();
     const float segmentGap = static_cast<float>(design::meterSegmentGapPixels);
     const float segmentHeight =
-        (segmentTotalHeight - segmentGap * static_cast<float>(design::meterSegmentCount - 1))
+        (meterArea.getHeight() - segmentGap * static_cast<float>(design::meterSegmentCount - 1))
         / static_cast<float>(design::meterSegmentCount);
     const float normalisedPeak = normaliseDb(peakLevelDb);
     const float normalisedHold = normaliseDb(peakHoldLevelDb);
@@ -37,9 +38,7 @@ void LedMeterComponent::paint(juce::Graphics& graphics)
     for (int segmentIndex = 0; segmentIndex < design::meterSegmentCount; ++segmentIndex)
     {
         const int visualIndexFromTop = design::meterSegmentCount - 1 - segmentIndex;
-        const float segmentY =
-            meterArea.getY()
-            + static_cast<float>(visualIndexFromTop) * (segmentHeight + segmentGap);
+        const float segmentY = meterArea.getY() + static_cast<float>(visualIndexFromTop) * (segmentHeight + segmentGap);
         const auto segmentBounds = juce::Rectangle<float>(
             meterArea.getX(),
             segmentY,
@@ -50,18 +49,17 @@ void LedMeterComponent::paint(juce::Graphics& graphics)
         const bool isHold = segmentIndex == holdSegmentIndex;
 
         if (isActive)
-            graphics.setColour(colourForSegment(segmentIndex, activeSegmentCount));
+            graphics.setColour(colourForSegment(segmentIndex));
         else if (isHold)
-            graphics.setColour(design::textSecondary().withAlpha(0.85f));
+            graphics.setColour(
+                visualTheme == Theme::chrome ? design::chromeTextSecondary().withAlpha(0.85f)
+                                             : design::metalTextSecondary().withAlpha(0.85f));
         else
-            graphics.setColour(design::meterInactive());
+            graphics.setColour(
+                visualTheme == Theme::chrome ? design::meterInactive() : design::meterInactiveDark());
 
-        graphics.fillRoundedRectangle(segmentBounds, 1.5f);
+        graphics.fillRoundedRectangle(segmentBounds, 1.4f);
     }
-}
-
-void LedMeterComponent::resized()
-{
 }
 
 void LedMeterComponent::setLevels(float peakDb, float peakHoldDb)
@@ -71,16 +69,20 @@ void LedMeterComponent::setLevels(float peakDb, float peakHoldDb)
     repaint();
 }
 
+void LedMeterComponent::setTheme(Theme theme)
+{
+    visualTheme = theme;
+    repaint();
+}
+
 float LedMeterComponent::normaliseDb(float levelDb) const
 {
     const float clamped = juce::jlimit(design::meterFloorDb, design::meterCeilingDb, levelDb);
     return (clamped - design::meterFloorDb) / (design::meterCeilingDb - design::meterFloorDb);
 }
 
-juce::Colour LedMeterComponent::colourForSegment(int segmentIndex, int activeSegmentCount) const
+juce::Colour LedMeterComponent::colourForSegment(int segmentIndex) const
 {
-    juce::ignoreUnused(activeSegmentCount);
-
     const float segmentTopDb =
         design::meterFloorDb
         + (static_cast<float>(segmentIndex + 1) / static_cast<float>(design::meterSegmentCount))
@@ -88,10 +90,8 @@ juce::Colour LedMeterComponent::colourForSegment(int segmentIndex, int activeSeg
 
     if (segmentTopDb >= design::meterClipThresholdDb)
         return design::meterClip();
-
     if (segmentTopDb >= design::meterWarningThresholdDb)
         return design::meterWarning();
-
     return design::meterNormal();
 }
 

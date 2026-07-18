@@ -10,43 +10,45 @@ LumenLookAndFeel::LumenLookAndFeel()
 
 void LumenLookAndFeel::applyColourScheme()
 {
-    setColour(juce::ResizableWindow::backgroundColourId, design::backgroundDeep());
-    setColour(juce::DocumentWindow::backgroundColourId, design::backgroundDeep());
+    setColour(juce::ResizableWindow::backgroundColourId, design::studioBackdropBottom());
+    setColour(juce::DocumentWindow::backgroundColourId, design::studioBackdropBottom());
 
-    setColour(juce::TextButton::buttonColourId, design::backgroundElevated());
-    setColour(juce::TextButton::buttonOnColourId, design::accentDim());
-    setColour(juce::TextButton::textColourOffId, design::textPrimary());
-    setColour(juce::TextButton::textColourOnId, design::textPrimary());
+    setColour(juce::TextButton::buttonColourId, design::chromeSurfaceRaised());
+    setColour(juce::TextButton::buttonOnColourId, design::accentSoft());
+    setColour(juce::TextButton::textColourOffId, design::chromeTextPrimary());
+    setColour(juce::TextButton::textColourOnId, design::chromeTextPrimary());
 
-    setColour(juce::ComboBox::backgroundColourId, design::backgroundElevated());
-    setColour(juce::ComboBox::outlineColourId, design::borderSubtle());
-    setColour(juce::ComboBox::textColourId, design::textPrimary());
+    setColour(juce::ComboBox::backgroundColourId, design::chromeSurfaceRaised());
+    setColour(juce::ComboBox::outlineColourId, design::chromeBorder());
+    setColour(juce::ComboBox::textColourId, design::chromeTextPrimary());
     setColour(juce::ComboBox::arrowColourId, design::accent());
 
-    setColour(juce::PopupMenu::backgroundColourId, design::backgroundPanel());
-    setColour(juce::PopupMenu::textColourId, design::textPrimary());
+    setColour(juce::PopupMenu::backgroundColourId, design::chromeSurfaceRaised());
+    setColour(juce::PopupMenu::textColourId, design::chromeTextPrimary());
     setColour(juce::PopupMenu::highlightedBackgroundColourId, design::accentSoft());
-    setColour(juce::PopupMenu::highlightedTextColourId, design::textPrimary());
+    setColour(juce::PopupMenu::highlightedTextColourId, design::chromeTextPrimary());
 
-    setColour(juce::Label::textColourId, design::textSecondary());
+    setColour(juce::Label::textColourId, design::chromeTextSecondary());
     setColour(juce::Label::backgroundColourId, juce::Colours::transparentBlack);
 
-    setColour(juce::ToggleButton::textColourId, design::textSecondary());
-    setColour(juce::ToggleButton::tickColourId, design::accent());
-    setColour(juce::ToggleButton::tickDisabledColourId, design::textMuted());
+    setColour(juce::ToggleButton::textColourId, design::chromeTextSecondary());
+    setColour(juce::ToggleButton::tickColourId, design::ledWarm());
+    setColour(juce::ToggleButton::tickDisabledColourId, design::chromeTextMuted());
 
     setColour(juce::Slider::rotarySliderFillColourId, design::accent());
-    setColour(juce::Slider::rotarySliderOutlineColourId, design::borderSubtle());
-    setColour(juce::Slider::thumbColourId, design::textPrimary());
-    setColour(juce::Slider::textBoxTextColourId, design::textPrimary());
+    setColour(juce::Slider::rotarySliderOutlineColourId, design::chromeBorder());
+    setColour(juce::Slider::thumbColourId, design::chromeSurfaceRaised());
+    setColour(juce::Slider::trackColourId, design::metalRaised());
+    setColour(juce::Slider::backgroundColourId, design::metalDeep());
+    setColour(juce::Slider::textBoxTextColourId, design::chromeTextPrimary());
     setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::transparentBlack);
     setColour(juce::Slider::textBoxBackgroundColourId, juce::Colours::transparentBlack);
 
     setColour(juce::ScrollBar::thumbColourId, design::accentDim());
-    setColour(juce::TextEditor::backgroundColourId, design::backgroundElevated());
-    setColour(juce::TextEditor::outlineColourId, design::borderSubtle());
+    setColour(juce::TextEditor::backgroundColourId, design::chromeSurfaceRaised());
+    setColour(juce::TextEditor::outlineColourId, design::chromeBorder());
     setColour(juce::TextEditor::focusedOutlineColourId, design::accent());
-    setColour(juce::TextEditor::textColourId, design::textPrimary());
+    setColour(juce::TextEditor::textColourId, design::chromeTextPrimary());
     setColour(juce::CaretComponent::caretColourId, design::accent());
 }
 
@@ -61,31 +63,35 @@ void LumenLookAndFeel::drawRotarySlider(
     float rotaryEndAngle,
     juce::Slider& slider)
 {
-    juce::ignoreUnused(slider);
+    auto bounds = juce::Rectangle<float>(
+                      static_cast<float>(x),
+                      static_cast<float>(y),
+                      static_cast<float>(width),
+                      static_cast<float>(height))
+                      .reduced(3.0f);
 
-    const auto bounds = juce::Rectangle<float>(
-                            static_cast<float>(x),
-                            static_cast<float>(y),
-                            static_cast<float>(width),
-                            static_cast<float>(height))
-                            .reduced(4.0f);
+    const bool useMetalStyle = slider.getProperties()["metalStyle"];
+    if (useMetalStyle)
+        drawMetalRotary(graphics, bounds, sliderPosProportional, rotaryStartAngle, rotaryEndAngle);
+    else
+        drawChromeRotary(graphics, bounds, sliderPosProportional, rotaryStartAngle, rotaryEndAngle);
+}
+
+void LumenLookAndFeel::drawChromeRotary(
+    juce::Graphics& graphics,
+    juce::Rectangle<float> bounds,
+    float sliderPosProportional,
+    float rotaryStartAngle,
+    float rotaryEndAngle)
+{
     const auto radius = juce::jmin(bounds.getWidth(), bounds.getHeight()) * 0.5f;
     const auto center = bounds.getCentre();
     const auto angle = rotaryStartAngle + sliderPosProportional * (rotaryEndAngle - rotaryStartAngle);
     const auto arcRadius = radius - static_cast<float>(design::knobValueArcThicknessPixels);
 
     juce::Path backgroundArc;
-    backgroundArc.addCentredArc(
-        center.x,
-        center.y,
-        arcRadius,
-        arcRadius,
-        0.0f,
-        rotaryStartAngle,
-        rotaryEndAngle,
-        true);
-
-    graphics.setColour(design::borderSubtle());
+    backgroundArc.addCentredArc(center.x, center.y, arcRadius, arcRadius, 0.0f, rotaryStartAngle, rotaryEndAngle, true);
+    graphics.setColour(design::chromeBorder());
     graphics.strokePath(
         backgroundArc,
         juce::PathStrokeType(
@@ -94,16 +100,7 @@ void LumenLookAndFeel::drawRotarySlider(
             juce::PathStrokeType::rounded));
 
     juce::Path valueArc;
-    valueArc.addCentredArc(
-        center.x,
-        center.y,
-        arcRadius,
-        arcRadius,
-        0.0f,
-        rotaryStartAngle,
-        angle,
-        true);
-
+    valueArc.addCentredArc(center.x, center.y, arcRadius, arcRadius, 0.0f, rotaryStartAngle, angle, true);
     graphics.setColour(design::accent());
     graphics.strokePath(
         valueArc,
@@ -112,19 +109,124 @@ void LumenLookAndFeel::drawRotarySlider(
             juce::PathStrokeType::curved,
             juce::PathStrokeType::rounded));
 
-    const auto knobRadius = arcRadius - 8.0f;
-    graphics.setColour(design::backgroundControl());
+    const auto knobRadius = arcRadius - 7.0f;
+    juce::ColourGradient cap(
+        design::chromeSurfaceRaised(),
+        center.x - knobRadius * 0.4f,
+        center.y - knobRadius * 0.5f,
+        design::chromeBorder().brighter(0.15f),
+        center.x + knobRadius * 0.3f,
+        center.y + knobRadius * 0.5f,
+        false);
+    graphics.setGradientFill(cap);
     graphics.fillEllipse(center.x - knobRadius, center.y - knobRadius, knobRadius * 2.0f, knobRadius * 2.0f);
-    graphics.setColour(design::borderSubtle());
+    graphics.setColour(design::chromeBorder());
     graphics.drawEllipse(center.x - knobRadius, center.y - knobRadius, knobRadius * 2.0f, knobRadius * 2.0f, 1.0f);
 
     juce::Path pointer;
-    const float pointerLength = static_cast<float>(design::knobPointerLengthPixels);
-    const float pointerThickness = static_cast<float>(design::knobPointerThicknessPixels);
-    pointer.addRoundedRectangle(-pointerThickness * 0.5f, -knobRadius + 4.0f, pointerThickness, pointerLength, 1.0f);
+    pointer.addRoundedRectangle(
+        -static_cast<float>(design::knobPointerThicknessPixels) * 0.5f,
+        -knobRadius + 5.0f,
+        static_cast<float>(design::knobPointerThicknessPixels),
+        static_cast<float>(design::knobPointerLengthPixels),
+        1.0f);
     pointer.applyTransform(juce::AffineTransform::rotation(angle).translated(center.x, center.y));
-    graphics.setColour(design::textPrimary());
+    graphics.setColour(design::chromeTextPrimary());
     graphics.fillPath(pointer);
+}
+
+void LumenLookAndFeel::drawMetalRotary(
+    juce::Graphics& graphics,
+    juce::Rectangle<float> bounds,
+    float sliderPosProportional,
+    float rotaryStartAngle,
+    float rotaryEndAngle)
+{
+    const auto radius = juce::jmin(bounds.getWidth(), bounds.getHeight()) * 0.5f;
+    const auto center = bounds.getCentre();
+    const auto angle = rotaryStartAngle + sliderPosProportional * (rotaryEndAngle - rotaryStartAngle);
+    const auto knobRadius = radius - 4.0f;
+
+    graphics.setColour(juce::Colours::black.withAlpha(0.35f));
+    graphics.fillEllipse(center.x - knobRadius + 1.5f, center.y - knobRadius + 2.5f, knobRadius * 2.0f, knobRadius * 2.0f);
+
+    juce::ColourGradient cap(
+        design::metalRaised().brighter(0.12f),
+        center.x - knobRadius * 0.35f,
+        center.y - knobRadius * 0.45f,
+        design::metalDeep(),
+        center.x + knobRadius * 0.25f,
+        center.y + knobRadius * 0.5f,
+        false);
+    graphics.setGradientFill(cap);
+    graphics.fillEllipse(center.x - knobRadius, center.y - knobRadius, knobRadius * 2.0f, knobRadius * 2.0f);
+
+    graphics.setColour(design::metalBorder());
+    graphics.drawEllipse(center.x - knobRadius, center.y - knobRadius, knobRadius * 2.0f, knobRadius * 2.0f, 1.2f);
+
+    const auto indicatorRadius = 3.0f;
+    const auto indicatorDistance = knobRadius - 10.0f;
+    const auto indicatorX = center.x + indicatorDistance * std::sin(angle);
+    const auto indicatorY = center.y - indicatorDistance * std::cos(angle);
+    graphics.setColour(design::ledWarm());
+    graphics.fillEllipse(indicatorX - indicatorRadius, indicatorY - indicatorRadius, indicatorRadius * 2.0f, indicatorRadius * 2.0f);
+    graphics.setColour(design::ledWarm().withAlpha(design::ledGlowAlpha));
+    graphics.fillEllipse(
+        indicatorX - indicatorRadius * 2.2f,
+        indicatorY - indicatorRadius * 2.2f,
+        indicatorRadius * 4.4f,
+        indicatorRadius * 4.4f);
+
+    juce::ignoreUnused(sliderPosProportional, rotaryStartAngle, rotaryEndAngle);
+}
+
+void LumenLookAndFeel::drawLinearSlider(
+    juce::Graphics& graphics,
+    int x,
+    int y,
+    int width,
+    int height,
+    float sliderPos,
+    float minSliderPos,
+    float maxSliderPos,
+    juce::Slider::SliderStyle style,
+    juce::Slider& slider)
+{
+    juce::ignoreUnused(minSliderPos, maxSliderPos, slider);
+
+    if (style != juce::Slider::LinearVertical)
+    {
+        LookAndFeel_V4::drawLinearSlider(graphics, x, y, width, height, sliderPos, minSliderPos, maxSliderPos, style, slider);
+        return;
+    }
+
+    auto track = juce::Rectangle<float>(
+                     static_cast<float>(x),
+                     static_cast<float>(y),
+                     static_cast<float>(width),
+                     static_cast<float>(height))
+                     .withSizeKeepingCentre(8.0f, static_cast<float>(height) - 8.0f);
+
+    graphics.setColour(design::metalDeep());
+    graphics.fillRoundedRectangle(track, 4.0f);
+    graphics.setColour(design::metalBorder());
+    graphics.drawRoundedRectangle(track, 4.0f, 1.0f);
+
+    const float thumbHeight = 18.0f;
+    const float thumbWidth = static_cast<float>(width) - 4.0f;
+    const float thumbY = sliderPos - thumbHeight * 0.5f;
+    auto thumb = juce::Rectangle<float>(
+        static_cast<float>(x) + 2.0f,
+        thumbY,
+        thumbWidth,
+        thumbHeight);
+
+    graphics.setColour(design::metalRaised());
+    graphics.fillRoundedRectangle(thumb, 4.0f);
+    graphics.setColour(design::ledWarm());
+    graphics.fillEllipse(thumb.getCentreX() - 3.0f, thumb.getCentreY() - 3.0f, 6.0f, 6.0f);
+    graphics.setColour(design::metalBorder());
+    graphics.drawRoundedRectangle(thumb, 4.0f, 1.0f);
 }
 
 void LumenLookAndFeel::drawButtonBackground(
@@ -138,15 +240,15 @@ void LumenLookAndFeel::drawButtonBackground(
     auto fillColour = backgroundColour;
 
     if (shouldDrawButtonAsDown)
-        fillColour = design::accentDim();
+        fillColour = design::accentSoft();
     else if (shouldDrawButtonAsHighlighted)
         fillColour = fillColour.brighter(design::controlHoverBrightnessLift);
     else if (button.getToggleState())
-        fillColour = design::accentDim();
+        fillColour = design::accentSoft();
 
     graphics.setColour(fillColour);
     graphics.fillRoundedRectangle(bounds, static_cast<float>(design::controlCornerRadiusPixels));
-    graphics.setColour(button.hasKeyboardFocus(true) ? design::accent() : design::borderSubtle());
+    graphics.setColour(button.getToggleState() || button.hasKeyboardFocus(true) ? design::accent() : design::chromeBorder());
     graphics.drawRoundedRectangle(bounds, static_cast<float>(design::controlCornerRadiusPixels), 1.0f);
 }
 
@@ -158,8 +260,7 @@ void LumenLookAndFeel::drawButtonText(
 {
     juce::ignoreUnused(shouldDrawButtonAsHighlighted, shouldDrawButtonAsDown);
     graphics.setFont(getTextButtonFont(button, button.getHeight()));
-    graphics.setColour(
-        button.isEnabled() ? design::textPrimary() : design::textMuted());
+    graphics.setColour(button.isEnabled() ? design::chromeTextPrimary() : design::chromeTextMuted());
     graphics.drawFittedText(
         button.getButtonText(),
         button.getLocalBounds().reduced(design::spacingUnitPixels / 2),
@@ -180,18 +281,13 @@ void LumenLookAndFeel::drawComboBox(
 {
     juce::ignoreUnused(isButtonDown, buttonX, buttonY, buttonW, buttonH, comboBox);
 
-    auto bounds = juce::Rectangle<float>(0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height))
-                      .reduced(0.5f);
-    graphics.setColour(design::backgroundElevated());
+    auto bounds = juce::Rectangle<float>(0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height)).reduced(0.5f);
+    graphics.setColour(design::chromeSurfaceRaised());
     graphics.fillRoundedRectangle(bounds, static_cast<float>(design::controlCornerRadiusPixels));
-    graphics.setColour(design::borderSubtle());
+    graphics.setColour(design::chromeBorder());
     graphics.drawRoundedRectangle(bounds, static_cast<float>(design::controlCornerRadiusPixels), 1.0f);
 
-    const auto arrowZone = juce::Rectangle<float>(
-        static_cast<float>(width - 24),
-        0.0f,
-        18.0f,
-        static_cast<float>(height));
+    const auto arrowZone = juce::Rectangle<float>(static_cast<float>(width - 24), 0.0f, 18.0f, static_cast<float>(height));
     juce::Path arrow;
     arrow.addTriangle(
         arrowZone.getX() + 3.0f,
@@ -206,8 +302,8 @@ void LumenLookAndFeel::drawComboBox(
 
 void LumenLookAndFeel::drawPopupMenuBackground(juce::Graphics& graphics, int width, int height)
 {
-    graphics.fillAll(design::backgroundPanel());
-    graphics.setColour(design::borderSubtle());
+    graphics.fillAll(design::chromeSurfaceRaised());
+    graphics.setColour(design::chromeBorder());
     graphics.drawRect(0, 0, width, height, 1);
 }
 
@@ -229,34 +325,26 @@ void LumenLookAndFeel::drawPopupMenuItem(
     if (isSeparator)
     {
         auto separatorArea = area.reduced(design::spacingUnitPixels, 0);
-        graphics.setColour(design::borderSubtle());
+        graphics.setColour(design::chromeBorder());
         graphics.fillRect(separatorArea.withHeight(1).withY(area.getCentreY()));
         return;
     }
 
     auto itemArea = area.reduced(1);
-
     if (isHighlighted && isActive)
     {
         graphics.setColour(design::accentSoft());
-        graphics.fillRoundedRectangle(
-            itemArea.toFloat(),
-            static_cast<float>(design::controlCornerRadiusPixels) * 0.5f);
+        graphics.fillRoundedRectangle(itemArea.toFloat(), 6.0f);
     }
 
-    graphics.setColour(isActive ? design::textPrimary() : design::textMuted());
+    graphics.setColour(isActive ? design::chromeTextPrimary() : design::chromeTextMuted());
     graphics.setFont(getPopupMenuFont());
-
     auto textArea = itemArea.reduced(design::spacingUnitPixels, 0);
 
     if (isTicked)
     {
         graphics.setColour(design::accent());
-        graphics.fillEllipse(
-            static_cast<float>(textArea.getX()),
-            static_cast<float>(textArea.getCentreY() - 3),
-            6.0f,
-            6.0f);
+        graphics.fillEllipse(static_cast<float>(textArea.getX()), static_cast<float>(textArea.getCentreY() - 3), 6.0f, 6.0f);
         textArea.removeFromLeft(design::spacingUnitPixels + 4);
     }
 
@@ -272,8 +360,8 @@ void LumenLookAndFeel::drawToggleButton(
     juce::ignoreUnused(shouldDrawButtonAsDown);
 
     const auto bounds = button.getLocalBounds().toFloat();
-    const float trackWidth = 34.0f;
-    const float trackHeight = 18.0f;
+    const float trackWidth = 36.0f;
+    const float trackHeight = 20.0f;
     const auto trackBounds = juce::Rectangle<float>(
         bounds.getX(),
         bounds.getCentreY() - trackHeight * 0.5f,
@@ -281,24 +369,23 @@ void LumenLookAndFeel::drawToggleButton(
         trackHeight);
 
     const bool isOn = button.getToggleState();
-    auto trackColour = isOn ? design::accentDim() : design::backgroundControl();
-
+    auto trackColour = isOn ? design::ledWarmDim() : design::chromeBorder();
     if (shouldDrawButtonAsHighlighted)
         trackColour = trackColour.brighter(design::controlHoverBrightnessLift);
 
     graphics.setColour(trackColour);
     graphics.fillRoundedRectangle(trackBounds, trackHeight * 0.5f);
-    graphics.setColour(design::borderSubtle());
+    graphics.setColour(design::chromeBorder().darker(0.05f));
     graphics.drawRoundedRectangle(trackBounds, trackHeight * 0.5f, 1.0f);
 
-    const float thumbDiameter = 14.0f;
+    const float thumbDiameter = 16.0f;
     const float thumbTravel = trackWidth - thumbDiameter - 4.0f;
     const float thumbX = trackBounds.getX() + 2.0f + (isOn ? thumbTravel : 0.0f);
     const float thumbY = trackBounds.getCentreY() - thumbDiameter * 0.5f;
-    graphics.setColour(isOn ? design::accent() : design::textSecondary());
+    graphics.setColour(isOn ? design::ledWarm() : design::chromeSurfaceRaised());
     graphics.fillEllipse(thumbX, thumbY, thumbDiameter, thumbDiameter);
 
-    graphics.setColour(button.isEnabled() ? design::textSecondary() : design::textMuted());
+    graphics.setColour(button.isEnabled() ? design::chromeTextSecondary() : design::chromeTextMuted());
     graphics.setFont(design::bodyFont());
     graphics.drawFittedText(
         button.getButtonText(),
@@ -318,21 +405,18 @@ void LumenLookAndFeel::drawLabel(juce::Graphics& graphics, juce::Label& label)
         juce::jmax(1, static_cast<int>(static_cast<float>(label.getHeight()) / graphics.getCurrentFont().getHeight())));
 }
 
-juce::Font LumenLookAndFeel::getTextButtonFont(juce::TextButton& button, int buttonHeight)
+juce::Font LumenLookAndFeel::getTextButtonFont(juce::TextButton&, int)
 {
-    juce::ignoreUnused(button, buttonHeight);
     return design::bodyFont();
 }
 
-juce::Font LumenLookAndFeel::getComboBoxFont(juce::ComboBox& comboBox)
+juce::Font LumenLookAndFeel::getComboBoxFont(juce::ComboBox&)
 {
-    juce::ignoreUnused(comboBox);
     return design::bodyFont();
 }
 
-juce::Font LumenLookAndFeel::getLabelFont(juce::Label& label)
+juce::Font LumenLookAndFeel::getLabelFont(juce::Label&)
 {
-    juce::ignoreUnused(label);
     return design::bodyFont();
 }
 

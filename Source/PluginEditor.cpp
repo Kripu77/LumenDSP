@@ -4,18 +4,6 @@
  #include <juce_audio_plugin_client/Standalone/juce_StandaloneFilterWindow.h>
 #endif
 
-namespace
-{
-
-constexpr int headerHeightPixels = 64;
-constexpr int signalFlowHeightPixels = 64;
-constexpr int presetBarHeightPixels = 40;
-constexpr int fileSlotHeightPixels = 88;
-constexpr int toggleRowHeightPixels = 28;
-constexpr int footerHeightPixels = 8;
-
-} // namespace
-
 LumenDSPAudioProcessorEditor::LumenDSPAudioProcessorEditor(LumenDSPAudioProcessor& audioProcessorToEdit)
     : AudioProcessorEditor(&audioProcessorToEdit)
     , audioProcessor(audioProcessorToEdit)
@@ -25,51 +13,27 @@ LumenDSPAudioProcessorEditor::LumenDSPAudioProcessorEditor(LumenDSPAudioProcesso
     setResizeLimits(
         lumen::design::windowMinimumWidthPixels,
         lumen::design::windowMinimumHeightPixels,
-        1400,
-        900);
+        1600,
+        1000);
     setResizable(true, true);
 
-    titleLabel.setText("LumenDSP", juce::dontSendNotification);
-    titleLabel.setFont(lumen::design::titleFont());
-    titleLabel.setColour(juce::Label::textColourId, lumen::design::textPrimary());
-    addAndMakeVisible(titleLabel);
-
-    const auto factoryStatus = audioProcessor.getFactoryStatusMessage();
-    const auto subtitleText = factoryStatus.isNotEmpty()
-                                  ? factoryStatus
-                                  : juce::String("Modern fusion NAM player");
-    subtitleLabel.setText(subtitleText, juce::dontSendNotification);
-    subtitleLabel.setFont(lumen::design::bodyFont());
-    subtitleLabel.setColour(juce::Label::textColourId, lumen::design::textMuted());
-    addAndMakeVisible(subtitleLabel);
-
-    audioSettingsButton.onClick = [this]() { showAudioSettings(); };
-    addAndMakeVisible(audioSettingsButton);
-
-    addAndMakeVisible(signalFlowStrip);
-    addAndMakeVisible(presetBar);
-    addAndMakeVisible(namSlot);
-    addAndMakeVisible(irSlot);
-    addAndMakeVisible(inputMeter);
-    addAndMakeVisible(outputMeter);
-
-    addAndMakeVisible(inputGainKnob);
-    addAndMakeVisible(gateKnob);
-    addAndMakeVisible(bassKnob);
-    addAndMakeVisible(midKnob);
-    addAndMakeVisible(trebleKnob);
-    addAndMakeVisible(outputKnob);
-
-    addAndMakeVisible(gateEnableButton);
-    addAndMakeVisible(eqEnableButton);
-    addAndMakeVisible(cabEnableButton);
+    addAndMakeVisible(topChrome);
+    addAndMakeVisible(sectionNav);
+    addChildComponent(inputStage);
+    addAndMakeVisible(ampStage);
+    addChildComponent(eqStage);
+    addChildComponent(cabStage);
 
     setupControlAttachments();
     setupFileSlots();
     setupPresetBar();
+    setupSectionNavigation();
     refreshPresetList();
     refreshFileSlotLabels();
-    refreshSignalFlow();
+    refreshHardwareState();
+    showSection(lumen::ui::EditorSection::amp);
+
+    topChrome.getAudioButton().onClick = [this]() { showAudioSettings(); };
 
     startTimerHz(static_cast<int>(lumen::design::uiTimerIntervalHertz));
 }
@@ -82,82 +46,30 @@ LumenDSPAudioProcessorEditor::~LumenDSPAudioProcessorEditor()
 
 void LumenDSPAudioProcessorEditor::paint(juce::Graphics& graphics)
 {
-    graphics.fillAll(lumen::design::backgroundDeep());
-
-    auto content = getLocalBounds().reduced(lumen::design::spacingTwoUnitsPixels);
-    auto knobsPanel = content;
-    knobsPanel.removeFromTop(headerHeightPixels + lumen::design::spacingUnitPixels);
-    knobsPanel.removeFromTop(signalFlowHeightPixels + lumen::design::spacingUnitPixels);
-    knobsPanel.removeFromTop(presetBarHeightPixels + lumen::design::spacingUnitPixels);
-    knobsPanel.removeFromTop(fileSlotHeightPixels + lumen::design::spacingUnitPixels);
-    knobsPanel.removeFromBottom(toggleRowHeightPixels + lumen::design::spacingUnitPixels + footerHeightPixels);
-    knobsPanel.reduce(lumen::design::meterWidthPixels + lumen::design::spacingTwoUnitsPixels, 0);
-
-    graphics.setColour(lumen::design::backgroundPanel().withAlpha(lumen::design::panelBackgroundAlpha));
-    graphics.fillRoundedRectangle(
-        knobsPanel.toFloat(),
-        static_cast<float>(lumen::design::panelCornerRadiusPixels));
-    graphics.setColour(lumen::design::borderSubtle());
-    graphics.drawRoundedRectangle(
-        knobsPanel.toFloat(),
-        static_cast<float>(lumen::design::panelCornerRadiusPixels),
-        1.0f);
+    lumen::design::fillStudioBackdrop(graphics, getLocalBounds().toFloat());
 }
 
 void LumenDSPAudioProcessorEditor::resized()
 {
     auto bounds = getLocalBounds().reduced(lumen::design::spacingTwoUnitsPixels);
 
-    auto header = bounds.removeFromTop(headerHeightPixels);
-    audioSettingsButton.setBounds(header.removeFromRight(88).withSizeKeepingCentre(88, 32));
-    auto titleArea = header.removeFromLeft(header.getWidth() / 2);
-    titleLabel.setBounds(titleArea.removeFromTop(32));
-    subtitleLabel.setBounds(titleArea);
-
+    topChrome.setBounds(bounds.removeFromTop(lumen::design::topChromeHeightPixels));
     bounds.removeFromTop(lumen::design::spacingUnitPixels);
-    signalFlowStrip.setBounds(bounds.removeFromTop(signalFlowHeightPixels));
 
-    bounds.removeFromTop(lumen::design::spacingUnitPixels);
-    presetBar.setBounds(bounds.removeFromTop(presetBarHeightPixels));
-
-    bounds.removeFromTop(lumen::design::spacingUnitPixels);
-    auto fileRow = bounds.removeFromTop(fileSlotHeightPixels);
-    namSlot.setBounds(fileRow.removeFromLeft(fileRow.getWidth() / 2).reduced(0, 0).withTrimmedRight(6));
-    irSlot.setBounds(fileRow.withTrimmedLeft(6));
-
-    bounds.removeFromTop(lumen::design::spacingUnitPixels);
-    auto toggleRow = bounds.removeFromBottom(toggleRowHeightPixels);
+    sectionNav.setBounds(bounds.removeFromBottom(lumen::design::bottomNavHeightPixels));
     bounds.removeFromBottom(lumen::design::spacingUnitPixels);
 
-    const int toggleWidth = 100;
-    gateEnableButton.setBounds(toggleRow.removeFromLeft(toggleWidth));
-    toggleRow.removeFromLeft(lumen::design::spacingUnitPixels);
-    eqEnableButton.setBounds(toggleRow.removeFromLeft(toggleWidth));
-    toggleRow.removeFromLeft(lumen::design::spacingUnitPixels);
-    cabEnableButton.setBounds(toggleRow.removeFromLeft(toggleWidth));
-
-    auto meterLeft = bounds.removeFromLeft(lumen::design::meterWidthPixels + lumen::design::spacingUnitPixels);
-    auto meterRight = bounds.removeFromRight(lumen::design::meterWidthPixels + lumen::design::spacingUnitPixels);
-    inputMeter.setBounds(meterLeft.reduced(2));
-    outputMeter.setBounds(meterRight.reduced(2));
-
-    bounds.reduce(lumen::design::spacingTwoUnitsPixels, lumen::design::spacingTwoUnitsPixels);
-
-    const int knobCount = 6;
-    const int knobWidth = bounds.getWidth() / knobCount;
-    inputGainKnob.setBounds(bounds.removeFromLeft(knobWidth).reduced(4));
-    gateKnob.setBounds(bounds.removeFromLeft(knobWidth).reduced(4));
-    bassKnob.setBounds(bounds.removeFromLeft(knobWidth).reduced(4));
-    midKnob.setBounds(bounds.removeFromLeft(knobWidth).reduced(4));
-    trebleKnob.setBounds(bounds.removeFromLeft(knobWidth).reduced(4));
-    outputKnob.setBounds(bounds.reduced(4));
+    inputStage.setBounds(bounds);
+    ampStage.setBounds(bounds);
+    eqStage.setBounds(bounds);
+    cabStage.setBounds(bounds);
 }
 
 void LumenDSPAudioProcessorEditor::timerCallback()
 {
     refreshMeters();
     refreshFileSlotLabels();
-    refreshSignalFlow();
+    refreshHardwareState();
 }
 
 void LumenDSPAudioProcessorEditor::setupControlAttachments()
@@ -165,87 +77,77 @@ void LumenDSPAudioProcessorEditor::setupControlAttachments()
     auto& state = audioProcessor.getValueTreeState();
 
     inputGainAttachment = std::make_unique<SliderAttachment>(
-        state,
-        lumen::parameters::inputGainId,
-        inputGainKnob.getSlider());
+        state, lumen::parameters::inputGainId, topChrome.getInputKnob().getSlider());
     gateAttachment = std::make_unique<SliderAttachment>(
-        state,
-        lumen::parameters::noiseGateThresholdId,
-        gateKnob.getSlider());
-    bassAttachment = std::make_unique<SliderAttachment>(
-        state,
-        lumen::parameters::bassGainId,
-        bassKnob.getSlider());
-    midAttachment = std::make_unique<SliderAttachment>(
-        state,
-        lumen::parameters::midGainId,
-        midKnob.getSlider());
-    trebleAttachment = std::make_unique<SliderAttachment>(
-        state,
-        lumen::parameters::trebleGainId,
-        trebleKnob.getSlider());
+        state, lumen::parameters::noiseGateThresholdId, topChrome.getGateKnob().getSlider());
     outputAttachment = std::make_unique<SliderAttachment>(
-        state,
-        lumen::parameters::outputLevelId,
-        outputKnob.getSlider());
+        state, lumen::parameters::outputLevelId, topChrome.getOutputKnob().getSlider());
 
     gateEnableAttachment = std::make_unique<ButtonAttachment>(
-        state,
-        lumen::parameters::noiseGateEnabledId,
-        gateEnableButton);
+        state, lumen::parameters::noiseGateEnabledId, topChrome.getGateEnableButton());
+
+    inputStage.getGatePedal().getPrimaryKnob().getSlider().getValueObject().referTo(
+        topChrome.getGateKnob().getSlider().getValueObject());
+    inputStage.getGatePedal().getEnableButton().getToggleStateValue().referTo(
+        topChrome.getGateEnableButton().getToggleStateValue());
+
+    bassAttachment = std::make_unique<SliderAttachment>(
+        state, lumen::parameters::bassGainId, ampStage.getBassKnob().getSlider());
+    midAttachment = std::make_unique<SliderAttachment>(
+        state, lumen::parameters::midGainId, ampStage.getMidKnob().getSlider());
+    trebleAttachment = std::make_unique<SliderAttachment>(
+        state, lumen::parameters::trebleGainId, ampStage.getTrebleKnob().getSlider());
     eqEnableAttachment = std::make_unique<ButtonAttachment>(
-        state,
-        lumen::parameters::eqEnabledId,
-        eqEnableButton);
+        state, lumen::parameters::eqEnabledId, ampStage.getEqEnableButton());
+
+    eqStage.getBassSlider().getValueObject().referTo(ampStage.getBassKnob().getSlider().getValueObject());
+    eqStage.getMidSlider().getValueObject().referTo(ampStage.getMidKnob().getSlider().getValueObject());
+    eqStage.getTrebleSlider().getValueObject().referTo(ampStage.getTrebleKnob().getSlider().getValueObject());
+    eqStage.getEnableButton().getToggleStateValue().referTo(ampStage.getEqEnableButton().getToggleStateValue());
+
     cabEnableAttachment = std::make_unique<ButtonAttachment>(
-        state,
-        lumen::parameters::cabEnabledId,
-        cabEnableButton);
+        state, lumen::parameters::cabEnabledId, cabStage.getEnableButton());
 }
 
 void LumenDSPAudioProcessorEditor::setupFileSlots()
 {
-    namSlot.onFileChosen = [this](const juce::File& file) {
-        namSlot.setBusy(true);
-        namSlot.setStatusText("Loading model...");
+    ampStage.getModelSlot().onFileChosen = [this](const juce::File& file) {
+        ampStage.getModelSlot().setBusy(true);
+        ampStage.getModelSlot().setStatusText("Loading model…");
         audioProcessor.requestNamLoad(file);
     };
 
-    irSlot.onFileChosen = [this](const juce::File& file) {
-        irSlot.setBusy(true);
-        irSlot.setStatusText("Loading IR...");
+    cabStage.getIrSlot().onFileChosen = [this](const juce::File& file) {
+        cabStage.getIrSlot().setBusy(true);
+        cabStage.getIrSlot().setStatusText("Loading IR…");
         audioProcessor.requestIrLoad(file);
     };
 }
 
 void LumenDSPAudioProcessorEditor::setupPresetBar()
 {
-    presetBar.onSaveRequested = [this]() {
-        const auto name = presetBar.getEditorPresetName();
+    auto& presetBar = topChrome.getPresetBar();
 
+    presetBar.onSaveRequested = [this]() {
+        const auto name = topChrome.getPresetBar().getEditorPresetName();
         if (name.isEmpty())
             return;
-
         if (audioProcessor.storePreset(name))
             refreshPresetList();
     };
 
     presetBar.onLoadRequested = [this]() {
-        const auto name = presetBar.getSelectedPresetName();
-
+        const auto name = topChrome.getPresetBar().getSelectedPresetName();
         if (name.isEmpty())
             return;
-
         audioProcessor.applyPreset(name);
         refreshFileSlotLabels();
     };
 
     presetBar.onDeleteRequested = [this]() {
-        const auto name = presetBar.getSelectedPresetName();
-
+        const auto name = topChrome.getPresetBar().getSelectedPresetName();
         if (name.isEmpty())
             return;
-
         audioProcessor.getPresetManager().deletePreset(name);
         refreshPresetList();
     };
@@ -253,16 +155,33 @@ void LumenDSPAudioProcessorEditor::setupPresetBar()
     presetBar.onPresetSelected = [this](const juce::String& name) {
         if (name.isEmpty())
             return;
-
         audioProcessor.applyPreset(name);
         refreshFileSlotLabels();
     };
 }
 
+void LumenDSPAudioProcessorEditor::setupSectionNavigation()
+{
+    sectionNav.onSectionChanged = [this](lumen::ui::EditorSection section) {
+        showSection(section);
+    };
+}
+
+void LumenDSPAudioProcessorEditor::showSection(lumen::ui::EditorSection section)
+{
+    inputStage.setVisible(section == lumen::ui::EditorSection::input);
+    ampStage.setVisible(section == lumen::ui::EditorSection::amp);
+    eqStage.setVisible(section == lumen::ui::EditorSection::eq);
+    cabStage.setVisible(section == lumen::ui::EditorSection::cab);
+    sectionNav.setActiveSection(section);
+}
+
 void LumenDSPAudioProcessorEditor::refreshPresetList()
 {
     auto& presetManager = audioProcessor.getPresetManager();
-    presetBar.setPresetNames(presetManager.getPresetNames(), presetManager.getCurrentPresetName());
+    topChrome.getPresetBar().setPresetNames(
+        presetManager.getPresetNames(),
+        presetManager.getCurrentPresetName());
 }
 
 void LumenDSPAudioProcessorEditor::refreshFileSlotLabels()
@@ -273,72 +192,58 @@ void LumenDSPAudioProcessorEditor::refreshFileSlotLabels()
 
     if (namEngine.isModelLoading())
     {
-        namSlot.setBusy(true);
-        namSlot.setStatusText("Loading model...");
+        ampStage.getModelSlot().setBusy(true);
+        ampStage.getModelSlot().setStatusText("Loading model…");
+        ampStage.setModelStatus({}, false, true);
     }
     else if (namEngine.isModelLoaded())
     {
-        namSlot.setBusy(false);
-        namSlot.setFileName(namEngine.getLoadedModelName());
-        namSlot.setStatusText("Ready");
+        ampStage.getModelSlot().setBusy(false);
+        ampStage.getModelSlot().setFileName(namEngine.getLoadedModelName());
+        ampStage.getModelSlot().setStatusText("Ready");
+        ampStage.setModelStatus(namEngine.getLoadedModelName(), true, false);
     }
     else
     {
-        namSlot.setBusy(false);
+        ampStage.getModelSlot().setBusy(false);
         const auto error = namEngine.getLastErrorMessage();
-        namSlot.setStatusText(error.isNotEmpty() ? error : "Drop a .nam capture");
+        ampStage.getModelSlot().setStatusText(error.isNotEmpty() ? error : "Drop a .nam capture");
+        ampStage.setModelStatus({}, false, false);
     }
 
     if (irConvolver.isLoaded())
     {
-        irSlot.setBusy(false);
-        irSlot.setFileName(irConvolver.getLoadedFileName());
-        irSlot.setStatusText("Ready");
+        cabStage.getIrSlot().setBusy(false);
+        cabStage.getIrSlot().setFileName(irConvolver.getLoadedFileName());
+        cabStage.getIrSlot().setStatusText("Ready");
+        cabStage.setIrStatus(irConvolver.getLoadedFileName(), true);
     }
     else
     {
-        irSlot.setBusy(false);
-        irSlot.setStatusText("Drop a .wav IR");
+        cabStage.getIrSlot().setBusy(false);
+        cabStage.getIrSlot().setStatusText("Drop a .wav IR");
+        cabStage.setIrStatus({}, false);
     }
 }
 
 void LumenDSPAudioProcessorEditor::refreshMeters()
 {
     auto& pipeline = audioProcessor.getAudioPipeline();
-    inputMeter.setLevels(
+    topChrome.getInputMeter().setLevels(
         pipeline.getInputMeter().getPeakLevelDb(),
         pipeline.getInputMeter().getPeakHoldLevelDb());
-    outputMeter.setLevels(
+    topChrome.getOutputMeter().setLevels(
         pipeline.getOutputMeter().getPeakLevelDb(),
         pipeline.getOutputMeter().getPeakHoldLevelDb());
 }
 
-void LumenDSPAudioProcessorEditor::refreshSignalFlow()
+void LumenDSPAudioProcessorEditor::refreshHardwareState()
 {
     auto& state = audioProcessor.getValueTreeState();
-    auto& pipeline = audioProcessor.getAudioPipeline();
-
     const bool gateOn = state.getRawParameterValue(lumen::parameters::noiseGateEnabledId)->load() > 0.5f;
-    const bool eqOn = state.getRawParameterValue(lumen::parameters::eqEnabledId)->load() > 0.5f;
-    const bool cabOn = state.getRawParameterValue(lumen::parameters::cabEnabledId)->load() > 0.5f;
-    const bool ampLoaded = pipeline.getNamEngine().isModelLoaded();
-    const bool irLoaded = pipeline.getIrConvolver().isLoaded();
-
-    signalFlowStrip.setStageActive(lumen::ui::SignalFlowStrip::Stage::input, true);
-    signalFlowStrip.setStageActive(lumen::ui::SignalFlowStrip::Stage::amp, ampLoaded);
-    signalFlowStrip.setStageActive(lumen::ui::SignalFlowStrip::Stage::eq, eqOn);
-    signalFlowStrip.setStageActive(lumen::ui::SignalFlowStrip::Stage::cab, cabOn && irLoaded);
-    signalFlowStrip.setStageActive(lumen::ui::SignalFlowStrip::Stage::output, true);
-
-    signalFlowStrip.setStageLabel(
-        lumen::ui::SignalFlowStrip::Stage::input,
-        gateOn ? "Input + Gate" : "Input");
-    signalFlowStrip.setStageLabel(
-        lumen::ui::SignalFlowStrip::Stage::amp,
-        ampLoaded ? "Amp" : "Amp (empty)");
-    signalFlowStrip.setStageLabel(
-        lumen::ui::SignalFlowStrip::Stage::cab,
-        (cabOn && irLoaded) ? "Cab" : "Cab (bypass)");
+    inputStage.getGatePedal().setEngaged(gateOn);
+    eqStage.repaint();
+    cabStage.repaint();
 }
 
 void LumenDSPAudioProcessorEditor::showAudioSettings()
@@ -354,6 +259,6 @@ void LumenDSPAudioProcessorEditor::showAudioSettings()
     juce::AlertWindow::showMessageBoxAsync(
         juce::AlertWindow::InfoIcon,
         "Audio Settings",
-        "Device selection is available in the standalone build via this control. "
+        "Device selection is available in the standalone build. "
         "When running as a VST3, choose input and output devices in your DAW.");
 }

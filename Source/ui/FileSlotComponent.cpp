@@ -14,13 +14,16 @@ FileSlotComponent::FileSlotComponent(const juce::String& titleText, const juce::
 void FileSlotComponent::paint(juce::Graphics& graphics)
 {
     auto bounds = getLocalBounds().toFloat().reduced(0.5f);
-    auto fill = dragActive ? design::accentSoft() : design::backgroundPanel().withAlpha(design::panelBackgroundAlpha);
-    auto border = dragActive || busy ? design::accent() : design::borderSubtle();
+    const auto fill = dragActive
+                          ? design::accentSoft()
+                          : (darkTheme ? design::metalDeep().withAlpha(0.75f) : design::chromeSurfaceRaised());
+    const auto border = dragActive || busy ? design::accent()
+                                           : (darkTheme ? design::metalBorder() : design::chromeBorder());
 
     graphics.setColour(fill);
-    graphics.fillRoundedRectangle(bounds, static_cast<float>(design::panelCornerRadiusPixels));
+    graphics.fillRoundedRectangle(bounds, static_cast<float>(design::controlCornerRadiusPixels));
     graphics.setColour(border);
-    graphics.drawRoundedRectangle(bounds, static_cast<float>(design::panelCornerRadiusPixels), 1.2f);
+    graphics.drawRoundedRectangle(bounds, static_cast<float>(design::controlCornerRadiusPixels), 1.2f);
 
     auto content = getLocalBounds().reduced(design::spacingTwoUnitsPixels);
     auto titleArea = content.removeFromTop(design::spacingTwoUnitsPixels);
@@ -28,17 +31,17 @@ void FileSlotComponent::paint(juce::Graphics& graphics)
     content.removeFromRight(100);
     auto fileNameArea = content;
 
-    graphics.setColour(design::textSecondary());
+    graphics.setColour(darkTheme ? design::metalTextSecondary() : design::chromeTextSecondary());
     graphics.setFont(design::sectionFont());
     graphics.drawText(title, titleArea, juce::Justification::centredLeft);
 
-    graphics.setColour(design::textPrimary());
+    graphics.setColour(darkTheme ? design::metalTextPrimary() : design::chromeTextPrimary());
     graphics.setFont(design::bodyFont());
     graphics.drawFittedText(displayedFileName, fileNameArea, juce::Justification::centredLeft, 1);
 
     if (statusText.isNotEmpty())
     {
-        graphics.setColour(busy ? design::accent() : design::textMuted());
+        graphics.setColour(busy ? design::accent() : (darkTheme ? design::metalTextMuted() : design::chromeTextMuted()));
         graphics.setFont(design::microFont());
         graphics.drawText(statusText, statusArea, juce::Justification::centredLeft);
     }
@@ -58,29 +61,23 @@ void FileSlotComponent::mouseUp(const juce::MouseEvent& event)
 
 bool FileSlotComponent::isInterestedInFileDrag(const juce::StringArray& files)
 {
-    if (files.isEmpty())
-        return false;
-
-    return matchesWildcard(juce::File(files[0]));
+    return !files.isEmpty() && matchesWildcard(juce::File(files[0]));
 }
 
-void FileSlotComponent::fileDragEnter(const juce::StringArray& files, int x, int y)
+void FileSlotComponent::fileDragEnter(const juce::StringArray&, int, int)
 {
-    juce::ignoreUnused(files, x, y);
     dragActive = true;
     repaint();
 }
 
-void FileSlotComponent::fileDragExit(const juce::StringArray& files)
+void FileSlotComponent::fileDragExit(const juce::StringArray&)
 {
-    juce::ignoreUnused(files);
     dragActive = false;
     repaint();
 }
 
-void FileSlotComponent::filesDropped(const juce::StringArray& files, int x, int y)
+void FileSlotComponent::filesDropped(const juce::StringArray& files, int, int)
 {
-    juce::ignoreUnused(x, y);
     dragActive = false;
     repaint();
 
@@ -88,7 +85,6 @@ void FileSlotComponent::filesDropped(const juce::StringArray& files, int x, int 
         return;
 
     const juce::File droppedFile(files[0]);
-
     if (!matchesWildcard(droppedFile))
         return;
 
@@ -114,19 +110,20 @@ void FileSlotComponent::setBusy(bool isBusy)
     repaint();
 }
 
+void FileSlotComponent::setDarkTheme(bool shouldUseDarkTheme)
+{
+    darkTheme = shouldUseDarkTheme;
+    repaint();
+}
+
 void FileSlotComponent::openFileChooser()
 {
-    fileChooser = std::make_unique<juce::FileChooser>(
-        "Select " + title,
-        juce::File{},
-        wildcard);
-
+    fileChooser = std::make_unique<juce::FileChooser>("Select " + title, juce::File{}, wildcard);
     constexpr auto browserFlags =
         juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles;
 
     fileChooser->launchAsync(browserFlags, [this](const juce::FileChooser& chooser) {
         const auto result = chooser.getResult();
-
         if (result.existsAsFile() && onFileChosen)
             onFileChosen(result);
     });
@@ -134,8 +131,7 @@ void FileSlotComponent::openFileChooser()
 
 bool FileSlotComponent::matchesWildcard(const juce::File& file) const
 {
-    return file.getFileExtension().isNotEmpty()
-           && wildcard.containsIgnoreCase(file.getFileExtension());
+    return file.getFileExtension().isNotEmpty() && wildcard.containsIgnoreCase(file.getFileExtension());
 }
 
 } // namespace lumen::ui

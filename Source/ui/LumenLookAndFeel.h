@@ -22,6 +22,18 @@ public:
         float rotaryEndAngle,
         juce::Slider& slider) override;
 
+    void drawLinearSlider(
+        juce::Graphics& graphics,
+        int x,
+        int y,
+        int width,
+        int height,
+        float sliderPos,
+        float minSliderPos,
+        float maxSliderPos,
+        juce::Slider::SliderStyle style,
+        juce::Slider& slider) override;
+
     void drawButtonBackground(
         juce::Graphics& graphics,
         juce::Button& button,
@@ -76,6 +88,18 @@ public:
 
 private:
     void applyColourScheme();
+    void drawChromeRotary(
+        juce::Graphics& graphics,
+        juce::Rectangle<float> bounds,
+        float sliderPosProportional,
+        float rotaryStartAngle,
+        float rotaryEndAngle);
+    void drawMetalRotary(
+        juce::Graphics& graphics,
+        juce::Rectangle<float> bounds,
+        float sliderPosProportional,
+        float rotaryStartAngle,
+        float rotaryEndAngle);
 };
 
 } // namespace lumen::ui

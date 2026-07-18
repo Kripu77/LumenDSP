@@ -26,26 +26,23 @@ private:
 
 } // namespace
 
-KnobComponent::KnobComponent(const juce::String& labelText, const juce::String& valueSuffix)
-    : suffix(valueSuffix)
+KnobComponent::KnobComponent(const juce::String& labelText, const juce::String& valueSuffix, Style style)
+    : visualStyle(style)
+    , suffix(valueSuffix)
 {
     slider.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
     slider.setTextBoxStyle(juce::Slider::NoTextBox, true, 0, 0);
-    slider.setRotaryParameters(
-        design::knobStartAngleRadians,
-        design::knobEndAngleRadians,
-        true);
+    slider.setRotaryParameters(design::knobStartAngleRadians, design::knobEndAngleRadians, true);
     slider.setMouseDragSensitivity(static_cast<int>(design::knobDragSensitivityPixelsPerFullRange));
+    setStyle(style);
     addAndMakeVisible(slider);
 
     titleLabel.setText(labelText, juce::dontSendNotification);
     titleLabel.setJustificationType(juce::Justification::centred);
-    titleLabel.setColour(juce::Label::textColourId, design::textSecondary());
     titleLabel.setFont(design::sectionFont());
     addAndMakeVisible(titleLabel);
 
     valueLabel.setJustificationType(juce::Justification::centred);
-    valueLabel.setColour(juce::Label::textColourId, design::textPrimary());
     valueLabel.setFont(design::valueFont());
     addAndMakeVisible(valueLabel);
 
@@ -69,9 +66,8 @@ void KnobComponent::resized()
     slider.setBounds(bounds);
 }
 
-void KnobComponent::paint(juce::Graphics& graphics)
+void KnobComponent::paint(juce::Graphics&)
 {
-    juce::ignoreUnused(graphics);
 }
 
 juce::Slider& KnobComponent::getSlider() noexcept
@@ -79,15 +75,23 @@ juce::Slider& KnobComponent::getSlider() noexcept
     return slider;
 }
 
-void KnobComponent::setAnimatedValue(double targetValue, bool animate)
+void KnobComponent::setStyle(Style style)
 {
-    if (!animate)
+    visualStyle = style;
+    slider.getProperties().set("metalStyle", style == Style::metal);
+
+    if (style == Style::metal)
     {
-        slider.setValue(targetValue, juce::sendNotificationSync);
-        return;
+        titleLabel.setColour(juce::Label::textColourId, design::metalTextSecondary());
+        valueLabel.setColour(juce::Label::textColourId, design::metalTextPrimary());
+    }
+    else
+    {
+        titleLabel.setColour(juce::Label::textColourId, design::chromeTextSecondary());
+        valueLabel.setColour(juce::Label::textColourId, design::chromeTextPrimary());
     }
 
-    slider.setValue(targetValue, juce::sendNotificationSync);
+    slider.repaint();
 }
 
 void KnobComponent::setDisplayDecimals(int decimalPlaces)
@@ -104,10 +108,8 @@ void KnobComponent::updateValueLabel()
 juce::String KnobComponent::formatValue(double value) const
 {
     juce::String formatted = juce::String(value, decimals);
-
     if (suffix.isNotEmpty())
         formatted << " " << suffix;
-
     return formatted;
 }
 

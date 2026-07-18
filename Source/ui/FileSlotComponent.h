@@ -24,6 +24,7 @@ public:
     void setFileName(const juce::String& fileName);
     void setStatusText(const juce::String& status);
     void setBusy(bool isBusy);
+    void setDarkTheme(bool shouldUseDarkTheme);
 
     std::function<void(const juce::File&)> onFileChosen;
 
@@ -37,7 +38,8 @@ private:
     juce::String statusText;
     bool dragActive = false;
     bool busy = false;
-    juce::TextButton browseButton{"Browse"};
+    bool darkTheme = false;
+    juce::TextButton browseButton{"BROWSE"};
     std::unique_ptr<juce::FileChooser> fileChooser;
 };
 

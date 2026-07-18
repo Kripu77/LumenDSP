@@ -46,11 +46,13 @@ Use the **Presets** dropdown to try:
 | **04 Full Rig Clean** | Amp+cab capture (cab IR bypassed — already in the model) |
 | **05 Light Crunch** | Tighter low end, light edge for rhythm / fusion grit |
 
-Signal path shown in the strip:
+Use the bottom section navigator to move through the rack:
 
 ```
-Input → Amp (NAM) → EQ → Cab (IR) → Output
+INPUT → AMP → EQ → CAB
 ```
+
+Global **Input / Gate / Output** always stay in the top chrome (Neural-style constant I/O).
 
 ## 4. Dial in your guitar
 

@@ -11,6 +11,7 @@ class PresetBarComponent : public juce::Component
 public:
     PresetBarComponent();
 
+    void paint(juce::Graphics& graphics) override;
     void resized() override;
     void setPresetNames(const juce::StringArray& presetNames, const juce::String& selectedName);
     juce::String getSelectedPresetName() const;
@@ -22,12 +23,11 @@ public:
     std::function<void(const juce::String&)> onPresetSelected;
 
 private:
-    juce::Label titleLabel;
     juce::ComboBox presetCombo;
     juce::TextEditor nameEditor;
-    juce::TextButton saveButton{"Save"};
-    juce::TextButton loadButton{"Load"};
-    juce::TextButton deleteButton{"Delete"};
+    juce::TextButton saveButton{"SAVE"};
+    juce::TextButton loadButton{"LOAD"};
+    juce::TextButton deleteButton{"DEL"};
 };
 
 } // namespace lumen::ui
