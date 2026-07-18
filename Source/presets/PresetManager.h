@@ -18,6 +18,7 @@ class PresetManager
 public:
     explicit PresetManager(juce::AudioProcessorValueTreeState& valueTreeState);
 
+    juce::AudioProcessorValueTreeState& getValueTreeState() noexcept;
     juce::File getPresetDirectory() const;
     juce::StringArray getPresetNames() const;
     bool savePreset(const juce::String& presetName, const juce::File& namModelFile, const juce::File& irFile);

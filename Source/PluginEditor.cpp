@@ -34,7 +34,11 @@ LumenDSPAudioProcessorEditor::LumenDSPAudioProcessorEditor(LumenDSPAudioProcesso
     titleLabel.setColour(juce::Label::textColourId, lumen::design::textPrimary());
     addAndMakeVisible(titleLabel);
 
-    subtitleLabel.setText("Modern fusion NAM player", juce::dontSendNotification);
+    const auto factoryStatus = audioProcessor.getFactoryStatusMessage();
+    const auto subtitleText = factoryStatus.isNotEmpty()
+                                  ? factoryStatus
+                                  : juce::String("Modern fusion NAM player");
+    subtitleLabel.setText(subtitleText, juce::dontSendNotification);
     subtitleLabel.setFont(lumen::design::bodyFont());
     subtitleLabel.setColour(juce::Label::textColourId, lumen::design::textMuted());
     addAndMakeVisible(subtitleLabel);

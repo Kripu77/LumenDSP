@@ -119,6 +119,7 @@ target_sources(LumenDSP
         Source/audio/LevelMeter.cpp
         Source/audio/AudioPipeline.cpp
         Source/presets/PresetManager.cpp
+        Source/presets/FactoryContentInstaller.cpp
         Source/ui/LumenLookAndFeel.cpp
         Source/ui/KnobComponent.cpp
         Source/ui/LedMeterComponent.cpp
@@ -126,6 +127,9 @@ target_sources(LumenDSP
         Source/ui/FileSlotComponent.cpp
         Source/ui/PresetBarComponent.cpp
 )
+
+set(LUMENDSP_FACTORY_CONTENT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/Resources/FactoryContent")
+
 
 target_include_directories(LumenDSP
     PRIVATE
@@ -158,3 +162,51 @@ target_link_libraries(LumenDSP
 )
 
 juce_generate_juce_header(LumenDSP)
+
+if(TARGET LumenDSP_Standalone)
+    if(APPLE)
+        add_custom_command(TARGET LumenDSP_Standalone POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E make_directory
+                    "$<TARGET_FILE_DIR:LumenDSP_Standalone>/../Resources/FactoryContent"
+            COMMAND ${CMAKE_COMMAND} -E copy_directory
+                    "${LUMENDSP_FACTORY_CONTENT_DIR}"
+                    "$<TARGET_FILE_DIR:LumenDSP_Standalone>/../Resources/FactoryContent"
+            COMMENT "Embedding factory content in standalone app bundle"
+            VERBATIM
+        )
+    else()
+        add_custom_command(TARGET LumenDSP_Standalone POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E make_directory
+                    "$<TARGET_FILE_DIR:LumenDSP_Standalone>/FactoryContent"
+            COMMAND ${CMAKE_COMMAND} -E copy_directory
+                    "${LUMENDSP_FACTORY_CONTENT_DIR}"
+                    "$<TARGET_FILE_DIR:LumenDSP_Standalone>/FactoryContent"
+            COMMENT "Copying factory content next to standalone executable"
+            VERBATIM
+        )
+    endif()
+endif()
+
+if(TARGET LumenDSP_VST3)
+    if(APPLE)
+        add_custom_command(TARGET LumenDSP_VST3 POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E make_directory
+                    "$<TARGET_FILE_DIR:LumenDSP_VST3>/../Resources/FactoryContent"
+            COMMAND ${CMAKE_COMMAND} -E copy_directory
+                    "${LUMENDSP_FACTORY_CONTENT_DIR}"
+                    "$<TARGET_FILE_DIR:LumenDSP_VST3>/../Resources/FactoryContent"
+            COMMENT "Embedding factory content in VST3 bundle"
+            VERBATIM
+        )
+    else()
+        add_custom_command(TARGET LumenDSP_VST3 POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E make_directory
+                    "$<TARGET_FILE_DIR:LumenDSP_VST3>/FactoryContent"
+            COMMAND ${CMAKE_COMMAND} -E copy_directory
+                    "${LUMENDSP_FACTORY_CONTENT_DIR}"
+                    "$<TARGET_FILE_DIR:LumenDSP_VST3>/FactoryContent"
+            COMMENT "Copying factory content next to VST3 module"
+            VERBATIM
+        )
+    endif()
+endif()

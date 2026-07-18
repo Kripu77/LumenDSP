@@ -9,6 +9,7 @@ LumenDSPAudioProcessor::LumenDSPAudioProcessor()
     , apvts(*this, nullptr, "PARAMETERS", lumen::parameters::createParameterLayout())
     , presetManager(apvts)
 {
+    bootstrapFactoryExperience();
 }
 
 LumenDSPAudioProcessor::~LumenDSPAudioProcessor()
@@ -225,6 +226,55 @@ bool LumenDSPAudioProcessor::storePreset(const juce::String& presetName)
         presetName,
         audioPipeline.getNamEngine().getLoadedModelFile(),
         audioPipeline.getIrConvolver().getLoadedFile());
+}
+
+void LumenDSPAudioProcessor::ensureFactoryContentReady()
+{
+    if (factoryBootstrapComplete)
+        return;
+
+    bootstrapFactoryExperience();
+}
+
+juce::String LumenDSPAudioProcessor::getFactoryStatusMessage() const
+{
+    return factoryStatusMessage;
+}
+
+juce::String LumenDSPAudioProcessor::getDefaultPresetName() const
+{
+    return defaultPresetName;
+}
+
+void LumenDSPAudioProcessor::bootstrapFactoryExperience()
+{
+    const auto applicationSupportRoot =
+        juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory)
+            .getChildFile("LumenDSP");
+    applicationSupportRoot.createDirectory();
+
+    const auto installResult = lumen::presets::FactoryContentInstaller::installIfNeeded(presetManager);
+    factoryStatusMessage = installResult.statusMessage;
+    defaultPresetName = installResult.defaultPresetName;
+
+    const auto bundledRoot = lumen::presets::FactoryContentInstaller::findBundledFactoryRoot();
+    applicationSupportRoot.getChildFile("factory_bootstrap.log")
+        .replaceWithText(
+            "status=" + installResult.statusMessage + "\n"
+            + "bundled=" + bundledRoot.getFullPathName() + "\n"
+            + "models=" + installResult.modelsDirectory.getFullPathName() + "\n"
+            + "fresh=" + juce::String(installResult.performedFreshInstall ? "true" : "false") + "\n"
+            + "executable="
+            + juce::File::getSpecialLocation(juce::File::currentExecutableFile).getFullPathName()
+            + "\n");
+
+    if (installResult.installedOrAlreadyPresent)
+    {
+        applyPreset(defaultPresetName);
+        presetManager.setCurrentPresetName(defaultPresetName);
+    }
+
+    factoryBootstrapComplete = true;
 }
 
 lumen::audio::PipelineControlState LumenDSPAudioProcessor::readControlState() const

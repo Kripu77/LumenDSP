@@ -102,15 +102,31 @@ cmake -B build \
   -DLUMENDSP_NAM_GIT_TAG=v0.5.4
 ```
 
-## Usage
+## Usage (zero-config)
+
+**New users:** open the app, set audio devices, and play. Factory fusion tones install automatically.
 
 1. Launch the standalone app (or load the VST3 in your DAW).
-2. **Standalone:** click **Audio** to open the device selector (input interface, sample rate, buffer size).
-3. Load a `.nam` capture via **Browse** or drag-and-drop—tone is driven entirely by that model.
-4. Optionally load a cab IR (`.wav`).
-5. Dial **Input**, **Gate**, **Bass / Mid / Treble**, and **Output**.
-6. Toggle **Gate**, **EQ**, and **Cab** as needed.
-7. Save the combination as a named preset (stored under the user application data `LumenDSP/Presets` folder).
+2. **Standalone:** click **Audio** and choose your guitar **input** and speaker/headphone **output**.
+3. Play — **01 Glass Clean** loads by default (Twin-style glassy clean + glass cab IR).
+4. Switch factory presets for Airy Clean, Smooth Lead, Full Rig Clean, and Light Crunch.
+5. Optional: drop your own `.nam` / `.wav` IR, tweak knobs, **Save** a preset.
+
+Step-by-step: **[QUICKSTART.md](QUICKSTART.md)**
+
+### Factory pack (bundled)
+
+| Preset | Model | Cab IR |
+|--------|--------|--------|
+| 01 Glass Clean | TwinBright_Clean | Lumen_Glass_212 |
+| 02 Airy Clean | TwinBright_Airy | Lumen_Glass_212 |
+| 03 Smooth Lead | Bug333_Clean | Lumen_Smooth_Lead_412 |
+| 04 Full Rig Clean | Bug333_CleanCab (cab in model) | cab bypassed |
+| 05 Light Crunch | JCM2000_Clean | Lumen_Tight_Crunch_112 |
+
+Attribution and licenses: `Resources/FactoryContent/ATTRIBUTION.md`.
+
+Installed on first launch to the user data folder (macOS: `~/Library/LumenDSP/`).
 
 ### Preset format
 

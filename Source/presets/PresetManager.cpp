@@ -9,6 +9,11 @@ PresetManager::PresetManager(juce::AudioProcessorValueTreeState& valueTreeState)
     getPresetDirectory().createDirectory();
 }
 
+juce::AudioProcessorValueTreeState& PresetManager::getValueTreeState() noexcept
+{
+    return apvts;
+}
+
 juce::File PresetManager::getPresetDirectory() const
 {
     return juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory)
