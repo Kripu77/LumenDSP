@@ -86,10 +86,33 @@ void LumenDSPAudioProcessorEditor::setupControlAttachments()
     gateEnableAttachment = std::make_unique<ButtonAttachment>(
         state, lumen::parameters::noiseGateEnabledId, topChrome.getGateEnableButton());
 
-    inputStage.getGatePedal().getPrimaryKnob().getSlider().getValueObject().referTo(
-        topChrome.getGateKnob().getSlider().getValueObject());
-    inputStage.getGatePedal().getEnableButton().getToggleStateValue().referTo(
-        topChrome.getGateEnableButton().getToggleStateValue());
+    auto& gatePedalSlider = inputStage.getGatePedal().getPrimaryKnob().getSlider();
+    gatePedalSlider.setRange(
+        lumen::parameters::ranges::noiseGateThresholdMinimumDb,
+        lumen::parameters::ranges::noiseGateThresholdMaximumDb,
+        lumen::parameters::ranges::noiseGateThresholdStepDb);
+    gatePedalSlider.setValue(topChrome.getGateKnob().getSlider().getValue(), juce::dontSendNotification);
+    gatePedalSlider.onValueChange = [this]() {
+        topChrome.getGateKnob().getSlider().setValue(
+            inputStage.getGatePedal().getPrimaryKnob().getSlider().getValue(),
+            juce::sendNotificationSync);
+    };
+    topChrome.getGateKnob().getSlider().onValueChange = [this]() {
+        inputStage.getGatePedal().getPrimaryKnob().getSlider().setValue(
+            topChrome.getGateKnob().getSlider().getValue(),
+            juce::dontSendNotification);
+    };
+
+    inputStage.getGatePedal().getEnableButton().onClick = [this]() {
+        topChrome.getGateEnableButton().setToggleState(
+            inputStage.getGatePedal().getEnableButton().getToggleState(),
+            juce::sendNotificationSync);
+    };
+    topChrome.getGateEnableButton().onClick = [this]() {
+        inputStage.getGatePedal().getEnableButton().setToggleState(
+            topChrome.getGateEnableButton().getToggleState(),
+            juce::dontSendNotification);
+    };
 
     bassAttachment = std::make_unique<SliderAttachment>(
         state, lumen::parameters::bassGainId, ampStage.getBassKnob().getSlider());
@@ -100,10 +123,45 @@ void LumenDSPAudioProcessorEditor::setupControlAttachments()
     eqEnableAttachment = std::make_unique<ButtonAttachment>(
         state, lumen::parameters::eqEnabledId, ampStage.getEqEnableButton());
 
-    eqStage.getBassSlider().getValueObject().referTo(ampStage.getBassKnob().getSlider().getValueObject());
-    eqStage.getMidSlider().getValueObject().referTo(ampStage.getMidKnob().getSlider().getValueObject());
-    eqStage.getTrebleSlider().getValueObject().referTo(ampStage.getTrebleKnob().getSlider().getValueObject());
-    eqStage.getEnableButton().getToggleStateValue().referTo(ampStage.getEqEnableButton().getToggleStateValue());
+    auto syncEqSlider = [](juce::Slider& destination, juce::Slider& source) {
+        destination.setRange(source.getMinimum(), source.getMaximum(), source.getInterval());
+        destination.setValue(source.getValue(), juce::dontSendNotification);
+    };
+    syncEqSlider(eqStage.getBassSlider(), ampStage.getBassKnob().getSlider());
+    syncEqSlider(eqStage.getMidSlider(), ampStage.getMidKnob().getSlider());
+    syncEqSlider(eqStage.getTrebleSlider(), ampStage.getTrebleKnob().getSlider());
+
+    eqStage.getBassSlider().onValueChange = [this]() {
+        ampStage.getBassKnob().getSlider().setValue(eqStage.getBassSlider().getValue(), juce::sendNotificationSync);
+    };
+    eqStage.getMidSlider().onValueChange = [this]() {
+        ampStage.getMidKnob().getSlider().setValue(eqStage.getMidSlider().getValue(), juce::sendNotificationSync);
+    };
+    eqStage.getTrebleSlider().onValueChange = [this]() {
+        ampStage.getTrebleKnob().getSlider().setValue(eqStage.getTrebleSlider().getValue(), juce::sendNotificationSync);
+    };
+
+    ampStage.getBassKnob().getSlider().onValueChange = [this]() {
+        eqStage.getBassSlider().setValue(ampStage.getBassKnob().getSlider().getValue(), juce::dontSendNotification);
+    };
+    ampStage.getMidKnob().getSlider().onValueChange = [this]() {
+        eqStage.getMidSlider().setValue(ampStage.getMidKnob().getSlider().getValue(), juce::dontSendNotification);
+    };
+    ampStage.getTrebleKnob().getSlider().onValueChange = [this]() {
+        eqStage.getTrebleSlider().setValue(ampStage.getTrebleKnob().getSlider().getValue(), juce::dontSendNotification);
+    };
+
+    eqStage.getEnableButton().setToggleState(ampStage.getEqEnableButton().getToggleState(), juce::dontSendNotification);
+    eqStage.getEnableButton().onClick = [this]() {
+        ampStage.getEqEnableButton().setToggleState(
+            eqStage.getEnableButton().getToggleState(),
+            juce::sendNotificationSync);
+    };
+    ampStage.getEqEnableButton().onClick = [this]() {
+        eqStage.getEnableButton().setToggleState(
+            ampStage.getEqEnableButton().getToggleState(),
+            juce::dontSendNotification);
+    };
 
     cabEnableAttachment = std::make_unique<ButtonAttachment>(
         state, lumen::parameters::cabEnabledId, cabStage.getEnableButton());
@@ -242,8 +300,25 @@ void LumenDSPAudioProcessorEditor::refreshHardwareState()
     auto& state = audioProcessor.getValueTreeState();
     const bool gateOn = state.getRawParameterValue(lumen::parameters::noiseGateEnabledId)->load() > 0.5f;
     inputStage.getGatePedal().setEngaged(gateOn);
+
+    const float gateThreshold = state.getRawParameterValue(lumen::parameters::noiseGateThresholdId)->load();
+    if (std::abs(inputStage.getGatePedal().getPrimaryKnob().getSlider().getValue() - gateThreshold) > 0.05)
+        inputStage.getGatePedal().getPrimaryKnob().getSlider().setValue(gateThreshold, juce::dontSendNotification);
+
+    if (std::abs(eqStage.getBassSlider().getValue() - ampStage.getBassKnob().getSlider().getValue()) > 0.05)
+        eqStage.getBassSlider().setValue(ampStage.getBassKnob().getSlider().getValue(), juce::dontSendNotification);
+    if (std::abs(eqStage.getMidSlider().getValue() - ampStage.getMidKnob().getSlider().getValue()) > 0.05)
+        eqStage.getMidSlider().setValue(ampStage.getMidKnob().getSlider().getValue(), juce::dontSendNotification);
+    if (std::abs(eqStage.getTrebleSlider().getValue() - ampStage.getTrebleKnob().getSlider().getValue()) > 0.05)
+        eqStage.getTrebleSlider().setValue(ampStage.getTrebleKnob().getSlider().getValue(), juce::dontSendNotification);
+
+    eqStage.getEnableButton().setToggleState(
+        ampStage.getEqEnableButton().getToggleState(),
+        juce::dontSendNotification);
+
     eqStage.repaint();
     cabStage.repaint();
+    ampStage.repaint();
 }
 
 void LumenDSPAudioProcessorEditor::showAudioSettings()

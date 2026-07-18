@@ -55,7 +55,7 @@ file(GLOB LUMENDSP_NAM_SOURCES_NESTED CONFIGURE_DEPENDS
     "${LUMENDSP_NAM_ROOT}/NAM/*/*.cpp"
 )
 
-add_library(NeuralAmpModelerCore STATIC
+add_library(NeuralAmpModelerCore OBJECT
     ${LUMENDSP_NAM_SOURCES_TOP}
     ${LUMENDSP_NAM_SOURCES_NESTED}
 )

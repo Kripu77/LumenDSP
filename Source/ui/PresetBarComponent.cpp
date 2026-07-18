@@ -12,10 +12,11 @@ PresetBarComponent::PresetBarComponent()
     };
     addAndMakeVisible(presetCombo);
 
-    nameEditor.setTextToShowWhenEmpty("Preset name", design::chromeTextMuted());
+    nameEditor.setTextToShowWhenEmpty("Name", design::chromeTextMuted());
     nameEditor.setFont(design::bodyFont());
-    nameEditor.setColour(juce::TextEditor::backgroundColourId, design::chromeSurfaceRaised());
-    nameEditor.setColour(juce::TextEditor::outlineColourId, design::chromeBorder());
+    nameEditor.setColour(juce::TextEditor::backgroundColourId, juce::Colours::transparentBlack);
+    nameEditor.setColour(juce::TextEditor::outlineColourId, juce::Colours::transparentBlack);
+    nameEditor.setColour(juce::TextEditor::focusedOutlineColourId, juce::Colours::transparentBlack);
     nameEditor.setColour(juce::TextEditor::textColourId, design::chromeTextPrimary());
     addAndMakeVisible(nameEditor);
 
@@ -41,27 +42,35 @@ void PresetBarComponent::paint(juce::Graphics& graphics)
 {
     auto bounds = getLocalBounds().toFloat().reduced(0.5f);
     graphics.setColour(design::chromeSurfaceRaised());
-    graphics.fillRoundedRectangle(bounds, 18.0f);
+    graphics.fillRoundedRectangle(bounds, 20.0f);
     graphics.setColour(design::chromeBorder());
-    graphics.drawRoundedRectangle(bounds, 18.0f, 1.0f);
+    graphics.drawRoundedRectangle(bounds, 20.0f, 1.0f);
+
+    graphics.setColour(design::accent());
+    graphics.fillEllipse(12.0f, bounds.getCentreY() - 4.0f, 8.0f, 8.0f);
 }
 
 void PresetBarComponent::resized()
 {
-    auto bounds = getLocalBounds().reduced(10, 6);
-    deleteButton.setBounds(bounds.removeFromRight(48));
+    auto bounds = getLocalBounds().reduced(14, 5);
+    bounds.removeFromLeft(14);
+
+    deleteButton.setBounds(bounds.removeFromRight(44));
     bounds.removeFromRight(4);
-    loadButton.setBounds(bounds.removeFromRight(56));
+    loadButton.setBounds(bounds.removeFromRight(52));
     bounds.removeFromRight(4);
-    saveButton.setBounds(bounds.removeFromRight(56));
+    saveButton.setBounds(bounds.removeFromRight(52));
     bounds.removeFromRight(8);
-    nameEditor.setBounds(bounds.removeFromRight(140));
-    bounds.removeFromRight(8);
+
+    const int split = juce::jmax(120, bounds.getWidth() / 2);
+    nameEditor.setBounds(bounds.removeFromRight(juce::jmin(140, split - 8)));
+    bounds.removeFromRight(6);
     presetCombo.setBounds(bounds);
 }
 
 void PresetBarComponent::setPresetNames(const juce::StringArray& presetNames, const juce::String& selectedName)
 {
+    const auto previous = presetCombo.getText();
     presetCombo.clear(juce::dontSendNotification);
     int selectedId = 0;
 
@@ -69,9 +78,13 @@ void PresetBarComponent::setPresetNames(const juce::StringArray& presetNames, co
     {
         const int itemId = index + 1;
         presetCombo.addItem(presetNames[index], itemId);
-        if (presetNames[index] == selectedName)
+        if (presetNames[index] == selectedName
+            || (selectedName.isEmpty() && presetNames[index] == previous))
             selectedId = itemId;
     }
+
+    if (selectedId == 0 && presetNames.size() > 0)
+        selectedId = 1;
 
     if (selectedId > 0)
         presetCombo.setSelectedId(selectedId, juce::dontSendNotification);

@@ -30,44 +30,51 @@ TopChromeComponent::TopChromeComponent()
 void TopChromeComponent::paint(juce::Graphics& graphics)
 {
     auto bounds = getLocalBounds().toFloat();
-    graphics.setColour(design::chromeSurface().withAlpha(0.92f));
+    design::drawSoftShadow(graphics, bounds, static_cast<float>(design::panelCornerRadiusPixels), 0.10f);
+
+    juce::ColourGradient chrome(
+        design::chromeSurfaceRaised(),
+        bounds.getX(),
+        bounds.getY(),
+        design::chromeSurface(),
+        bounds.getX(),
+        bounds.getBottom(),
+        false);
+    graphics.setGradientFill(chrome);
     graphics.fillRoundedRectangle(bounds.reduced(0.5f), static_cast<float>(design::panelCornerRadiusPixels));
     graphics.setColour(design::chromeBorder());
     graphics.drawRoundedRectangle(bounds.reduced(0.5f), static_cast<float>(design::panelCornerRadiusPixels), 1.0f);
-
-    graphics.setColour(design::chromeBorder().withAlpha(0.65f));
-    const float dividerX = static_cast<float>(getWidth()) * 0.18f;
-    graphics.drawLine(dividerX, 18.0f, dividerX, static_cast<float>(getHeight()) - 18.0f, 1.0f);
 }
 
 void TopChromeComponent::resized()
 {
-    auto bounds = getLocalBounds().reduced(design::spacingTwoUnitsPixels, design::spacingUnitPixels + 2);
+    auto bounds = getLocalBounds().reduced(design::spacingTwoUnitsPixels, design::spacingUnitPixels);
 
-    auto brandArea = bounds.removeFromLeft(120);
-    brandLabel.setBounds(brandArea.removeFromTop(28));
-    productLabel.setBounds(brandArea.removeFromTop(24));
-
-    bounds.removeFromLeft(design::spacingTwoUnitsPixels);
-    auto inputCluster = bounds.removeFromLeft(150);
-    inputMeter.setBounds(inputCluster.removeFromLeft(design::chromeMeterWidthPixels + 4));
-    inputKnob.setBounds(inputCluster);
+    auto brandArea = bounds.removeFromLeft(88);
+    brandLabel.setBounds(brandArea.removeFromTop(26).withTrimmedTop(4));
+    productLabel.setBounds(brandArea.removeFromTop(22));
 
     bounds.removeFromLeft(design::spacingUnitPixels);
-    auto gateCluster = bounds.removeFromLeft(150);
-    auto gateToggle = gateCluster.removeFromTop(24);
-    gateEnableButton.setBounds(gateToggle.withSizeKeepingCentre(100, 22));
-    gateKnob.setBounds(gateCluster);
 
-    auto right = bounds.removeFromRight(220);
-    audioButton.setBounds(right.removeFromTop(32).removeFromRight(88));
-    right.removeFromTop(design::spacingHalfUnitPixels);
+    auto inputCluster = bounds.removeFromLeft(118);
+    inputMeter.setBounds(inputCluster.removeFromLeft(16).reduced(1, 8));
+    inputKnob.setBounds(inputCluster.reduced(2, 0));
+
+    bounds.removeFromLeft(design::spacingHalfUnitPixels);
+
+    auto gateCluster = bounds.removeFromLeft(118);
+    gateEnableButton.setBounds(gateCluster.removeFromTop(22).withSizeKeepingCentre(92, 20));
+    gateKnob.setBounds(gateCluster.reduced(2, 0));
+
+    auto right = bounds.removeFromRight(200);
+    audioButton.setBounds(right.removeFromTop(30).removeFromRight(84).reduced(0, 1));
+    right.removeFromTop(2);
     auto outputCluster = right;
-    outputKnob.setBounds(outputCluster.removeFromLeft(outputCluster.getWidth() - design::chromeMeterWidthPixels - 6));
-    outputMeter.setBounds(outputCluster);
+    outputMeter.setBounds(outputCluster.removeFromRight(16).reduced(1, 8));
+    outputKnob.setBounds(outputCluster.reduced(2, 0));
 
-    bounds.reduce(design::spacingTwoUnitsPixels, design::spacingUnitPixels);
-    presetBar.setBounds(bounds.withSizeKeepingCentre(bounds.getWidth(), 44));
+    bounds.reduce(design::spacingUnitPixels, 4);
+    presetBar.setBounds(bounds.withSizeKeepingCentre(juce::jmax(280, bounds.getWidth()), 40));
 }
 
 KnobComponent& TopChromeComponent::getInputKnob() noexcept { return inputKnob; }

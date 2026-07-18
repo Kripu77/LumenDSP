@@ -145,39 +145,78 @@ void LumenLookAndFeel::drawMetalRotary(
     const auto radius = juce::jmin(bounds.getWidth(), bounds.getHeight()) * 0.5f;
     const auto center = bounds.getCentre();
     const auto angle = rotaryStartAngle + sliderPosProportional * (rotaryEndAngle - rotaryStartAngle);
-    const auto knobRadius = radius - 4.0f;
+    const auto knobRadius = radius - 3.0f;
 
-    graphics.setColour(juce::Colours::black.withAlpha(0.35f));
-    graphics.fillEllipse(center.x - knobRadius + 1.5f, center.y - knobRadius + 2.5f, knobRadius * 2.0f, knobRadius * 2.0f);
+    graphics.setColour(juce::Colours::black.withAlpha(0.42f));
+    graphics.fillEllipse(center.x - knobRadius + 2.0f, center.y - knobRadius + 3.0f, knobRadius * 2.0f, knobRadius * 2.0f);
+
+    juce::ColourGradient skirt(
+        design::metalDeep(),
+        center.x,
+        center.y + knobRadius,
+        design::metalRaised(),
+        center.x,
+        center.y - knobRadius,
+        false);
+    graphics.setGradientFill(skirt);
+    graphics.fillEllipse(
+        center.x - knobRadius - 2.0f,
+        center.y - knobRadius - 2.0f,
+        (knobRadius + 2.0f) * 2.0f,
+        (knobRadius + 2.0f) * 2.0f);
 
     juce::ColourGradient cap(
-        design::metalRaised().brighter(0.12f),
-        center.x - knobRadius * 0.35f,
-        center.y - knobRadius * 0.45f,
+        design::metalRaised().brighter(0.18f),
+        center.x - knobRadius * 0.4f,
+        center.y - knobRadius * 0.5f,
         design::metalDeep(),
-        center.x + knobRadius * 0.25f,
-        center.y + knobRadius * 0.5f,
+        center.x + knobRadius * 0.3f,
+        center.y + knobRadius * 0.55f,
         false);
     graphics.setGradientFill(cap);
     graphics.fillEllipse(center.x - knobRadius, center.y - knobRadius, knobRadius * 2.0f, knobRadius * 2.0f);
 
+    graphics.setColour(juce::Colours::white.withAlpha(0.08f));
+    graphics.drawEllipse(
+        center.x - knobRadius + 2.0f,
+        center.y - knobRadius + 2.0f,
+        (knobRadius - 2.0f) * 2.0f,
+        (knobRadius - 2.0f) * 2.0f,
+        1.0f);
     graphics.setColour(design::metalBorder());
-    graphics.drawEllipse(center.x - knobRadius, center.y - knobRadius, knobRadius * 2.0f, knobRadius * 2.0f, 1.2f);
+    graphics.drawEllipse(center.x - knobRadius, center.y - knobRadius, knobRadius * 2.0f, knobRadius * 2.0f, 1.3f);
 
-    const auto indicatorRadius = 3.0f;
-    const auto indicatorDistance = knobRadius - 10.0f;
+    for (int tickIndex = 0; tickIndex < 11; ++tickIndex)
+    {
+        const float tickPos = static_cast<float>(tickIndex) / 10.0f;
+        const float tickAngle = rotaryStartAngle + tickPos * (rotaryEndAngle - rotaryStartAngle);
+        const float inner = knobRadius - 1.5f;
+        const float outer = knobRadius + 1.5f;
+        graphics.setColour(design::metalBorder().withAlpha(0.5f));
+        graphics.drawLine(
+            center.x + inner * std::sin(tickAngle),
+            center.y - inner * std::cos(tickAngle),
+            center.x + outer * std::sin(tickAngle),
+            center.y - outer * std::cos(tickAngle),
+            1.0f);
+    }
+
+    const auto indicatorRadius = 3.2f;
+    const auto indicatorDistance = knobRadius - 11.0f;
     const auto indicatorX = center.x + indicatorDistance * std::sin(angle);
     const auto indicatorY = center.y - indicatorDistance * std::cos(angle);
-    graphics.setColour(design::ledWarm());
-    graphics.fillEllipse(indicatorX - indicatorRadius, indicatorY - indicatorRadius, indicatorRadius * 2.0f, indicatorRadius * 2.0f);
-    graphics.setColour(design::ledWarm().withAlpha(design::ledGlowAlpha));
+    graphics.setColour(design::ledWarm().withAlpha(0.35f));
     graphics.fillEllipse(
-        indicatorX - indicatorRadius * 2.2f,
-        indicatorY - indicatorRadius * 2.2f,
-        indicatorRadius * 4.4f,
-        indicatorRadius * 4.4f);
-
-    juce::ignoreUnused(sliderPosProportional, rotaryStartAngle, rotaryEndAngle);
+        indicatorX - indicatorRadius * 2.0f,
+        indicatorY - indicatorRadius * 2.0f,
+        indicatorRadius * 4.0f,
+        indicatorRadius * 4.0f);
+    graphics.setColour(design::ledWarm());
+    graphics.fillEllipse(
+        indicatorX - indicatorRadius,
+        indicatorY - indicatorRadius,
+        indicatorRadius * 2.0f,
+        indicatorRadius * 2.0f);
 }
 
 void LumenLookAndFeel::drawLinearSlider(
@@ -200,33 +239,66 @@ void LumenLookAndFeel::drawLinearSlider(
         return;
     }
 
-    auto track = juce::Rectangle<float>(
-                     static_cast<float>(x),
-                     static_cast<float>(y),
-                     static_cast<float>(width),
-                     static_cast<float>(height))
-                     .withSizeKeepingCentre(8.0f, static_cast<float>(height) - 8.0f);
+    constexpr float trackWidthPixels = 7.0f;
+    constexpr float thumbWidthPixels = 28.0f;
+    constexpr float thumbHeightPixels = 16.0f;
+    constexpr float tickInsetPixels = 10.0f;
 
+    auto bounds = juce::Rectangle<float>(
+        static_cast<float>(x),
+        static_cast<float>(y),
+        static_cast<float>(width),
+        static_cast<float>(height));
+
+    auto track = bounds.withSizeKeepingCentre(trackWidthPixels, bounds.getHeight() - 12.0f);
     graphics.setColour(design::metalDeep());
-    graphics.fillRoundedRectangle(track, 4.0f);
-    graphics.setColour(design::metalBorder());
-    graphics.drawRoundedRectangle(track, 4.0f, 1.0f);
+    graphics.fillRoundedRectangle(track, 3.5f);
+    graphics.setColour(design::metalBorder().withAlpha(0.9f));
+    graphics.drawRoundedRectangle(track, 3.5f, 1.0f);
 
-    const float thumbHeight = 18.0f;
-    const float thumbWidth = static_cast<float>(width) - 4.0f;
-    const float thumbY = sliderPos - thumbHeight * 0.5f;
+    for (int tickIndex = 0; tickIndex <= 8; ++tickIndex)
+    {
+        const float t = static_cast<float>(tickIndex) / 8.0f;
+        const float tickY = track.getY() + t * track.getHeight();
+        graphics.setColour(design::metalBorder().withAlpha(0.55f));
+        graphics.drawLine(bounds.getCentreX() - tickInsetPixels, tickY, bounds.getCentreX() + tickInsetPixels, tickY, 1.0f);
+    }
+
+    const float filledHeight = juce::jmax(0.0f, track.getBottom() - sliderPos);
+    auto fill = juce::Rectangle<float>(track.getX(), sliderPos, track.getWidth(), filledHeight);
+    juce::ColourGradient fillGradient(
+        design::ledWarm().withAlpha(0.85f),
+        fill.getCentreX(),
+        fill.getBottom(),
+        design::ledWarmDim().withAlpha(0.55f),
+        fill.getCentreX(),
+        fill.getY(),
+        false);
+    graphics.setGradientFill(fillGradient);
+    graphics.fillRoundedRectangle(fill, 3.5f);
+
     auto thumb = juce::Rectangle<float>(
-        static_cast<float>(x) + 2.0f,
-        thumbY,
-        thumbWidth,
-        thumbHeight);
+        bounds.getCentreX() - thumbWidthPixels * 0.5f,
+        sliderPos - thumbHeightPixels * 0.5f,
+        thumbWidthPixels,
+        thumbHeightPixels);
 
-    graphics.setColour(design::metalRaised());
+    juce::ColourGradient thumbGradient(
+        design::metalRaised().brighter(0.15f),
+        thumb.getCentreX(),
+        thumb.getY(),
+        design::metalDeep(),
+        thumb.getCentreX(),
+        thumb.getBottom(),
+        false);
+    graphics.setGradientFill(thumbGradient);
     graphics.fillRoundedRectangle(thumb, 4.0f);
+    graphics.setColour(design::metalBorder());
+    graphics.drawRoundedRectangle(thumb, 4.0f, 1.1f);
     graphics.setColour(design::ledWarm());
     graphics.fillEllipse(thumb.getCentreX() - 3.0f, thumb.getCentreY() - 3.0f, 6.0f, 6.0f);
-    graphics.setColour(design::metalBorder());
-    graphics.drawRoundedRectangle(thumb, 4.0f, 1.0f);
+    graphics.setColour(design::ledWarm().withAlpha(0.35f));
+    graphics.fillEllipse(thumb.getCentreX() - 7.0f, thumb.getCentreY() - 7.0f, 14.0f, 14.0f);
 }
 
 void LumenLookAndFeel::drawButtonBackground(

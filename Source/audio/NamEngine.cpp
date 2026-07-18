@@ -1,9 +1,27 @@
 #include "audio/NamEngine.h"
 #include <NAM/activations.h>
+#include <NAM/container.h>
+#include <NAM/convnet.h>
+#include <NAM/linear.h>
+#include <NAM/lstm.h>
+#include <NAM/wavenet/model.h>
 #include <filesystem>
 
 namespace lumen::audio
 {
+
+namespace
+{
+
+using NamConfigFactory = std::unique_ptr<nam::ModelConfig> (*)(const nlohmann::json&, double);
+
+[[gnu::used]] NamConfigFactory forceLinkedWaveNetFactory = &nam::wavenet::create_config;
+[[gnu::used]] NamConfigFactory forceLinkedLstmFactory = &nam::lstm::create_config;
+[[gnu::used]] NamConfigFactory forceLinkedConvNetFactory = &nam::convnet::create_config;
+[[gnu::used]] NamConfigFactory forceLinkedLinearFactory = &nam::linear::create_config;
+[[gnu::used]] NamConfigFactory forceLinkedContainerFactory = &nam::container::create_config;
+
+} // namespace
 
 NamEngine::NamEngine()
 {

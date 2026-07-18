@@ -19,7 +19,7 @@ inline constexpr int windowHeightPixels = 720;
 inline constexpr int windowMinimumWidthPixels = 960;
 inline constexpr int windowMinimumHeightPixels = 640;
 
-inline constexpr int topChromeHeightPixels = 112;
+inline constexpr int topChromeHeightPixels = 108;
 inline constexpr int bottomNavHeightPixels = 72;
 inline constexpr int chromeControlSizePixels = 56;
 inline constexpr int chromeMeterWidthPixels = 10;
