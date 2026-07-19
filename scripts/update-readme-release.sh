@@ -2,8 +2,8 @@
 # Rewrite the auto-managed Download block in README.md for a release tag.
 #
 # Usage:
-#   ./scripts/update-readme-release.sh v0.1.0
-#   ./scripts/update-readme-release.sh 0.1.0
+#   ./scripts/update-readme-release.sh v0.2.0
+#   ./scripts/update-readme-release.sh 0.2.0
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -23,12 +23,13 @@ VERSION="${TAG_RAW#v}"
 TAG="v${VERSION}"
 REPO="${GITHUB_REPOSITORY:-Kripu77/LumenDSP}"
 BASE="https://github.com/${REPO}/releases"
-LATEST="${BASE}/latest"
-MAC_STABLE="${LATEST}/download/LumenDSP-macos-arm64.zip"
-WIN_STABLE="${LATEST}/download/LumenDSP-windows-x64.zip"
+TAG_URL="${BASE}/tag/${TAG}"
+# Pin downloads to this tag so README never points at an older /latest while text says a new version.
+MAC_ZIP="${BASE}/download/${TAG}/LumenDSP-macos-arm64.zip"
+WIN_ZIP="${BASE}/download/${TAG}/LumenDSP-windows-x64.zip"
 MAC_VER="${BASE}/download/${TAG}/LumenDSP-${TAG}-macos-arm64.zip"
 WIN_VER="${BASE}/download/${TAG}/LumenDSP-${TAG}-windows-x64.zip"
-BADGE="https://img.shields.io/github/v/release/${REPO}?label=latest&style=flat-square"
+BADGE="https://img.shields.io/badge/release-${TAG}-5ec8ff?style=flat-square&logo=github"
 
 if [[ ! -f "${README}" ]]; then
   echo "error: ${README} not found" >&2
@@ -39,16 +40,18 @@ BLOCK="$(cat <<EOF
 <!-- BEGIN_LATEST_RELEASE -->
 ## Download
 
-[![Latest release](${BADGE})](${LATEST})
+[![Release ${TAG}](${BADGE})](${TAG_URL})
 
-**Latest release: [\`${TAG}\`](${LATEST})**
+**Current release: [\`${TAG}\`](${TAG_URL})**
 
 | Platform | Download |
 |----------|----------|
-| **macOS** (Apple Silicon) | [**LumenDSP-macos-arm64.zip**](${MAC_STABLE}) |
-| **Windows** (x64) | [**LumenDSP-windows-x64.zip**](${WIN_STABLE}) |
+| **macOS** (Apple Silicon) | [**LumenDSP-macos-arm64.zip**](${MAC_ZIP}) |
+| **Windows** (x64) | [**LumenDSP-windows-x64.zip**](${WIN_ZIP}) |
 
-Same files for this tag (pinned): [macOS ${TAG}](${MAC_VER}) · [Windows ${TAG}](${WIN_VER})
+Versioned filenames: [macOS ${TAG}](${MAC_VER}) · [Windows ${TAG}](${WIN_VER})
+
+Always-latest redirect (after this release is published): [all releases](${BASE}/latest)
 
 **Install notes**
 - **macOS:** unzip → open \`LumenDSP.app\` (right-click → **Open** if Gatekeeper warns). Optional: copy \`LumenDSP.vst3\` to \`~/Library/Audio/Plug-Ins/VST3/\`.
