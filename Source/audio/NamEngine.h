@@ -44,8 +44,6 @@ private:
     double currentSampleRateHertz = 44100.0;
     int currentMaximumBlockSizeSamples = 0;
 
-    // shared_ptr so the audio thread can keep a model alive for one block
-    // even if a background load swaps `activeModel` mid-callback.
     ModelPtr activeModel;
     ModelPtr stagedModel;
 
