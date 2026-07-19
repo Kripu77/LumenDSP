@@ -6,6 +6,7 @@
 #include <atomic>
 #include <memory>
 #include <mutex>
+#include <vector>
 
 namespace lumen::audio
 {
@@ -31,9 +32,10 @@ public:
 private:
     static constexpr int monoChannelCount = 1;
     static constexpr int monoChannelIndex = 0;
-    static constexpr float silentSample = 0.0f;
 
-    void applyStagedModel();
+    using ModelPtr = std::shared_ptr<nam::DSP>;
+
+    void promoteStagedModelLocked();
     void processMonoThroughModel(
         nam::DSP& model,
         float* channelData,
@@ -42,8 +44,10 @@ private:
     double currentSampleRateHertz = 44100.0;
     int currentMaximumBlockSizeSamples = 0;
 
-    std::unique_ptr<nam::DSP> activeModel;
-    std::unique_ptr<nam::DSP> stagedModel;
+    // shared_ptr so the audio thread can keep a model alive for one block
+    // even if a background load swaps `activeModel` mid-callback.
+    ModelPtr activeModel;
+    ModelPtr stagedModel;
 
     std::vector<NAM_SAMPLE> inputScratch;
     std::vector<NAM_SAMPLE> outputScratch;
@@ -60,7 +64,7 @@ private:
     std::atomic<bool> stagedModelReady{false};
     std::atomic<bool> modelLoaded{false};
     std::atomic<bool> modelLoading{false};
-    bool prepared = false;
+    std::atomic<bool> prepared{false};
 };
 
 } // namespace lumen::audio

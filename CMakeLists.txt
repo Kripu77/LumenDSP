@@ -1,7 +1,14 @@
 cmake_minimum_required(VERSION 3.24)
 
+# Single source of truth for app version (see VERSION + RELEASING.md).
+file(STRINGS "${CMAKE_CURRENT_SOURCE_DIR}/VERSION" LUMENDSP_VERSION_RAW LIMIT_COUNT 1)
+string(STRIP "${LUMENDSP_VERSION_RAW}" LUMENDSP_VERSION)
+if(NOT LUMENDSP_VERSION MATCHES "^[0-9]+\\.[0-9]+\\.[0-9]+([.-].*)?$")
+    message(FATAL_ERROR "VERSION file must contain semver like 1.2.3 (got '${LUMENDSP_VERSION}')")
+endif()
+
 project(LumenDSP
-    VERSION 0.1.0
+    VERSION ${LUMENDSP_VERSION}
     DESCRIPTION "Premium open-source NAM amp modeler for modern fusion tones"
     LANGUAGES C CXX
 )
@@ -105,7 +112,9 @@ juce_add_plugin(LumenDSP
     COPY_PLUGIN_AFTER_BUILD ${LUMENDSP_COPY_PLUGIN_AFTER_BUILD}
     VST3_CATEGORIES Fx Distortion
     MICROPHONE_PERMISSION_ENABLED TRUE
-    MICROPHONE_PERMISSION_TEXT "LumenDSP needs microphone access for guitar input."
+    MICROPHONE_PERMISSION_TEXT "LumenDSP needs microphone access for guitar and audio interface input."
+    BLUETOOTH_PERMISSION_ENABLED TRUE
+    BLUETOOTH_PERMISSION_TEXT "LumenDSP may access Bluetooth so Core Audio can list wireless and Bluetooth audio devices."
 )
 
 target_sources(LumenDSP

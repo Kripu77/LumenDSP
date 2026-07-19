@@ -1,0 +1,364 @@
+# Ship installable macOS + Windows builds as a GitHub Release.
+#
+# When this runs
+# --------------
+# 1. Push a version tag:     git push origin v0.2.0
+# 2. Manual dispatch:        Actions → Release → Run workflow
+# 3. Optional main auto-tag: if VERSION changed on main, create tag + release
+#    (enable with repository variable RELEASE_ON_VERSION_BUMP=true)
+#
+# Semver rules: see RELEASING.md
+# Tag format:   vMAJOR.MINOR.PATCH  (must match VERSION file contents)
+
+name: Release
+
+on:
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"
+      - "v[0-9]+.[0-9]+.[0-9]+-*"
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Semver to release (e.g. 0.2.0). Leave empty to use VERSION file."
+        required: false
+        type: string
+      prerelease:
+        description: "Mark GitHub Release as pre-release"
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Decide whether this run should publish a release, and which version.
+  # ---------------------------------------------------------------------------
+  plan:
+    name: Plan release
+    runs-on: ubuntu-latest
+    outputs:
+      should_release: ${{ steps.plan.outputs.should_release }}
+      version: ${{ steps.plan.outputs.version }}
+      tag: ${{ steps.plan.outputs.tag }}
+      prerelease: ${{ steps.plan.outputs.prerelease }}
+      create_tag: ${{ steps.plan.outputs.create_tag }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Plan
+        id: plan
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REF_NAME: ${{ github.ref_name }}
+          REF: ${{ github.ref }}
+          INPUT_VERSION: ${{ inputs.version }}
+          INPUT_PRERELEASE: ${{ inputs.prerelease }}
+          RELEASE_ON_VERSION_BUMP: ${{ vars.RELEASE_ON_VERSION_BUMP }}
+        run: |
+          set -euo pipefail
+          FILE_VERSION="$(tr -d '[:space:]' < VERSION)"
+          echo "VERSION file = ${FILE_VERSION}"
+
+          should_release=false
+          create_tag=false
+          version="${FILE_VERSION}"
+          prerelease=false
+
+          if [[ "${EVENT_NAME}" == "workflow_dispatch" ]]; then
+            if [[ -n "${INPUT_VERSION}" ]]; then
+              version="${INPUT_VERSION#v}"
+            fi
+            should_release=true
+            create_tag=true
+            if [[ "${INPUT_PRERELEASE}" == "true" ]]; then
+              prerelease=true
+            fi
+          elif [[ "${REF}" == refs/tags/v* ]]; then
+            tag_version="${REF_NAME#v}"
+            version="${tag_version}"
+            should_release=true
+            create_tag=false
+            if [[ "${tag_version}" == *-* ]]; then
+              prerelease=true
+            fi
+            # Tag must match VERSION for stable releases (pre-release suffixes allowed in tag only).
+            base_tag="${tag_version%%-*}"
+            if [[ "${base_tag}" != "${FILE_VERSION}" && "${tag_version}" != "${FILE_VERSION}" ]]; then
+              echo "::error::Tag v${tag_version} does not match VERSION file (${FILE_VERSION}). Bump VERSION, commit, then retag."
+              exit 1
+            fi
+          elif [[ "${EVENT_NAME}" == "push" && "${REF_NAME}" == "main" ]]; then
+            # Auto-release only when VERSION changed on main AND repo variable is enabled.
+            if [[ "${RELEASE_ON_VERSION_BUMP}" == "true" ]]; then
+              before="${{ github.event.before }}"
+              if [[ -n "${before}" && "${before}" != "0000000000000000000000000000000000000000" ]]; then
+                if git diff --name-only "${before}" "${{ github.sha }}" | grep -qx 'VERSION'; then
+                  should_release=true
+                  create_tag=true
+                  echo "VERSION changed on main — will tag and release v${version}"
+                else
+                  echo "No VERSION change on main — skipping release (CI still builds via ci.yml)."
+                fi
+              else
+                echo "No previous commit range — skip auto release."
+              fi
+            else
+              echo "Push to main: not releasing (set repository variable RELEASE_ON_VERSION_BUMP=true to auto-tag when VERSION changes)."
+            fi
+          fi
+
+          if [[ ! "${version}" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-].*)?$ ]]; then
+            echo "::error::Invalid semver: ${version}"
+            exit 1
+          fi
+
+          tag="v${version#v}"
+          echo "should_release=${should_release}" >> "$GITHUB_OUTPUT"
+          echo "version=${version#v}" >> "$GITHUB_OUTPUT"
+          echo "tag=${tag}" >> "$GITHUB_OUTPUT"
+          echo "prerelease=${prerelease}" >> "$GITHUB_OUTPUT"
+          echo "create_tag=${create_tag}" >> "$GITHUB_OUTPUT"
+          echo "Plan: release=${should_release} tag=${tag} prerelease=${prerelease} create_tag=${create_tag}"
+
+  # ---------------------------------------------------------------------------
+  # Build installable packages (macOS arm64 + Windows x64).
+  # ---------------------------------------------------------------------------
+  build:
+    name: Package (${{ matrix.name }})
+    needs: plan
+    if: needs.plan.outputs.should_release == 'true'
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-14
+            name: macos-arm64
+          - os: windows-latest
+            name: windows-x64
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Write release version into VERSION
+        shell: bash
+        run: |
+          echo "${{ needs.plan.outputs.version }}" | tr -d 'v' | tr -d '[:space:]' > VERSION
+          echo "Building version $(cat VERSION)"
+
+      - name: Install CMake / Ninja (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew install cmake ninja || true
+          cmake --version
+
+      - name: Setup MSVC (Windows)
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Configure (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          cmake -S . -B build \
+            -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_OSX_ARCHITECTURES=arm64
+
+      - name: Configure (Windows)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          cmake -S . -B build \
+            -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build Standalone + VST3
+        run: cmake --build build --config Release --target LumenDSP_All -j 4
+
+      - name: Package macOS
+        if: runner.os == 'macOS'
+        env:
+          TAG: ${{ needs.plan.outputs.tag }}
+        run: |
+          set -euo pipefail
+          STAGE="dist/LumenDSP-${TAG}-macos-arm64"
+          mkdir -p "${STAGE}"
+          APP="build/LumenDSP_artefacts/Release/Standalone/LumenDSP.app"
+          VST="build/LumenDSP_artefacts/Release/VST3/LumenDSP.vst3"
+          test -d "${APP}"
+          test -d "${VST}"
+
+          # Ad-hoc sign so the binary is runnable on modern macOS (still Gatekeeper-unsigned).
+          codesign --force --deep --sign - "${APP}" || true
+          codesign --force --deep --sign - "${VST}" || true
+
+          ditto "${APP}" "${STAGE}/LumenDSP.app"
+          ditto "${VST}" "${STAGE}/LumenDSP.vst3"
+          cat > "${STAGE}/INSTALL.txt" <<'EOF'
+          LumenDSP — macOS (Apple Silicon)
+
+          Standalone
+            1. Drag LumenDSP.app to /Applications (or run in place).
+            2. First launch: right-click → Open if Gatekeeper blocks unsigned apps.
+            3. Allow Microphone (and Bluetooth if prompted) for audio devices.
+            4. Click Audio and choose your guitar interface.
+
+          VST3
+            Copy LumenDSP.vst3 to:
+              ~/Library/Audio/Plug-Ins/VST3/
+            Then rescan plugins in your DAW.
+
+          This build is not notarized. Prefer building from source for development.
+          EOF
+
+          mkdir -p dist
+          ditto -c -k --sequesterRsrc --keepParent "${STAGE}" "dist/LumenDSP-${TAG}-macos-arm64.zip"
+          ls -lh dist/
+
+      - name: Package Windows
+        if: runner.os == 'Windows'
+        shell: bash
+        env:
+          TAG: ${{ needs.plan.outputs.tag }}
+        run: |
+          set -euo pipefail
+          STAGE="dist/LumenDSP-${TAG}-windows-x64"
+          mkdir -p "${STAGE}"
+          ROOT="build/LumenDSP_artefacts/Release/Standalone"
+          test -f "${ROOT}/LumenDSP.exe"
+
+          # Entire standalone folder (exe + FactoryContent + web)
+          cp -R "${ROOT}/." "${STAGE}/"
+          if [[ -d build/LumenDSP_artefacts/Release/VST3 ]]; then
+            mkdir -p "${STAGE}/VST3"
+            cp -R build/LumenDSP_artefacts/Release/VST3/. "${STAGE}/VST3/" || true
+          fi
+          cat > "${STAGE}/INSTALL.txt" <<'EOF'
+          LumenDSP — Windows (x64)
+
+          Standalone
+            1. Unzip this folder anywhere.
+            2. Run LumenDSP.exe (keep FactoryContent/ and web/ next to the exe).
+            3. Click Audio and choose your guitar interface (ASIO preferred).
+
+          VST3
+            If a VST3 folder is included, copy LumenDSP.vst3 to:
+              C:\Program Files\Common Files\VST3\
+            Then rescan plugins in your DAW.
+          EOF
+
+          mkdir -p dist
+          # Use PowerShell Compress-Archive for reliable Windows zips
+          powershell.exe -NoProfile -Command \
+            "Compress-Archive -Path '${STAGE}\*' -DestinationPath 'dist\LumenDSP-${TAG}-windows-x64.zip' -Force"
+          ls -lh dist/
+
+      - name: Upload package artefact
+        uses: actions/upload-artifact@v4
+        with:
+          name: LumenDSP-${{ needs.plan.outputs.tag }}-${{ matrix.name }}
+          path: dist/*.zip
+          if-no-files-found: error
+          retention-days: 14
+
+  # ---------------------------------------------------------------------------
+  # Publish GitHub Release with zipped installers.
+  # ---------------------------------------------------------------------------
+  publish:
+    name: Publish GitHub Release
+    needs: [plan, build]
+    if: needs.plan.outputs.should_release == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create tag if needed
+        if: needs.plan.outputs.create_tag == 'true'
+        env:
+          TAG: ${{ needs.plan.outputs.tag }}
+          VERSION: ${{ needs.plan.outputs.version }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          if git rev-parse "refs/tags/${TAG}" >/dev/null 2>&1; then
+            echo "Tag ${TAG} already exists — reusing."
+            exit 0
+          fi
+
+          # Prefer tagging the VERSION already on the branch. If dispatch requested a
+          # different version, update VERSION and commit so the tag records it.
+          current="$(tr -d '[:space:]' < VERSION)"
+          want="${VERSION#v}"
+          if [[ "${current}" != "${want}" ]]; then
+            echo "${want}" > VERSION
+            git add VERSION
+            git commit -m "chore(release): bump version to ${want}"
+            # Keep main updated when dispatch bumps version from Actions UI
+            if [[ "${GITHUB_REF_NAME}" == "main" ]]; then
+              git push origin HEAD:main
+            fi
+          fi
+
+          git tag -a "${TAG}" -m "Release ${TAG}"
+          git push origin "refs/tags/${TAG}"
+
+      - name: Download packages
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          pattern: LumenDSP-${{ needs.plan.outputs.tag }}-*
+          merge-multiple: true
+
+      - name: List assets
+        run: find release-assets -type f -ls
+
+      - name: Create / update GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.plan.outputs.tag }}
+          name: LumenDSP ${{ needs.plan.outputs.tag }}
+          prerelease: ${{ needs.plan.outputs.prerelease == 'true' }}
+          generate_release_notes: true
+          body: |
+            ## LumenDSP ${{ needs.plan.outputs.tag }}
+
+            Installable standalone builds (plus VST3 where packaged).
+
+            | Asset | Platform |
+            |-------|----------|
+            | `LumenDSP-${{ needs.plan.outputs.tag }}-macos-arm64.zip` | macOS Apple Silicon |
+            | `LumenDSP-${{ needs.plan.outputs.tag }}-windows-x64.zip` | Windows 10/11 x64 |
+
+            ### Install
+            - **macOS:** unzip → open `LumenDSP.app` (right-click → Open if Gatekeeper warns). Copy `LumenDSP.vst3` to `~/Library/Audio/Plug-Ins/VST3/` for DAW use.
+            - **Windows:** unzip → run `LumenDSP.exe` (keep `FactoryContent` and `web` beside the exe).
+
+            ### Notes
+            - Builds are **not notarized / not code-signed** with a developer certificate (macOS may require right-click Open).
+            - Version source of truth: `VERSION` file. Tag format: `vMAJOR.MINOR.PATCH`. See `RELEASING.md`.
+
+            ### Changelog
+            Auto-generated from commits since the previous tag.
+          files: |
+            release-assets/*.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

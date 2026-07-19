@@ -36,23 +36,24 @@ On first launch, LumenDSP installs factory models, cab IRs, and presets automati
 
 **01 Glass Clean** — glassy Twin-style clean with a bright, tight cab IR.
 
-Use the **Presets** dropdown to try:
+Open **Presets** in the top bar to try:
 
 | Preset | Character |
 |--------|-----------|
-| **01 Glass Clean** | Clear, chiming clean — pick attack and headroom (default) |
-| **02 Airy Clean** | Slightly more open / airy clean platform |
-| **03 Smooth Lead** | Compressed, sustaining lead-friendly clean-crunch |
+| **01 Glass Clean** | Clear, chiming clean — soft comp + room (default) |
+| **02 Airy Clean** | Open clean with light delay and ambient bloom |
+| **03 Smooth Lead** | Sustaining lead — tube drive, plate, trailing delay |
 | **04 Full Rig Clean** | Amp+cab capture (cab IR bypassed — already in the model) |
-| **05 Light Crunch** | Tighter low end, light edge for rhythm / fusion grit |
+| **05 Light Crunch** | Tight low end, soft drive edge for rhythm / grit |
+| **06 Ambient Swell** | Long delay + ambient reverb for pads and swells |
 
-Use the bottom section navigator to move through the rack:
+Signal path:
 
 ```
-INPUT → AMP → EQ → CAB
+Input → Gate → Comp → Drive → Amp (NAM) → EQ → Cab (IR) → Delay → Reverb → Output
 ```
 
-Global **Input / Gate / Output** always stay in the top chrome (Neural-style constant I/O).
+Global **Input / Gate / Output** stay in the top bar. Practice tools (tuner, metronome) live in the bottom dock.
 
 ## 4. Dial in your guitar
 

@@ -32,23 +32,26 @@ NamEngine::~NamEngine() = default;
 
 void NamEngine::prepare(double sampleRateHertz, int maximumBlockSizeSamples)
 {
-    currentSampleRateHertz = sampleRateHertz > 0.0 ? sampleRateHertz : 44100.0;
-    currentMaximumBlockSizeSamples = juce::jmax(1, maximumBlockSizeSamples);
+    const double safeRate = sampleRateHertz > 0.0 ? sampleRateHertz : 44100.0;
+    const int safeBlock = juce::jmax(1, maximumBlockSizeSamples);
+
+    std::lock_guard<std::mutex> lock(modelMutex);
+
+    currentSampleRateHertz = safeRate;
+    currentMaximumBlockSizeSamples = safeBlock;
 
     inputScratch.assign(static_cast<size_t>(currentMaximumBlockSizeSamples), static_cast<NAM_SAMPLE>(0));
     outputScratch.assign(static_cast<size_t>(currentMaximumBlockSizeSamples), static_cast<NAM_SAMPLE>(0));
     inputPointers[monoChannelIndex] = inputScratch.data();
     outputPointers[monoChannelIndex] = outputScratch.data();
 
-    prepared = true;
-
-    std::lock_guard<std::mutex> lock(modelMutex);
-
     if (activeModel != nullptr)
         activeModel->Reset(currentSampleRateHertz, currentMaximumBlockSizeSamples);
 
     if (stagedModel != nullptr)
         stagedModel->Reset(currentSampleRateHertz, currentMaximumBlockSizeSamples);
+
+    prepared.store(true, std::memory_order_release);
 }
 
 void NamEngine::reset()
@@ -73,8 +76,7 @@ bool NamEngine::loadModelAsync(const juce::File& modelFile)
 
     try
     {
-        // prewarm can take a very long time (or appear stuck) on WaveNet models.
-        // Skip it so the model becomes playable quickly; first notes may be slightly cold.
+        // Skip prewarm so load stays responsive; first notes may be slightly cold.
         nam::DspLoadOptions loadOptions;
         loadOptions.prewarm = false;
 
@@ -90,27 +92,26 @@ bool NamEngine::loadModelAsync(const juce::File& modelFile)
             return false;
         }
 
-        if (prepared)
-            loadedModel->Reset(currentSampleRateHertz, currentMaximumBlockSizeSamples);
+        // Own as shared_ptr before Reset / publish so audio can take a ref safely.
+        ModelPtr readyModel(std::move(loadedModel));
 
         {
             std::lock_guard<std::mutex> lock(modelMutex);
-            stagedModel = std::move(loadedModel);
+
+            if (prepared.load(std::memory_order_relaxed))
+                readyModel->Reset(currentSampleRateHertz, currentMaximumBlockSizeSamples);
+
+            // Stage only — promote on the audio thread (or immediately below under lock
+            // into active as a shared_ptr). Never destroy a model the audio thread may
+            // still be processing: process() holds its own shared_ptr copy.
+            stagedModel = std::move(readyModel);
             stagedModelFile = modelFile;
             stagedModelName = modelFile.getFileName();
             lastErrorMessage.clear();
-            stagedModelReady.store(true, std::memory_order_release);
 
-            // Promote immediately so UI/status update without waiting for the audio thread.
-            // process() also calls applyStagedModel(); double-apply is a no-op if already moved.
-            if (stagedModel != nullptr)
-            {
-                activeModel = std::move(stagedModel);
-                activeModelFile = stagedModelFile;
-                activeModelName = stagedModelName;
-                stagedModelReady.store(false, std::memory_order_relaxed);
-                modelLoaded.store(true, std::memory_order_relaxed);
-            }
+            // Promote under the same lock so UI sees a loaded model immediately,
+            // without racing process(): process copies activeModel first.
+            promoteStagedModelLocked();
         }
 
         modelLoading.store(false, std::memory_order_relaxed);
@@ -137,40 +138,48 @@ void NamEngine::clearModel()
     std::lock_guard<std::mutex> lock(modelMutex);
     stagedModel.reset();
     activeModel.reset();
-    stagedModelReady.store(false, std::memory_order_relaxed);
-    modelLoaded.store(false, std::memory_order_relaxed);
+    stagedModelFile = juce::File();
+    stagedModelName.clear();
     activeModelFile = juce::File();
     activeModelName.clear();
+    stagedModelReady.store(false, std::memory_order_relaxed);
+    modelLoaded.store(false, std::memory_order_relaxed);
 }
 
 void NamEngine::process(juce::AudioBuffer<float>& buffer)
 {
-    applyStagedModel();
-
-    if (!prepared || !modelLoaded.load(std::memory_order_relaxed))
+    if (!prepared.load(std::memory_order_acquire))
         return;
 
-    nam::DSP* modelPointer = nullptr;
+    // Take a local shared_ptr under the lock. Background loads may replace
+    // activeModel after this; the local ref keeps the old model alive for this block.
+    ModelPtr model;
+    int maxBlock = 0;
 
     {
         std::lock_guard<std::mutex> lock(modelMutex);
-        modelPointer = activeModel.get();
+        promoteStagedModelLocked();
+        model = activeModel;
+        maxBlock = currentMaximumBlockSizeSamples;
     }
 
-    if (modelPointer == nullptr)
+    if (model == nullptr)
         return;
 
     const int sampleCount = buffer.getNumSamples();
     const int channelCount = buffer.getNumChannels();
 
-    if (sampleCount <= 0 || channelCount <= 0)
+    if (sampleCount <= 0 || channelCount <= 0 || sampleCount > maxBlock)
         return;
 
-    if (sampleCount > currentMaximumBlockSizeSamples)
+    // Scratch is only resized under modelMutex in prepare(). JUCE does not call
+    // processBlock concurrently with prepareToPlay; still bound-check for safety.
+    if (static_cast<int>(inputScratch.size()) < sampleCount
+        || static_cast<int>(outputScratch.size()) < sampleCount)
         return;
 
     float* monoChannel = buffer.getWritePointer(monoChannelIndex);
-    processMonoThroughModel(*modelPointer, monoChannel, sampleCount);
+    processMonoThroughModel(*model, monoChannel, sampleCount);
 
     for (int channelIndex = 1; channelIndex < channelCount; ++channelIndex)
         buffer.copyFrom(channelIndex, 0, monoChannel, sampleCount);
@@ -204,21 +213,17 @@ juce::String NamEngine::getLastErrorMessage() const
     return lastErrorMessage;
 }
 
-void NamEngine::applyStagedModel()
+void NamEngine::promoteStagedModelLocked()
 {
-    if (!stagedModelReady.load(std::memory_order_acquire))
-        return;
-
-    std::lock_guard<std::mutex> lock(modelMutex);
-
-    if (!stagedModelReady.load(std::memory_order_relaxed) || stagedModel == nullptr)
+    if (stagedModel == nullptr)
         return;
 
     activeModel = std::move(stagedModel);
     activeModelFile = stagedModelFile;
     activeModelName = stagedModelName;
+    stagedModel.reset();
     stagedModelReady.store(false, std::memory_order_relaxed);
-    modelLoaded.store(true, std::memory_order_relaxed);
+    modelLoaded.store(true, std::memory_order_release);
 }
 
 void NamEngine::processMonoThroughModel(
@@ -228,6 +233,10 @@ void NamEngine::processMonoThroughModel(
 {
     for (int sampleIndex = 0; sampleIndex < sampleCount; ++sampleIndex)
         inputScratch[static_cast<size_t>(sampleIndex)] = static_cast<NAM_SAMPLE>(channelData[sampleIndex]);
+
+    // Re-bind pointers in case vectors reallocated (prepare grows under lock only).
+    inputPointers[monoChannelIndex] = inputScratch.data();
+    outputPointers[monoChannelIndex] = outputScratch.data();
 
     model.process(inputPointers, outputPointers, sampleCount);
 

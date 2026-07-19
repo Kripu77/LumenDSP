@@ -279,6 +279,7 @@ void LumenDSPAudioProcessor::bootstrapFactoryExperience()
             + "bundled=" + bundledRoot.getFullPathName() + "\n"
             + "models=" + installResult.modelsDirectory.getFullPathName() + "\n"
             + "fresh=" + juce::String(installResult.performedFreshInstall ? "true" : "false") + "\n"
+            + "upgraded=" + juce::String(installResult.upgradedExistingInstall ? "true" : "false") + "\n"
             + "executable="
             + juce::File::getSpecialLocation(juce::File::currentExecutableFile).getFullPathName()
             + "\n");

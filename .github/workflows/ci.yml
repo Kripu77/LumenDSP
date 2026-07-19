@@ -1,0 +1,74 @@
+# Continuous integration — builds on every PR and every push to main.
+# Does NOT create GitHub Releases (see release.yml).
+
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-14
+            name: macos
+          - os: windows-latest
+            name: windows
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install CMake (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew install cmake ninja || true
+          cmake --version
+
+      - name: Setup MSVC (Windows)
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Configure (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          cmake -S . -B build \
+            -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_OSX_ARCHITECTURES=arm64
+
+      - name: Configure (Windows)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          cmake -S . -B build \
+            -G "Ninja" \
+            -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build Standalone + VST3
+        run: cmake --build build --config Release --target LumenDSP_All -j 4
+
+      - name: Smoke-check artefacts (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          test -d build/LumenDSP_artefacts/Release/Standalone/LumenDSP.app
+          test -d build/LumenDSP_artefacts/Release/VST3/LumenDSP.vst3
+          test -f build/LumenDSP_artefacts/Release/Standalone/LumenDSP.app/Contents/Resources/web/index.html
+
+      - name: Smoke-check artefacts (Windows)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          test -f build/LumenDSP_artefacts/Release/Standalone/LumenDSP.exe
+          test -f build/LumenDSP_artefacts/Release/Standalone/web/index.html

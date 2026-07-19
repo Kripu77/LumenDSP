@@ -4,7 +4,8 @@ LumenDSP — Getting started
 1. Open LumenDSP (standalone) or load the VST3 in your DAW.
 2. Standalone only: click Audio and choose your guitar input and speaker/headphone output.
 3. Play — factory preset "01 Glass Clean" loads automatically on first launch.
-4. Switch presets for Airy Clean, Smooth Lead, Full Rig Clean, and Light Crunch.
-5. Optional: drop your own .nam models and .wav cab IRs, then Save a preset.
+4. Browse presets for Airy Clean, Smooth Lead, Full Rig Clean, Light Crunch, and Ambient Swell.
+   Each factory tone uses the full path: gate, comp, drive, EQ, cab, delay, and reverb.
+5. Optional: import your own .nam models and .wav cab IRs from Library, then Save a preset.
 
 See QUICKSTART.md in the project repository for the full guide.

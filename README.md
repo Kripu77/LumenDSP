@@ -136,20 +136,21 @@ cmake -B build \
 1. Launch the standalone app (or load the VST3 in your DAW).
 2. **Standalone:** click **Audio** and choose your guitar **input** and speaker/headphone **output**.
 3. Play — **01 Glass Clean** loads by default (Twin-style glassy clean + glass cab IR).
-4. Switch factory presets for Airy Clean, Smooth Lead, Full Rig Clean, and Light Crunch.
+4. Switch factory presets (Clean / Lead / Crunch / Ambient) — each uses the full FX rack.
 5. Optional: drop your own `.nam` / `.wav` IR, tweak knobs, **Save** a preset.
 
 Step-by-step: **[QUICKSTART.md](QUICKSTART.md)**
 
 ### Factory pack (bundled)
 
-| Preset | Model | Cab IR |
-|--------|--------|--------|
-| 01 Glass Clean | TwinBright_Clean | Lumen_Glass_212 |
-| 02 Airy Clean | TwinBright_Airy | Lumen_Glass_212 |
-| 03 Smooth Lead | Bug333_Clean | Lumen_Smooth_Lead_412 |
-| 04 Full Rig Clean | Bug333_CleanCab (cab in model) | cab bypassed |
-| 05 Light Crunch | JCM2000_Clean | Lumen_Tight_Crunch_112 |
+| Preset | Model | Cab IR | Character |
+|--------|--------|--------|-----------|
+| 01 Glass Clean | TwinBright_Clean | Lumen_Glass_212 | Soft comp + room |
+| 02 Airy Clean | TwinBright_Airy | Lumen_Glass_212 | Light delay + ambient |
+| 03 Smooth Lead | Bug333_Clean | Lumen_Smooth_Lead_412 | Tube drive + plate |
+| 04 Full Rig Clean | Bug333_CleanCab | cab bypassed | Full-rig capture |
+| 05 Light Crunch | JCM2000_Clean | Lumen_Tight_Crunch_112 | Soft drive rhythm |
+| 06 Ambient Swell | TwinBright_Airy | Lumen_Smooth_Lead_412 | Long delay + bloom |
 
 Attribution and licenses: `Resources/FactoryContent/ATTRIBUTION.md`.
 
@@ -201,6 +202,27 @@ LumenDSP/
 - **Pipeline order:** input gain → noise gate → NAM → three-band EQ → cab IR → output level, with input/output peak meters.
 - **UI tokens:** accent color, spacing (8px scale), typography, and meter timing live in `Source/ui/DesignTokens.h`.
 - **Code style:** C++ sources avoid inline comments; behavior is expressed through naming and structure. Numeric values use named constants.
+
+## Releases (CI / installers)
+
+Installable **macOS** and **Windows** builds are published via GitHub Actions.
+
+| What | How |
+|------|-----|
+| Version number | `VERSION` file (semver, e.g. `0.1.0`) |
+| Git tag | `v` + version → `v0.1.0` |
+| CI builds | Every PR and push to `main` (`.github/workflows/ci.yml`) |
+| GitHub Release | Push a version tag (`.github/workflows/release.yml`) |
+
+```bash
+./scripts/bump-version.sh patch   # or minor | major
+git add VERSION && git commit -m "chore(release): bump version to $(cat VERSION)"
+git push origin main
+git tag -a "v$(cat VERSION)" -m "Release v$(cat VERSION)"
+git push origin "v$(cat VERSION)"
+```
+
+Full rules (semver, pre-releases, auto-tag option): **[RELEASING.md](RELEASING.md)**.
 
 ## License
 
