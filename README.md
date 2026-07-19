@@ -2,6 +2,29 @@
 
 **LumenDSP** is a free, open-source desktop amplifier modeler for guitarists. Load any Neural Amp Modeler (`.nam`) capture and play through it in real time, with a premium standalone experience inspired by Neural DSP Archetype plugins—focused on modern fusion tones in the spirit of Mateus Asato and Jack Gardiner.
 
+
+<!-- BEGIN_LATEST_RELEASE -->
+## Download
+
+[![Latest release](https://img.shields.io/github/v/release/Kripu77/LumenDSP?label=latest&style=flat-square)](https://github.com/Kripu77/LumenDSP/releases/latest)
+
+**Latest release: [`v0.1.0`](https://github.com/Kripu77/LumenDSP/releases/latest)**
+
+| Platform | Download |
+|----------|----------|
+| **macOS** (Apple Silicon) | [**LumenDSP-macos-arm64.zip**](https://github.com/Kripu77/LumenDSP/releases/latest/download/LumenDSP-macos-arm64.zip) |
+| **Windows** (x64) | [**LumenDSP-windows-x64.zip**](https://github.com/Kripu77/LumenDSP/releases/latest/download/LumenDSP-windows-x64.zip) |
+
+Same files for this tag (pinned): [macOS v0.1.0](https://github.com/Kripu77/LumenDSP/releases/download/v0.1.0/LumenDSP-v0.1.0-macos-arm64.zip) · [Windows v0.1.0](https://github.com/Kripu77/LumenDSP/releases/download/v0.1.0/LumenDSP-v0.1.0-windows-x64.zip)
+
+**Install notes**
+- **macOS:** unzip → open `LumenDSP.app` (right-click → **Open** if Gatekeeper warns). Optional: copy `LumenDSP.vst3` to `~/Library/Audio/Plug-Ins/VST3/`.
+- **Windows:** unzip → run `LumenDSP.exe` (keep `FactoryContent/` and `web/` next to the exe).
+- Builds are not notarized. Allow Microphone / Bluetooth when prompted so audio devices appear.
+
+All releases: https://github.com/Kripu77/LumenDSP/releases
+<!-- END_LATEST_RELEASE -->
+
 ## Tone target
 
 LumenDSP is built around a clear fusion-oriented voice:
@@ -205,7 +228,7 @@ LumenDSP/
 
 ## Releases (CI / installers)
 
-Installable **macOS** and **Windows** builds are published via GitHub Actions.
+Prefer the **[Download](#download)** section at the top for the latest installers.
 
 | What | How |
 |------|-----|
@@ -213,6 +236,7 @@ Installable **macOS** and **Windows** builds are published via GitHub Actions.
 | Git tag | `v` + version → `v0.1.0` |
 | CI builds | Every PR and push to `main` (`.github/workflows/ci.yml`) |
 | GitHub Release | Push a version tag (`.github/workflows/release.yml`) |
+| README downloads | Release job rewrites the Download block + uploads stable zip names |
 
 ```bash
 ./scripts/bump-version.sh patch   # or minor | major

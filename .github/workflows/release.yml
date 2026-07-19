@@ -225,7 +225,9 @@ jobs:
           EOF
 
           mkdir -p dist
+          # Versioned name + stable "latest" name (README always links to the stable name).
           ditto -c -k --sequesterRsrc --keepParent "${STAGE}" "dist/LumenDSP-${TAG}-macos-arm64.zip"
+          cp "dist/LumenDSP-${TAG}-macos-arm64.zip" "dist/LumenDSP-macos-arm64.zip"
           ls -lh dist/
 
       - name: Package Windows
@@ -261,9 +263,10 @@ jobs:
           EOF
 
           mkdir -p dist
-          # Use PowerShell Compress-Archive for reliable Windows zips
+          # Versioned + stable names (README uses stable latest/download URLs).
           powershell.exe -NoProfile -Command \
             "Compress-Archive -Path '${STAGE}\*' -DestinationPath 'dist\LumenDSP-${TAG}-windows-x64.zip' -Force"
+          cp "dist/LumenDSP-${TAG}-windows-x64.zip" "dist/LumenDSP-windows-x64.zip"
           ls -lh dist/
 
       - name: Upload package artefact
@@ -343,10 +346,12 @@ jobs:
 
             Installable standalone builds (plus VST3 where packaged).
 
-            | Asset | Platform |
-            |-------|----------|
-            | `LumenDSP-${{ needs.plan.outputs.tag }}-macos-arm64.zip` | macOS Apple Silicon |
-            | `LumenDSP-${{ needs.plan.outputs.tag }}-windows-x64.zip` | Windows 10/11 x64 |
+            | Platform | Always-latest link | This tag |
+            |----------|--------------------|----------|
+            | macOS Apple Silicon | [LumenDSP-macos-arm64.zip](https://github.com/${{ github.repository }}/releases/latest/download/LumenDSP-macos-arm64.zip) | `LumenDSP-${{ needs.plan.outputs.tag }}-macos-arm64.zip` |
+            | Windows x64 | [LumenDSP-windows-x64.zip](https://github.com/${{ github.repository }}/releases/latest/download/LumenDSP-windows-x64.zip) | `LumenDSP-${{ needs.plan.outputs.tag }}-windows-x64.zip` |
+
+            README Download section is updated automatically after this release.
 
             ### Install
             - **macOS:** unzip → open `LumenDSP.app` (right-click → Open if Gatekeeper warns). Copy `LumenDSP.vst3` to `~/Library/Audio/Plug-Ins/VST3/` for DAW use.
@@ -362,3 +367,27 @@ jobs:
             release-assets/*.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update README Download section
+        env:
+          TAG: ${{ needs.plan.outputs.tag }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          # Refresh main so we don't clobber concurrent commits.
+          git fetch origin main
+          git checkout -B main origin/main
+
+          ./scripts/update-readme-release.sh "${TAG}"
+
+          if git diff --quiet README.md; then
+            echo "README already up to date."
+            exit 0
+          fi
+
+          git add README.md
+          git commit -m "docs: point README Download section at ${TAG}"
+          git push origin main

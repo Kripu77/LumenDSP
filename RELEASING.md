@@ -69,6 +69,10 @@ What happens next:
    - `LumenDSP-vX.Y.Z-macos-arm64.zip` — `LumenDSP.app` + `LumenDSP.vst3`
    - `LumenDSP-vX.Y.Z-windows-x64.zip` — `LumenDSP.exe` + `FactoryContent` + `web` (+ VST3 if built)
 3. Creates a **GitHub Release** on that tag with both zips attached.
+4. Uploads **stable asset names** so README links never break:
+   - `LumenDSP-macos-arm64.zip`
+   - `LumenDSP-windows-x64.zip`
+5. Rewrites the README **Download** block (between `BEGIN_LATEST_RELEASE` markers) and pushes to `main`.
 
 ### Manual: Actions UI
 
