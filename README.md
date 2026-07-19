@@ -9,14 +9,14 @@
 
 [![Latest release](https://img.shields.io/github/v/release/Kripu77/LumenDSP?label=latest&style=flat-square)](https://github.com/Kripu77/LumenDSP/releases/latest)
 
-**Latest release: [`v0.1.1`](https://github.com/Kripu77/LumenDSP/releases/latest)**
+**Latest release: [`v0.2.0`](https://github.com/Kripu77/LumenDSP/releases/latest)**
 
 | Platform | Download |
 |----------|----------|
 | **macOS** (Apple Silicon) | [**LumenDSP-macos-arm64.zip**](https://github.com/Kripu77/LumenDSP/releases/latest/download/LumenDSP-macos-arm64.zip) |
 | **Windows** (x64) | [**LumenDSP-windows-x64.zip**](https://github.com/Kripu77/LumenDSP/releases/latest/download/LumenDSP-windows-x64.zip) |
 
-Same files for this tag (pinned): [macOS v0.1.1](https://github.com/Kripu77/LumenDSP/releases/download/v0.1.1/LumenDSP-v0.1.1-macos-arm64.zip) · [Windows v0.1.1](https://github.com/Kripu77/LumenDSP/releases/download/v0.1.1/LumenDSP-v0.1.1-windows-x64.zip)
+Same files for this tag (pinned): [macOS v0.2.0](https://github.com/Kripu77/LumenDSP/releases/download/v0.2.0/LumenDSP-v0.2.0-macos-arm64.zip) · [Windows v0.2.0](https://github.com/Kripu77/LumenDSP/releases/download/v0.2.0/LumenDSP-v0.2.0-windows-x64.zip)
 
 **Install notes**
 - **macOS:** unzip → open `LumenDSP.app` (right-click → **Open** if Gatekeeper warns). Optional: copy `LumenDSP.vst3` to `~/Library/Audio/Plug-Ins/VST3/`.
