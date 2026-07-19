@@ -55,26 +55,26 @@ inline constexpr int hardwareBrandFontHeightPoints = 14;
 inline constexpr float controlHoverBrightnessLift = 0.06f;
 inline constexpr double uiTimerIntervalHertz = 30.0;
 
-inline juce::Colour bgPrimary() { return juce::Colour::fromRGB(17, 17, 22); }
-inline juce::Colour bgSecondary() { return juce::Colour::fromRGB(24, 24, 30); }
-inline juce::Colour bgTertiary() { return juce::Colour::fromRGB(30, 30, 37); }
-inline juce::Colour bgSurface() { return juce::Colour::fromRGB(32, 32, 42); }
-inline juce::Colour bgElevated() { return juce::Colour::fromRGB(38, 38, 48); }
-inline juce::Colour bgCard() { return juce::Colour::fromRGB(34, 34, 42); }
-inline juce::Colour bgHeader() { return juce::Colour::fromRGB(14, 14, 19); }
+inline juce::Colour bgPrimary() { return juce::Colour::fromRGB(7, 9, 14); }
+inline juce::Colour bgSecondary() { return juce::Colour::fromRGB(13, 17, 24); }
+inline juce::Colour bgTertiary() { return juce::Colour::fromRGB(19, 24, 32); }
+inline juce::Colour bgSurface() { return juce::Colour::fromRGB(20, 28, 38); }
+inline juce::Colour bgElevated() { return juce::Colour::fromRGB(26, 34, 48); }
+inline juce::Colour bgCard() { return juce::Colour::fromRGB(17, 24, 32); }
+inline juce::Colour bgHeader() { return juce::Colour::fromRGB(10, 14, 20); }
 
-inline juce::Colour borderLight() { return juce::Colour::fromRGB(44, 44, 56); }
-inline juce::Colour borderMedium() { return juce::Colour::fromRGB(38, 38, 48); }
-inline juce::Colour borderStrong() { return juce::Colour::fromRGB(58, 58, 72); }
+inline juce::Colour borderLight() { return juce::Colour::fromRGB(42, 53, 72); }
+inline juce::Colour borderMedium() { return juce::Colour::fromRGB(36, 48, 64); }
+inline juce::Colour borderStrong() { return juce::Colour::fromRGB(61, 77, 102); }
 
-inline juce::Colour textPrimary() { return juce::Colour::fromRGB(235, 235, 244); }
-inline juce::Colour textSecondary() { return juce::Colour::fromRGB(200, 200, 216); }
-inline juce::Colour textTertiary() { return juce::Colour::fromRGB(160, 160, 180); }
-inline juce::Colour textMuted() { return juce::Colour::fromRGB(130, 130, 150); }
+inline juce::Colour textPrimary() { return juce::Colour::fromRGB(238, 243, 250); }
+inline juce::Colour textSecondary() { return juce::Colour::fromRGB(168, 180, 200); }
+inline juce::Colour textTertiary() { return juce::Colour::fromRGB(140, 155, 175); }
+inline juce::Colour textMuted() { return juce::Colour::fromRGB(110, 125, 146); }
 
-inline juce::Colour accent() { return juce::Colour::fromRGB(255, 136, 80); }
-inline juce::Colour accentHover() { return juce::Colour::fromRGB(255, 152, 96); }
-inline juce::Colour accentDark() { return juce::Colour::fromRGB(232, 104, 56); }
+inline juce::Colour accent() { return juce::Colour::fromRGB(94, 200, 255); }
+inline juce::Colour accentHover() { return juce::Colour::fromRGB(138, 216, 255); }
+inline juce::Colour accentDark() { return juce::Colour::fromRGB(58, 160, 216); }
 inline juce::Colour accentSoft() { return accent().withAlpha(0.18f); }
 
 inline juce::Colour success() { return juce::Colour::fromRGB(46, 200, 104); }
