@@ -96,7 +96,7 @@
     liveTuner: true,
     libraryTab: "models",
     librarySearch: "",
-    libraryFavoritesOnly: false,
+    libraryCursor: 0,
     library: { models: [], irs: [] },
     presetsMeta: [],
     presetCategories: [],
@@ -607,7 +607,9 @@
       $("libraryPopover").hidden = false;
       $("btnLibrary")?.setAttribute("aria-pressed", "true");
       send({ type: "refreshLibrary" });
+      state.libraryCursor = Math.max(0, filteredLibraryItems().findIndex(isLibraryItemLoaded));
       renderLibraryList();
+      $("librarySearch")?.focus();
     }
     if (name === "presets") {
       $("presetsPopover").hidden = false;
@@ -634,6 +636,24 @@
   const ICON_EXPORT = '<svg viewBox="0 0 24 24"><path d="M12 15V4m0 0L8 8m4-4 4 4M5 14v5h14v-5"/></svg>';
   const ICON_DELETE = '<svg viewBox="0 0 24 24"><path d="M5 7h14M10 7V5h4v2m-7 0 1 12h8l1-12"/></svg>';
 
+  const sideItemsHtml = (entries, activeKey, attr) => entries
+    .map((e) => `
+        <button type="button" class="side-item ${activeKey === e.key ? "active" : ""}" ${attr}="${escapeHtml(e.key)}" style="--c:${e.color}">
+          <span class="cat-dot"></span><span class="side-label">${escapeHtml(e.label)}</span><span class="side-count">${e.count}</span>
+        </button>`)
+    .join("");
+
+  function handlePaletteKeys(event, items, cursorKey, render, pick) {
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      event.preventDefault();
+      state[cursorKey] = (state[cursorKey] ?? 0) + (event.key === "ArrowDown" ? 1 : -1);
+      render();
+    } else if (event.key === "Enter" && event.target.tagName !== "BUTTON" && items[state[cursorKey]]) {
+      event.preventDefault();
+      pick(items[state[cursorKey]]);
+    }
+  }
+
   function filteredPresets() {
     const query = state.presetsSearch.trim().toLowerCase();
     return (state.presetsMeta || []).filter((item) => {
@@ -656,17 +676,11 @@
     if (categoryList) categoryList.innerHTML = categories.map((c) => `<option value="${escapeHtml(c)}"></option>`).join("");
 
     if (side) {
-      const entries = [
+      side.innerHTML = sideItemsHtml([
         { key: "", label: "All presets", count: all.length, color: "var(--text)" },
         { key: "__fav", label: "Favorites", count: all.filter((i) => i.favorite).length, color: "var(--amber)" },
         ...categories.map((c) => ({ key: c, label: c, count: all.filter((i) => i.category === c).length, color: categoryColor(c) })),
-      ];
-      side.innerHTML = entries
-        .map((e) => `
-        <button type="button" class="side-item ${state.presetsCategory === e.key ? "active" : ""}" data-preset-cat="${escapeHtml(e.key)}" style="--c:${e.color}">
-          <span class="cat-dot"></span><span class="side-label">${escapeHtml(e.label)}</span><span class="side-count">${e.count}</span>
-        </button>`)
-        .join("");
+      ], state.presetsCategory, "data-preset-cat");
     }
 
     const items = filteredPresets();
@@ -675,7 +689,7 @@
 
     if (!items.length) {
       root.innerHTML = `
-        <div class="library-empty">
+        <div class="palette-empty">
           <strong>No presets match</strong>
           Try another search or category, or save the current tone below.
         </div>`;
@@ -687,14 +701,14 @@
         const active = state.currentPreset === item.name;
         const name = escapeHtml(item.name);
         return `
-      <div class="preset-row ${active ? "active" : ""} ${index === state.presetsCursor ? "cursor" : ""}" role="option" aria-selected="${active}" style="--c:${categoryColor(item.category)}">
-        <button type="button" class="preset-row-main" data-preset-load="${name}">
+      <div class="palette-row ${active ? "active" : ""} ${index === state.presetsCursor ? "cursor" : ""}" role="option" aria-selected="${active}" style="--c:${categoryColor(item.category)}">
+        <button type="button" class="palette-row-main" data-preset-load="${name}">
           <span class="cat-dot"></span>
-          <span class="preset-row-name">${escapeHtml(displayName(item.name))}</span>
-          <span class="preset-row-tags">${escapeHtml((item.tags || []).filter((tag) => tag !== "factory").slice(0, 3).join(", "))}</span>
+          <span class="palette-row-name">${escapeHtml(displayName(item.name))}</span>
+          <span class="palette-row-meta">${escapeHtml((item.tags || []).filter((tag) => tag !== "factory").slice(0, 3).join(", "))}</span>
         </button>
-        <span class="preset-row-aside">
-          <span class="preset-loaded" title="${active ? "Loaded" : ""}">${active ? ICON_CHECK : ""}</span>
+        <span class="palette-row-aside">
+          <span class="row-loaded" title="${active ? "Loaded" : ""}">${active ? ICON_CHECK : ""}</span>
           <button type="button" class="row-icon" data-preset-export="${name}" title="Export">${ICON_EXPORT}</button>
           <button type="button" class="row-icon danger" data-preset-delete="${name}" title="Delete">${ICON_DELETE}</button>
           <button type="button" class="row-icon star ${item.favorite ? "on" : ""}" data-preset-star="${name}" title="Favorite">${ICON_STAR}</button>
@@ -715,107 +729,75 @@
       if (event.key === "Enter") $("btnSave")?.click();
       return;
     }
-    const items = filteredPresets();
-    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
-      event.preventDefault();
-      state.presetsCursor = (state.presetsCursor ?? 0) + (event.key === "ArrowDown" ? 1 : -1);
-      renderPresetsList();
-    } else if (event.key === "Enter" && items[state.presetsCursor]) {
-      event.preventDefault();
-      loadPresetAndClose(items[state.presetsCursor].name);
-    }
+    handlePaletteKeys(event, filteredPresets(), "presetsCursor", renderPresetsList, (item) => loadPresetAndClose(item.name));
   }
 
+  const libraryGroups = () => ({
+    models: state.library.models,
+    irs: state.library.irs,
+    fav: [...state.library.models, ...state.library.irs].filter((item) => item.favorite),
+  });
+
   function filteredLibraryItems() {
-    const source = state.libraryTab === "irs" ? state.library.irs : state.library.models;
     const query = state.librarySearch.trim().toLowerCase();
-    return source.filter((item) => {
-      if (state.libraryFavoritesOnly && !item.favorite) return false;
-      if (!query) return true;
-      return String(item.name || "").toLowerCase().includes(query);
-    });
+    return (libraryGroups()[state.libraryTab] || []).filter((item) => String(item.name || "").toLowerCase().includes(query));
+  }
+
+  function isLibraryItemLoaded(item) {
+    const [loaded, name] = item.kind === "ir" ? [state.irLoaded, state.irName] : [state.namLoaded, state.namName];
+    // the engine reports the file name, the library lists it without the extension
+    return loaded && item.name === String(name).replace(/\.\w+$/, "");
+  }
+
+  function loadResourceAndClose(item) {
+    send({ type: "loadResource", kind: item.kind, path: item.path });
+    closePopovers();
   }
 
   function renderLibraryList() {
     const root = $("libraryList");
-    const count = $("libraryCount");
-    const subtitle = $("librarySubtitle");
     if (!root) return;
 
-    const isIrs = state.libraryTab === "irs";
-    const items = filteredLibraryItems();
-    const total = isIrs ? state.library.irs.length : state.library.models.length;
-    const favCount = (isIrs ? state.library.irs : state.library.models).filter((i) => i.favorite).length;
+    const groups = libraryGroups();
+    $("libraryTabs").innerHTML = sideItemsHtml([
+      { key: "models", label: "Amp models", count: groups.models.length, color: "var(--sky)" },
+      { key: "irs", label: "Cab IRs", count: groups.irs.length, color: "var(--mint)" },
+      { key: "fav", label: "Favorites", count: groups.fav.length, color: "var(--amber)" },
+    ], state.libraryTab, "data-library-tab");
 
-    if (count) {
-      count.textContent = state.libraryFavoritesOnly
-        ? `${items.length} favorite${items.length === 1 ? "" : "s"}`
-        : `${items.length} of ${total}`;
-    }
-    if (subtitle) {
-      subtitle.textContent = isIrs
-        ? "Cabinet impulse responses"
-        : "Neural amp models";
-    }
+    const items = filteredLibraryItems();
+    $("libraryCount").textContent = `${items.length} item${items.length === 1 ? "" : "s"}`;
+    state.libraryCursor = Math.min(Math.max(0, state.libraryCursor ?? 0), Math.max(0, items.length - 1));
 
     if (!items.length) {
-      const label = isIrs ? "IRs" : "models";
+      const fav = state.libraryTab === "fav";
       root.innerHTML = `
-        <div class="library-empty">
-          <strong>No matching ${label}</strong>
-          ${state.libraryFavoritesOnly
-            ? "Star items to build a favorites list, or turn off the filter."
-            : "Try another search, or import a file into your library."}
+        <div class="palette-empty">
+          <strong>${fav ? "No favorites yet" : "Nothing matches"}</strong>
+          ${fav ? "Star an amp model or cab IR to keep it here." : "Try another search, or import a file."}
         </div>`;
       return;
     }
 
-    const activeName = isIrs
-      ? (state.irLoaded ? state.irName : "")
-      : (state.namLoaded ? state.namName : "");
-
-    const favorites = items.filter((item) => item.favorite);
-    const rest = items.filter((item) => !item.favorite);
-    const groups = [];
-    if (favorites.length && !state.libraryFavoritesOnly)
-      groups.push({ label: "Favorites", items: favorites });
-    if (rest.length)
-      groups.push({
-        label: state.libraryFavoritesOnly ? "Favorites" : favorites.length ? "All" : "",
-        items: rest.length ? rest : favorites,
-      });
-    if (state.libraryFavoritesOnly)
-      groups.splice(0, groups.length, { label: "", items });
-
-    const typeLabel = isIrs ? "IR" : "NAM";
-    const typeClass = isIrs ? "ir" : "nam";
-
-    root.innerHTML = groups
-      .map((group) => {
-        const heading = group.label
-          ? `<div class="library-section-label">${group.label}</div>`
-          : "";
-        const rows = group.items
-          .map((item) => {
-            const active = activeName && item.name === activeName;
-            return `
-      <div class="library-item ${active ? "active" : ""}" role="option">
-        <button type="button" class="library-star ${item.favorite ? "on" : ""}" data-star-path="${escapeHtml(item.path)}" title="Favorite">${item.favorite ? "★" : "☆"}</button>
-        <div class="library-type ${typeClass}" aria-hidden="true">${typeLabel}</div>
-        <button type="button" class="library-item-main" data-load-path="${escapeHtml(item.path)}" data-load-kind="${item.kind}">
-          <span class="library-item-name">${escapeHtml(item.name)}</span>
-          <span class="library-item-meta">${item.source === "user" ? "Imported to your library" : "Factory content"}</span>
+    root.innerHTML = items
+      .map((item, index) => {
+        const active = isLibraryItemLoaded(item);
+        const path = escapeHtml(item.path);
+        return `
+      <div class="palette-row ${active ? "active" : ""} ${index === state.libraryCursor ? "cursor" : ""}" role="option" aria-selected="${active}" style="--c:var(--${item.kind === "ir" ? "mint" : "sky"})">
+        <button type="button" class="palette-row-main" data-load-path="${path}" data-load-kind="${escapeHtml(item.kind)}">
+          <span class="cat-dot"></span>
+          <span class="palette-row-name">${escapeHtml(item.name)}</span>
+          <span class="palette-row-meta">${item.source === "user" ? "Imported" : "Factory"}</span>
         </button>
-        <div class="library-item-aside">
-          ${active ? `<span class="library-loaded">Loaded</span>` : ""}
-          <span class="library-badge ${item.source === "user" ? "user" : ""}">${item.source === "user" ? "User" : "Factory"}</span>
-        </div>
+        <span class="palette-row-aside">
+          <span class="row-loaded" title="${active ? "Loaded" : ""}">${active ? ICON_CHECK : ""}</span>
+          <button type="button" class="row-icon star ${item.favorite ? "on" : ""}" data-star-path="${path}" title="Favorite">${ICON_STAR}</button>
+        </span>
       </div>`;
-          })
-          .join("");
-        return heading + rows;
       })
       .join("");
+    root.querySelector(".cursor")?.scrollIntoView({ block: "nearest" });
   }
 
   function paintBeats(beatInBar, beatsPerBar, running) {
@@ -968,14 +950,12 @@
       const load = event.target.closest("[data-preset-load]");
       if (load) loadPresetAndClose(load.getAttribute("data-preset-load"));
     });
-    $("btnBrowseNam").addEventListener("click", () => openPopover("library"));
-    $("btnBrowseIr").addEventListener("click", () => {
-      state.libraryTab = "irs";
-      document.querySelectorAll("[data-library-tab]").forEach((btn) => {
-        btn.classList.toggle("active", btn.getAttribute("data-library-tab") === "irs");
-      });
+    const openLibrary = (tab) => {
+      state.libraryTab = tab;
       openPopover("library");
-    });
+    };
+    $("btnBrowseNam").addEventListener("click", () => openLibrary("models"));
+    $("btnBrowseIr").addEventListener("click", () => openLibrary("irs"));
     const openAudioSettings = () => send({ type: "openAudioSettings" });
     $("btnAudio")?.addEventListener("click", openAudioSettings);
     $("btnSettings")?.addEventListener("click", () => openPopover("settings"));
@@ -1038,40 +1018,26 @@
     });
     $("librarySearch")?.addEventListener("input", (event) => {
       state.librarySearch = event.target.value || "";
+      state.libraryCursor = 0;
       renderLibraryList();
     });
-    $("libraryFavoritesOnly")?.addEventListener("click", () => {
-      state.libraryFavoritesOnly = !state.libraryFavoritesOnly;
-      $("libraryFavoritesOnly")?.setAttribute(
-        "aria-pressed",
-        state.libraryFavoritesOnly ? "true" : "false"
-      );
+    $("libraryTabs")?.addEventListener("click", (event) => {
+      const tab = event.target.closest("[data-library-tab]");
+      if (!tab) return;
+      state.libraryTab = tab.getAttribute("data-library-tab");
+      state.libraryCursor = 0;
       renderLibraryList();
     });
-    document.querySelectorAll("[data-library-tab]").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        state.libraryTab = btn.getAttribute("data-library-tab") || "models";
-        document.querySelectorAll("[data-library-tab]").forEach((el) => {
-          el.classList.toggle("active", el === btn);
-        });
-        renderLibraryList();
-      });
-    });
+    $("libraryPopover")?.addEventListener("keydown", (event) =>
+      handlePaletteKeys(event, filteredLibraryItems(), "libraryCursor", renderLibraryList, loadResourceAndClose));
     $("libraryList")?.addEventListener("click", (event) => {
       const star = event.target.closest("[data-star-path]");
       if (star) {
-        event.preventDefault();
         send({ type: "toggleFavorite", path: star.getAttribute("data-star-path") });
         return;
       }
       const load = event.target.closest("[data-load-path]");
-      if (load) {
-        send({
-          type: "loadResource",
-          kind: load.getAttribute("data-load-kind"),
-          path: load.getAttribute("data-load-path"),
-        });
-      }
+      if (load) loadResourceAndClose({ kind: load.getAttribute("data-load-kind"), path: load.getAttribute("data-load-path") });
     });
 
     $("btnTuner")?.addEventListener("click", () => openPopover("tuner"));

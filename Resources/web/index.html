@@ -302,7 +302,7 @@
 
     <div id="popoverBackdrop" class="popover-backdrop" hidden></div>
 
-    <div id="presetsPopover" class="popover popover-presets" hidden role="dialog" aria-label="Presets">
+    <div id="presetsPopover" class="popover popover-palette" hidden role="dialog" aria-label="Presets">
       <div class="palette-search">
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>
         <input id="presetsSearch" type="search" placeholder="Search presets, tags or categories" autocomplete="off" aria-controls="presetsList" />
@@ -333,23 +333,25 @@
       </div>
     </div>
 
-    <div id="libraryPopover" class="popover popover-library" hidden role="dialog" aria-label="Library">
-      <div class="popover-head">
-        <h2>Library <small id="librarySubtitle">Amp models</small></h2>
-        <button type="button" class="popover-icon-btn" id="btnLibraryClose" aria-label="Close">✕</button>
+    <div id="libraryPopover" class="popover popover-palette" hidden role="dialog" aria-label="Library">
+      <div class="palette-search">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>
+        <input id="librarySearch" type="search" placeholder="Search amp models and cab IRs" autocomplete="off" aria-controls="libraryList" />
+        <span class="palette-count" id="libraryCount">0 items</span>
+        <button type="button" class="popover-icon-btn" id="btnLibraryClose" aria-label="Close"><kbd>esc</kbd></button>
       </div>
-      <div class="library-toolbar">
-        <div class="seg-toggle" role="tablist">
-          <button type="button" class="seg-btn active" data-library-tab="models">Models</button>
-          <button type="button" class="seg-btn" data-library-tab="irs">IRs</button>
+
+      <div class="palette-body">
+        <nav class="palette-side" id="libraryTabs" aria-label="Library sections"></nav>
+        <div class="palette-list" id="libraryList" role="listbox" aria-label="Library"></div>
+      </div>
+
+      <div class="palette-foot">
+        <button type="button" class="ghost-btn" id="btnLibraryImport">Import</button>
+        <div class="palette-hints" aria-hidden="true">
+          <span><kbd>↑</kbd><kbd>↓</kbd> move</span>
+          <span><kbd>↵</kbd> load</span>
         </div>
-        <input id="librarySearch" class="library-search" type="search" placeholder="Search" autocomplete="off" />
-        <button type="button" class="btn" id="btnLibraryImport">Import</button>
-        <button type="button" class="library-fav-chip" id="libraryFavoritesOnly" aria-pressed="false">★ Favorites</button>
-      </div>
-      <div class="library-list" id="libraryList" role="listbox"></div>
-      <div class="library-foot">
-        <span id="libraryCount">0 items</span>
       </div>
     </div>
 
