@@ -179,70 +179,26 @@ target_link_libraries(LumenDSP
 
 juce_generate_juce_header(LumenDSP)
 
-if(TARGET LumenDSP_Standalone)
-    if(APPLE)
-        add_custom_command(TARGET LumenDSP_Standalone POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E make_directory
-                    "$<TARGET_FILE_DIR:LumenDSP_Standalone>/../Resources/FactoryContent"
-            COMMAND ${CMAKE_COMMAND} -E copy_directory
-                    "${LUMENDSP_FACTORY_CONTENT_DIR}"
-                    "$<TARGET_FILE_DIR:LumenDSP_Standalone>/../Resources/FactoryContent"
-            COMMAND ${CMAKE_COMMAND} -E make_directory
-                    "$<TARGET_FILE_DIR:LumenDSP_Standalone>/../Resources/web"
-            COMMAND ${CMAKE_COMMAND} -E copy_directory
-                    "${LUMENDSP_WEB_UI_DIR}"
-                    "$<TARGET_FILE_DIR:LumenDSP_Standalone>/../Resources/web"
-            COMMENT "Embedding factory content and web UI in standalone app bundle"
-            VERBATIM
-        )
-    else()
-        add_custom_command(TARGET LumenDSP_Standalone POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E make_directory
-                    "$<TARGET_FILE_DIR:LumenDSP_Standalone>/FactoryContent"
-            COMMAND ${CMAKE_COMMAND} -E copy_directory
-                    "${LUMENDSP_FACTORY_CONTENT_DIR}"
-                    "$<TARGET_FILE_DIR:LumenDSP_Standalone>/FactoryContent"
-            COMMAND ${CMAKE_COMMAND} -E make_directory
-                    "$<TARGET_FILE_DIR:LumenDSP_Standalone>/web"
-            COMMAND ${CMAKE_COMMAND} -E copy_directory
-                    "${LUMENDSP_WEB_UI_DIR}"
-                    "$<TARGET_FILE_DIR:LumenDSP_Standalone>/web"
-            COMMENT "Copying factory content and web UI next to standalone executable"
-            VERBATIM
-        )
+foreach(format Standalone VST3)
+    set(target LumenDSP_${format})
+    if(NOT TARGET ${target})
+        continue()
     endif()
-endif()
+    set(resources_dir "$<TARGET_FILE_DIR:${target}>$<$<PLATFORM_ID:Darwin>:/../Resources>")
 
-if(TARGET LumenDSP_VST3)
-    if(APPLE)
-        add_custom_command(TARGET LumenDSP_VST3 POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E make_directory
-                    "$<TARGET_FILE_DIR:LumenDSP_VST3>/../Resources/FactoryContent"
-            COMMAND ${CMAKE_COMMAND} -E copy_directory
-                    "${LUMENDSP_FACTORY_CONTENT_DIR}"
-                    "$<TARGET_FILE_DIR:LumenDSP_VST3>/../Resources/FactoryContent"
-            COMMAND ${CMAKE_COMMAND} -E make_directory
-                    "$<TARGET_FILE_DIR:LumenDSP_VST3>/../Resources/web"
-            COMMAND ${CMAKE_COMMAND} -E copy_directory
-                    "${LUMENDSP_WEB_UI_DIR}"
-                    "$<TARGET_FILE_DIR:LumenDSP_VST3>/../Resources/web"
-            COMMENT "Embedding factory content and web UI in VST3 bundle"
-            VERBATIM
-        )
-    else()
-        add_custom_command(TARGET LumenDSP_VST3 POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E make_directory
-                    "$<TARGET_FILE_DIR:LumenDSP_VST3>/FactoryContent"
-            COMMAND ${CMAKE_COMMAND} -E copy_directory
-                    "${LUMENDSP_FACTORY_CONTENT_DIR}"
-                    "$<TARGET_FILE_DIR:LumenDSP_VST3>/FactoryContent"
-            COMMAND ${CMAKE_COMMAND} -E make_directory
-                    "$<TARGET_FILE_DIR:LumenDSP_VST3>/web"
-            COMMAND ${CMAKE_COMMAND} -E copy_directory
-                    "${LUMENDSP_WEB_UI_DIR}"
-                    "$<TARGET_FILE_DIR:LumenDSP_VST3>/web"
-            COMMENT "Copying factory content and web UI next to VST3 module"
-            VERBATIM
-        )
-    endif()
-endif()
+    add_custom_command(TARGET ${target} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+                "${LUMENDSP_FACTORY_CONTENT_DIR}" "${resources_dir}/FactoryContent"
+        COMMENT "Copying factory content into ${format} bundle"
+        VERBATIM
+    )
+
+    # Runs on every build, not only on relink, so web UI edits always reach the bundle.
+    add_custom_target(${target}_WebUI
+        COMMAND ${CMAKE_COMMAND} -E rm -rf "${resources_dir}/web"
+        COMMAND ${CMAKE_COMMAND} -E copy_directory "${LUMENDSP_WEB_UI_DIR}" "${resources_dir}/web"
+        COMMENT "Copying web UI into ${format} bundle"
+        VERBATIM
+    )
+    add_dependencies(${target} ${target}_WebUI)
+endforeach()
