@@ -6,375 +6,336 @@
   <title>LumenDSP</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
-<body>
+<body data-section="pedals">
   <div id="app">
-    <header class="control-bar">
-      <div class="brand">
-        <img class="brand-mark" src="assets/brand/app-icon.png" alt="" />
-        <div class="brand-text">
-          <span class="brand-lumen">LUMEN</span>
-          <span class="brand-dsp">DSP</span>
-        </div>
-      </div>
+    <header class="topbar">
+      <div class="wordmark" aria-label="LumenDSP"><span class="wordmark-dot" aria-hidden="true"></span>lumen</div>
 
-      <span class="bar-rule" aria-hidden="true"></span>
+      <nav class="sections" aria-label="Sections">
+        <button type="button" class="section-tab" data-section-tab="pedals" aria-current="page">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="2.5" width="12" height="19" rx="2"/><circle cx="12" cy="16" r="2.4"/><circle cx="9.5" cy="7" r="1.2"/><circle cx="14.5" cy="7" r="1.2"/></svg>
+          <span>Pedals</span>
+        </button>
+        <button type="button" class="section-tab" data-section-tab="amp">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M2 11h20"/><circle cx="7" cy="14.5" r="1"/><circle cx="11" cy="14.5" r="1"/><circle cx="15" cy="14.5" r="1"/></svg>
+          <span>Amp</span>
+        </button>
+        <button type="button" class="section-tab" data-section-tab="cab">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="2.5" width="18" height="19" rx="2"/><circle cx="12" cy="12" r="5.5"/><circle cx="12" cy="12" r="1.6"/></svg>
+          <span>Cabinet</span>
+        </button>
+        <button type="button" class="section-tab" data-section-tab="effects">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h3l2-5 3 10 3-12 3 9 2-2h2"/></svg>
+          <span>Effects</span>
+        </button>
+      </nav>
 
-      <div class="io-group">
-        <div class="meter-col" id="input-meter" aria-label="Input meter"></div>
-        <div class="knob-wrap mini" data-param="inputGain">
-          <div class="knob knob-mini" id="knob-inputGain"></div>
-          <div class="knob-label">INPUT</div>
+      <button type="button" id="btnLibrary" class="chrome-btn" aria-pressed="false">Library</button>
+    </header>
+
+    <section class="globals" aria-label="Global controls">
+      <div class="io">
+        <div class="meter" id="input-meter" aria-label="Input meter"></div>
+        <div class="knob-wrap knob-sm" data-param="inputGain">
+          <div class="knob" id="knob-inputGain"></div>
+          <div class="knob-label">Input</div>
           <div class="knob-value" id="val-inputGain">0.0 dB</div>
         </div>
       </div>
 
-      <span class="bar-rule" aria-hidden="true"></span>
-
-      <div class="gate-group">
-        <button type="button" class="hw-toggle" id="noiseGateEnabled" aria-pressed="true" title="Gate">
-          <img src="assets/signal-path/toggle-on.png" alt="" data-role="toggle-img" />
-          <span>GATE</span>
-        </button>
-        <div class="knob-wrap mini" data-param="noiseGateThreshold">
-          <div class="knob knob-mini" id="knob-noiseGateThreshold"></div>
-          <div class="knob-label">THRESH</div>
+      <div class="gate">
+        <button type="button" class="switch" id="noiseGateEnabled" aria-pressed="true">Gate</button>
+        <div class="knob-wrap knob-sm" data-param="noiseGateThreshold">
+          <div class="knob" id="knob-noiseGateThreshold"></div>
+          <div class="knob-label">Threshold</div>
           <div class="knob-value" id="val-noiseGateThreshold">-80.0 dB</div>
         </div>
       </div>
 
-      <span class="bar-rule" aria-hidden="true"></span>
-
-      <div class="preset-group">
-        <button type="button" class="preset-current" id="btnPresets" title="Open preset browser" aria-haspopup="dialog" aria-expanded="false">
-          <span class="preset-current-text">
-            <span class="preset-current-label">PRESET</span>
-            <span class="preset-current-name" id="presetCurrentName">None</span>
-          </span>
-          <span class="preset-current-chevron" aria-hidden="true">▾</span>
+      <div class="preset-bar">
+        <button type="button" class="chrome-icon" id="btnPresetPrev" title="Previous preset" aria-label="Previous preset">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
         </button>
-        <select id="presetSelect" class="preset-select-hidden" aria-label="Preset"></select>
+        <button type="button" class="preset-current" id="btnPresets" aria-haspopup="dialog" aria-expanded="false">
+          <span class="preset-current-name" id="presetCurrentName">None</span>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+        </button>
+        <button type="button" class="chrome-icon" id="btnPresetNext" title="Next preset" aria-label="Next preset">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
+        </button>
+        <select id="presetSelect" class="visually-hidden" aria-label="Preset" tabindex="-1"></select>
       </div>
 
-      <div class="io-group out">
-        <div class="knob-wrap mini" data-param="outputLevel">
-          <div class="knob knob-mini" id="knob-outputLevel"></div>
-          <div class="knob-label">OUTPUT</div>
+      <div class="io io-out">
+        <div class="knob-wrap knob-sm" data-param="outputLevel">
+          <div class="knob" id="knob-outputLevel"></div>
+          <div class="knob-label">Output</div>
           <div class="knob-value" id="val-outputLevel">0.0 dB</div>
         </div>
-        <div class="meter-col" id="output-meter" aria-label="Output meter"></div>
-        <span class="bar-rule" aria-hidden="true"></span>
-        <div class="bar-actions">
-          <button type="button" id="btnLibrary" class="btn btn-bar" aria-pressed="false">Library</button>
-          <button type="button" id="btnAudio" class="btn btn-accent btn-bar">Audio</button>
-        </div>
+        <div class="meter" id="output-meter" aria-label="Output meter"></div>
       </div>
-    </header>
-
-
-    <section class="signal-path" id="signalPath" aria-label="Signal path"></section>
-
-    <main class="workspace">
-      <section class="card card-gate">
-        <div class="card-head">
-          <h2>Gate</h2>
-          <button type="button" class="hw-toggle" id="noiseGateEnabledCard" aria-pressed="true">
-            <img src="assets/signal-path/toggle-on.png" alt="" data-role="toggle-img" />
-            <span>On</span>
-          </button>
-        </div>
-        <div class="pedal-stage">
-          <img class="pedal-art" src="assets/pedals/noise-gate-pedal.png" alt="Noise gate pedal" />
-          <div class="knob-wrap overlay-knob" data-param="noiseGateThreshold" data-mirror="true">
-            <div class="knob knob-main" id="knob-noiseGateThreshold-main"></div>
-            <div class="knob-label">THRESH</div>
-            <div class="knob-value" id="val-noiseGateThreshold-main">-80.0 dB</div>
-          </div>
-        </div>
-      </section>
-
-      <section class="card card-amp">
-        <div class="card-head">
-          <h2>Amp</h2>
-          <span class="status" id="namStatus">No model</span>
-        </div>
-        <div class="amp-hero">
-          <img src="assets/amp-head/amp-faceplate-hero.png" alt="Amp head" />
-        </div>
-        <div class="resource-row">
-          <div>
-            <div class="resource-title">NAM Model</div>
-            <div class="resource-name" id="namName">None loaded</div>
-          </div>
-          <button type="button" id="btnBrowseNam" class="btn">Browse</button>
-        </div>
-        <div class="knob-row">
-          <div class="knob-wrap" data-param="bassGain">
-            <div class="knob knob-main" id="knob-bassGain"></div>
-            <div class="knob-label">BASS</div>
-            <div class="knob-value" id="val-bassGain">0.0 dB</div>
-          </div>
-          <div class="knob-wrap" data-param="midGain">
-            <div class="knob" id="knob-midGain"></div>
-            <div class="knob-label">MID</div>
-            <div class="knob-value" id="val-midGain">0.0 dB</div>
-          </div>
-          <div class="knob-wrap" data-param="trebleGain">
-            <div class="knob knob-main" id="knob-trebleGain"></div>
-            <div class="knob-label">TREBLE</div>
-            <div class="knob-value" id="val-trebleGain">0.0 dB</div>
-          </div>
-        </div>
-        <button type="button" class="hw-toggle inline" id="eqEnabled" aria-pressed="true">
-          <img src="assets/signal-path/toggle-on.png" alt="" data-role="toggle-img" />
-          <span>EQ</span>
-        </button>
-      </section>
-
-      <section class="card card-cab">
-        <div class="card-head">
-          <h2>Cabinet</h2>
-          <button type="button" class="hw-toggle" id="cabEnabled" aria-pressed="true">
-            <img src="assets/signal-path/toggle-on.png" alt="" data-role="toggle-img" />
-            <span>On</span>
-          </button>
-        </div>
-        <div class="cab-hero">
-          <img id="cabArt" src="assets/cabinet/cab-1x12.png" alt="Cabinet" />
-          <img class="cab-led" id="cabLed" src="assets/cabinet/cab-engaged.png" alt="" />
-        </div>
-        <div class="resource-row">
-          <div>
-            <div class="resource-title">Impulse Response</div>
-            <div class="resource-name" id="irName">None loaded</div>
-          </div>
-          <button type="button" id="btnBrowseIr" class="btn">Browse</button>
-        </div>
-      </section>
-    </main>
-
-    <section class="fx-rack" aria-label="Effects rack">
-      <article class="fx-module" data-fx="comp">
-        <div class="fx-head">
-          <h3>Comp</h3>
-          <button type="button" class="hw-toggle" id="compressorEnabled" aria-pressed="false">
-            <img src="assets/signal-path/toggle-off.png" alt="" data-role="toggle-img" />
-            <span>On</span>
-          </button>
-        </div>
-        <div class="fx-knobs">
-          <div class="knob-wrap mini" data-param="compressorThreshold">
-            <div class="knob knob-mini" id="knob-compressorThreshold"></div>
-            <div class="knob-label">THRESH</div>
-            <div class="knob-value" id="val-compressorThreshold">-18.0 dB</div>
-          </div>
-          <div class="knob-wrap mini" data-param="compressorRatio">
-            <div class="knob knob-mini" id="knob-compressorRatio"></div>
-            <div class="knob-label">RATIO</div>
-            <div class="knob-value" id="val-compressorRatio">4.0</div>
-          </div>
-          <div class="knob-wrap mini" data-param="compressorMix">
-            <div class="knob knob-mini" id="knob-compressorMix"></div>
-            <div class="knob-label">MIX</div>
-            <div class="knob-value" id="val-compressorMix">100%</div>
-          </div>
-        </div>
-      </article>
-
-      <article class="fx-module" data-fx="drive">
-        <div class="fx-head">
-          <h3>Drive</h3>
-          <button type="button" class="hw-toggle" id="driveEnabled" aria-pressed="false">
-            <img src="assets/signal-path/toggle-off.png" alt="" data-role="toggle-img" />
-            <span>On</span>
-          </button>
-        </div>
-        <div class="fx-choice" data-choice="driveMode">
-          <button type="button" class="fx-chip active" data-value="0">Soft</button>
-          <button type="button" class="fx-chip" data-value="1">Hard</button>
-          <button type="button" class="fx-chip" data-value="2">Tube</button>
-          <button type="button" class="fx-chip" data-value="3">Boost</button>
-        </div>
-        <div class="fx-knobs">
-          <div class="knob-wrap mini" data-param="driveAmount">
-            <div class="knob knob-mini" id="knob-driveAmount"></div>
-            <div class="knob-label">DRIVE</div>
-            <div class="knob-value" id="val-driveAmount">35%</div>
-          </div>
-          <div class="knob-wrap mini" data-param="driveTone">
-            <div class="knob knob-mini" id="knob-driveTone"></div>
-            <div class="knob-label">TONE</div>
-            <div class="knob-value" id="val-driveTone">50%</div>
-          </div>
-          <div class="knob-wrap mini" data-param="driveLevel">
-            <div class="knob knob-mini" id="knob-driveLevel"></div>
-            <div class="knob-label">LEVEL</div>
-            <div class="knob-value" id="val-driveLevel">70%</div>
-          </div>
-        </div>
-      </article>
-
-      <article class="fx-module" data-fx="delay">
-        <div class="fx-head">
-          <h3>Delay</h3>
-          <button type="button" class="hw-toggle" id="delayEnabled" aria-pressed="false">
-            <img src="assets/signal-path/toggle-off.png" alt="" data-role="toggle-img" />
-            <span>On</span>
-          </button>
-        </div>
-        <div class="fx-row-tools">
-          <button type="button" class="hw-toggle compact" id="delaySync" aria-pressed="false">
-            <img src="assets/signal-path/toggle-off.png" alt="" data-role="toggle-img" />
-            <span>Sync</span>
-          </button>
-          <div class="fx-choice" data-choice="delayDivision" id="delayDivisionGroup">
-            <button type="button" class="fx-chip active" data-value="0">1/4</button>
-            <button type="button" class="fx-chip" data-value="1">1/8</button>
-            <button type="button" class="fx-chip" data-value="2">1/8D</button>
-            <button type="button" class="fx-chip" data-value="3">1/16</button>
-            <button type="button" class="fx-chip" data-value="4">1/4D</button>
-            <button type="button" class="fx-chip" data-value="5">1/2</button>
-          </div>
-        </div>
-        <div class="fx-knobs">
-          <div class="knob-wrap mini" data-param="delayTime" id="delayTimeWrap">
-            <div class="knob knob-mini" id="knob-delayTime"></div>
-            <div class="knob-label">TIME</div>
-            <div class="knob-value" id="val-delayTime">380 ms</div>
-          </div>
-          <div class="knob-wrap mini" data-param="delayFeedback">
-            <div class="knob knob-mini" id="knob-delayFeedback"></div>
-            <div class="knob-label">FDBK</div>
-            <div class="knob-value" id="val-delayFeedback">25%</div>
-          </div>
-          <div class="knob-wrap mini" data-param="delayMix">
-            <div class="knob knob-mini" id="knob-delayMix"></div>
-            <div class="knob-label">MIX</div>
-            <div class="knob-value" id="val-delayMix">20%</div>
-          </div>
-        </div>
-      </article>
-
-      <article class="fx-module" data-fx="reverb">
-        <div class="fx-head">
-          <h3>Reverb</h3>
-          <button type="button" class="hw-toggle" id="reverbEnabled" aria-pressed="false">
-            <img src="assets/signal-path/toggle-off.png" alt="" data-role="toggle-img" />
-            <span>On</span>
-          </button>
-        </div>
-        <div class="fx-choice" data-choice="reverbCharacter">
-          <button type="button" class="fx-chip active" data-value="0">Room</button>
-          <button type="button" class="fx-chip" data-value="1">Hall</button>
-          <button type="button" class="fx-chip" data-value="2">Plate</button>
-          <button type="button" class="fx-chip" data-value="3">Amb</button>
-        </div>
-        <div class="fx-knobs">
-          <div class="knob-wrap mini" data-param="reverbSize">
-            <div class="knob knob-mini" id="knob-reverbSize"></div>
-            <div class="knob-label">SIZE</div>
-            <div class="knob-value" id="val-reverbSize">40%</div>
-          </div>
-          <div class="knob-wrap mini" data-param="reverbDamping">
-            <div class="knob knob-mini" id="knob-reverbDamping"></div>
-            <div class="knob-label">DAMP</div>
-            <div class="knob-value" id="val-reverbDamping">50%</div>
-          </div>
-          <div class="knob-wrap mini" data-param="reverbMix">
-            <div class="knob knob-mini" id="knob-reverbMix"></div>
-            <div class="knob-label">MIX</div>
-            <div class="knob-value" id="val-reverbMix">18%</div>
-          </div>
-        </div>
-      </article>
     </section>
+
+    <main class="stage" id="stage">
+      <div class="stage-light" aria-hidden="true"></div>
+
+      <section class="scene" data-scene="pedals" aria-label="Pedals">
+        <div class="board">
+          <article class="pedal fx-module" data-fx="comp" style="--enamel: #ece8e2; --ink: #171413;">
+            <div class="pedal-knobs">
+              <div class="knob-wrap knob-pedal" data-param="compressorThreshold">
+                <div class="knob" id="knob-compressorThreshold"></div>
+                <div class="knob-label">threshold</div>
+                <div class="knob-value" id="val-compressorThreshold">-18.0 dB</div>
+              </div>
+              <div class="knob-wrap knob-pedal" data-param="compressorRatio">
+                <div class="knob" id="knob-compressorRatio"></div>
+                <div class="knob-label">ratio</div>
+                <div class="knob-value" id="val-compressorRatio">4.0:1</div>
+              </div>
+              <div class="knob-wrap knob-pedal" data-param="compressorMix">
+                <div class="knob" id="knob-compressorMix"></div>
+                <div class="knob-label">blend</div>
+                <div class="knob-value" id="val-compressorMix">100%</div>
+              </div>
+            </div>
+            <h2 class="pedal-name">squeeze</h2>
+            <div class="stomp">
+              <button type="button" class="footswitch" id="compressorEnabled" aria-pressed="false" aria-label="Compressor on"></button>
+              <span class="pedal-led" aria-hidden="true"></span>
+            </div>
+          </article>
+
+          <article class="pedal fx-module" data-fx="drive" style="--enamel: #e0583f; --ink: #fff4ee;">
+            <div class="mode-row fx-choice" data-choice="driveMode" role="group" aria-label="Drive mode">
+              <button type="button" class="fx-chip active" data-value="0">soft</button>
+              <button type="button" class="fx-chip" data-value="1">hard</button>
+              <button type="button" class="fx-chip" data-value="2">tube</button>
+              <button type="button" class="fx-chip" data-value="3">boost</button>
+            </div>
+            <div class="pedal-knobs">
+              <div class="knob-wrap knob-pedal lobed" data-param="driveAmount">
+                <div class="knob" id="knob-driveAmount"></div>
+                <div class="knob-label">drive</div>
+                <div class="knob-value" id="val-driveAmount">35%</div>
+              </div>
+              <div class="knob-wrap knob-pedal lobed" data-param="driveTone">
+                <div class="knob" id="knob-driveTone"></div>
+                <div class="knob-label">tone</div>
+                <div class="knob-value" id="val-driveTone">50%</div>
+              </div>
+              <div class="knob-wrap knob-pedal lobed" data-param="driveLevel">
+                <div class="knob" id="knob-driveLevel"></div>
+                <div class="knob-label">level</div>
+                <div class="knob-value" id="val-driveLevel">70%</div>
+              </div>
+            </div>
+            <h2 class="pedal-name">ember</h2>
+            <div class="stomp">
+              <button type="button" class="footswitch" id="driveEnabled" aria-pressed="false" aria-label="Drive on"></button>
+              <span class="pedal-led" aria-hidden="true"></span>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="scene" data-scene="amp" aria-label="Amp">
+        <div class="amp">
+          <div class="amp-grille" aria-hidden="true"></div>
+          <div class="amp-panel">
+            <div class="amp-jewel" id="ampJewel" aria-hidden="true"></div>
+            <button type="button" class="amp-model" id="btnBrowseNam" title="Choose an amp model">
+              <span class="amp-model-name" id="namName">None loaded</span>
+              <span class="amp-model-hint">Change model</span>
+            </button>
+            <div class="amp-knobs">
+              <div class="knob-wrap knob-amp" data-param="bassGain">
+                <div class="knob" id="knob-bassGain"></div>
+                <div class="knob-label">bass</div>
+                <div class="knob-value" id="val-bassGain">0.0 dB</div>
+              </div>
+              <div class="knob-wrap knob-amp" data-param="midGain">
+                <div class="knob" id="knob-midGain"></div>
+                <div class="knob-label">middle</div>
+                <div class="knob-value" id="val-midGain">0.0 dB</div>
+              </div>
+              <div class="knob-wrap knob-amp" data-param="trebleGain">
+                <div class="knob" id="knob-trebleGain"></div>
+                <div class="knob-label">treble</div>
+                <div class="knob-value" id="val-trebleGain">0.0 dB</div>
+              </div>
+              <span class="amp-divider" aria-hidden="true"></span>
+              <div class="knob-wrap knob-amp" data-param="ampMix">
+                <div class="knob" id="knob-ampMix"></div>
+                <div class="knob-label">amp mix</div>
+                <div class="knob-value" id="val-ampMix">100%</div>
+              </div>
+            </div>
+            <button type="button" class="switch switch-panel" id="eqEnabled" aria-pressed="true">Tone stack</button>
+          </div>
+        </div>
+        <p class="scene-status" id="namStatus">No model</p>
+      </section>
+
+      <section class="scene" data-scene="cab" aria-label="Cabinet">
+        <div class="cab-rig">
+          <div class="cab">
+            <img id="cabArt" src="assets/cabinet/cab-1x12.png" alt="" draggable="false" />
+            <span class="cab-led" id="cabLed" aria-hidden="true"></span>
+          </div>
+          <div class="cab-controls">
+            <button type="button" class="ir-plate" id="btnBrowseIr" title="Choose an impulse response">
+              <span class="ir-plate-name" id="irName">None loaded</span>
+              <span class="ir-plate-hint">Change impulse response</span>
+            </button>
+            <div class="knob-wrap knob-amp" data-param="cabMix">
+              <div class="knob" id="knob-cabMix"></div>
+              <div class="knob-label">cab mix</div>
+              <div class="knob-value" id="val-cabMix">100%</div>
+            </div>
+            <button type="button" class="switch" id="cabEnabled" aria-pressed="true">Cabinet</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="scene" data-scene="effects" aria-label="Effects">
+        <div class="board">
+          <article class="pedal pedal-wide fx-module" data-fx="delay" style="--enamel: #1f8f76; --ink: #eafff8;">
+            <div class="lcd" id="delayLcd" aria-live="polite">380 ms</div>
+            <div class="mode-row">
+              <button type="button" class="switch switch-pedal" id="delaySync" aria-pressed="false">sync</button>
+              <div class="fx-choice division" data-choice="delayDivision" id="delayDivisionGroup" role="group" aria-label="Delay division">
+                <button type="button" class="fx-chip active" data-value="0">1/4</button>
+                <button type="button" class="fx-chip" data-value="1">1/8</button>
+                <button type="button" class="fx-chip" data-value="2">1/8d</button>
+                <button type="button" class="fx-chip" data-value="3">1/16</button>
+                <button type="button" class="fx-chip" data-value="4">1/4d</button>
+                <button type="button" class="fx-chip" data-value="5">1/2</button>
+              </div>
+            </div>
+            <div class="pedal-knobs">
+              <div class="knob-wrap knob-pedal" data-param="delayTime" id="delayTimeWrap">
+                <div class="knob" id="knob-delayTime"></div>
+                <div class="knob-label">time</div>
+                <div class="knob-value" id="val-delayTime">380 ms</div>
+              </div>
+              <div class="knob-wrap knob-pedal" data-param="delayFeedback">
+                <div class="knob" id="knob-delayFeedback"></div>
+                <div class="knob-label">repeats</div>
+                <div class="knob-value" id="val-delayFeedback">25%</div>
+              </div>
+              <div class="knob-wrap knob-pedal" data-param="delayMix">
+                <div class="knob" id="knob-delayMix"></div>
+                <div class="knob-label">mix</div>
+                <div class="knob-value" id="val-delayMix">20%</div>
+              </div>
+            </div>
+            <h2 class="pedal-name">echo</h2>
+            <div class="stomp">
+              <button type="button" class="footswitch" id="delayEnabled" aria-pressed="false" aria-label="Delay on"></button>
+              <span class="pedal-led" aria-hidden="true"></span>
+            </div>
+          </article>
+
+          <article class="pedal pedal-wide fx-module" data-fx="reverb" style="--enamel: #6f49d8; --ink: #f3eeff;">
+            <div class="mode-row fx-choice" data-choice="reverbCharacter" role="group" aria-label="Reverb style">
+              <button type="button" class="fx-chip active" data-value="0">room</button>
+              <button type="button" class="fx-chip" data-value="1">hall</button>
+              <button type="button" class="fx-chip" data-value="2">plate</button>
+              <button type="button" class="fx-chip" data-value="3">ambient</button>
+            </div>
+            <div class="pedal-knobs">
+              <div class="knob-wrap knob-pedal lobed" data-param="reverbSize">
+                <div class="knob" id="knob-reverbSize"></div>
+                <div class="knob-label">size</div>
+                <div class="knob-value" id="val-reverbSize">40%</div>
+              </div>
+              <div class="knob-wrap knob-pedal lobed" data-param="reverbDamping">
+                <div class="knob" id="knob-reverbDamping"></div>
+                <div class="knob-label">damping</div>
+                <div class="knob-value" id="val-reverbDamping">50%</div>
+              </div>
+              <div class="knob-wrap knob-pedal lobed" data-param="reverbMix">
+                <div class="knob" id="knob-reverbMix"></div>
+                <div class="knob-label">mix</div>
+                <div class="knob-value" id="val-reverbMix">18%</div>
+              </div>
+            </div>
+            <h2 class="pedal-name">haze</h2>
+            <div class="stomp">
+              <button type="button" class="footswitch" id="reverbEnabled" aria-pressed="false" aria-label="Reverb on"></button>
+              <span class="pedal-led" aria-hidden="true"></span>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <nav class="chain" id="signalPath" aria-label="Signal chain"></nav>
+    </main>
 
     <div id="popoverBackdrop" class="popover-backdrop" hidden></div>
 
     <div id="presetsPopover" class="popover popover-presets" hidden role="dialog" aria-label="Presets">
-      <div class="popover-head library-head">
-        <div class="library-title-block">
-          <h2>Presets</h2>
-          <p class="library-subtitle">Load, organize, and save tones</p>
-        </div>
-        <button type="button" class="popover-icon-btn" id="btnPresetsClose" title="Close">✕</button>
+      <div class="palette-search">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>
+        <input id="presetsSearch" type="search" placeholder="Search presets, tags or categories" autocomplete="off" aria-controls="presetsList" />
+        <span class="palette-count" id="presetsCount">0 presets</span>
+        <button type="button" class="popover-icon-btn" id="btnPresetsClose" aria-label="Close"><kbd>esc</kbd></button>
       </div>
 
-      <div class="presets-save-bar">
-        <input id="presetName" type="text" maxlength="64" placeholder="Name" />
-        <input id="presetCategory" type="text" maxlength="32" placeholder="Category" list="presetCategoryList" />
-        <datalist id="presetCategoryList"></datalist>
-        <button type="button" id="btnSave" class="btn btn-accent">Save</button>
-        <button type="button" class="btn btn-soft" id="btnPresetImport">Import</button>
+      <div class="palette-body">
+        <nav class="palette-side" id="presetsCategoryChips" aria-label="Categories"></nav>
+        <div class="palette-list" id="presetsList" role="listbox" aria-label="Presets"></div>
       </div>
 
-      <div class="library-toolbar presets-toolbar">
-        <div class="library-search-wrap">
-          <span class="library-search-icon" aria-hidden="true">⌕</span>
-          <input id="presetsSearch" class="library-search" type="search" placeholder="Search presets…" autocomplete="off" />
+      <div class="palette-foot">
+        <div class="palette-save">
+          <input id="presetName" type="text" maxlength="64" placeholder="Save current tone as…" />
+          <input id="presetCategory" type="text" maxlength="32" placeholder="Category" list="presetCategoryList" />
+          <datalist id="presetCategoryList"></datalist>
+          <button type="button" id="btnSave" class="btn btn-accent">Save</button>
         </div>
-        <div class="presets-cat-chips" id="presetsCategoryChips"></div>
-        <button type="button" class="library-fav-chip" id="presetsFavoritesOnly" aria-pressed="false">
-          <span class="library-fav-chip-icon">★</span>
-          <span>Favorites</span>
-        </button>
-      </div>
-      <select id="presetsCategoryFilter" class="visually-hidden" aria-label="Category filter">
-        <option value="">All</option>
-      </select>
-      <div class="library-list" id="presetsList" role="listbox"></div>
-      <div class="library-foot">
-        <span id="presetsCount">0 presets</span>
-        <span class="library-hint">Click to load</span>
+        <div class="palette-actions">
+          <button type="button" class="ghost-btn" id="btnPresetImport" title="Import .lumenpreset or .lumenpack">Import</button>
+          <button type="button" class="ghost-btn" id="btnPresetExportPack" title="Export with the amp model and IR included">Export pack</button>
+        </div>
+        <div class="palette-hints" aria-hidden="true">
+          <span><kbd>↑</kbd><kbd>↓</kbd> move</span>
+          <span><kbd>↵</kbd> load</span>
+        </div>
       </div>
     </div>
 
     <div id="libraryPopover" class="popover popover-library" hidden role="dialog" aria-label="Library">
-      <div class="popover-head library-head">
-        <div class="library-title-block">
-          <h2>Library</h2>
-          <p class="library-subtitle" id="librarySubtitle">NAM models and cabinet IRs</p>
-        </div>
-        <button type="button" class="popover-icon-btn" id="btnLibraryClose" title="Close">✕</button>
+      <div class="popover-head">
+        <h2>Library <small id="librarySubtitle">Amp models</small></h2>
+        <button type="button" class="popover-icon-btn" id="btnLibraryClose" aria-label="Close">✕</button>
       </div>
       <div class="library-toolbar">
-        <div class="seg-toggle library-tabs" role="tablist">
+        <div class="seg-toggle" role="tablist">
           <button type="button" class="seg-btn active" data-library-tab="models">Models</button>
           <button type="button" class="seg-btn" data-library-tab="irs">IRs</button>
         </div>
-        <div class="library-search-wrap">
-          <span class="library-search-icon" aria-hidden="true">⌕</span>
-          <input id="librarySearch" class="library-search" type="search" placeholder="Search…" autocomplete="off" />
-        </div>
-        <button type="button" class="btn btn-soft" id="btnLibraryImport">Import</button>
-        <button type="button" class="library-fav-chip" id="libraryFavoritesOnly" aria-pressed="false" title="Show favorites only">
-          <span class="library-fav-chip-icon">★</span>
-          <span>Favorites</span>
-        </button>
+        <input id="librarySearch" class="library-search" type="search" placeholder="Search" autocomplete="off" />
+        <button type="button" class="btn" id="btnLibraryImport">Import</button>
+        <button type="button" class="library-fav-chip" id="libraryFavoritesOnly" aria-pressed="false">★ Favorites</button>
       </div>
       <div class="library-list" id="libraryList" role="listbox"></div>
       <div class="library-foot">
         <span id="libraryCount">0 items</span>
-        <span class="library-hint">Click to load · ★ to favorite</span>
       </div>
     </div>
 
     <div id="tunerPopover" class="popover popover-tuner" hidden role="dialog" aria-label="Tuner">
       <div class="popover-head">
         <h2>Tuner</h2>
-        <div class="popover-head-actions">
-          <button type="button" class="popover-icon-btn" id="btnTunerClose" title="Close">✕</button>
-        </div>
+        <button type="button" class="popover-icon-btn" id="btnTunerClose" aria-label="Close">✕</button>
       </div>
       <div class="tuner-stage">
-        <div class="tuner-scale-ends">
-          <span>-50</span>
-          <span>+50</span>
-        </div>
+        <div class="tuner-scale-ends"><span>-50</span><span>+50</span></div>
         <div class="tuner-line-wrap">
           <div class="tuner-line"></div>
-          <div class="tuner-orb" id="tunerOrb">
-            <span id="tunerNote">--</span>
-          </div>
+          <div class="tuner-orb" id="tunerOrb"><span id="tunerNote">--</span></div>
         </div>
         <div class="tuner-meta">
           <span id="tunerCents">—</span>
@@ -389,71 +350,93 @@
         <label class="live-toggle">
           <input type="checkbox" id="liveTuner" checked />
           <span class="live-switch" aria-hidden="true"></span>
-          <span>Live Tuner</span>
+          <span>Live tuner</span>
         </label>
-        <div class="ref-pitch" title="Reference pitch">
-          <span id="refPitchLabel">440.0</span>
-        </div>
+        <div class="ref-pitch" title="Reference pitch"><span id="refPitchLabel">440.0</span> Hz</div>
+      </div>
+    </div>
+
+    <div id="settingsPopover" class="popover popover-settings" hidden role="dialog" aria-label="Settings">
+      <div class="popover-head">
+        <h2>Settings</h2>
+        <button type="button" class="popover-icon-btn" id="btnSettingsClose" aria-label="Close">✕</button>
+      </div>
+      <div class="settings-body">
+        <section class="settings-block">
+          <h3>Input calibration</h3>
+          <p class="settings-help">A fixed trim before the chain so amp models hear your guitar at the level they were captured at. Presets don't change it.</p>
+          <label class="settings-label" for="calibrationSelect">Profile</label>
+          <select id="calibrationSelect" class="settings-select"></select>
+          <div class="settings-row">
+            <div class="knob-wrap knob-sm" data-param="calibrationGain" data-local="true">
+              <div class="knob" id="knob-calibrationGain"></div>
+              <div class="knob-label">Trim</div>
+              <div class="knob-value" id="val-calibrationGain">0.0 dB</div>
+            </div>
+            <div class="settings-fields">
+              <input id="calibrationName" type="text" maxlength="40" placeholder="Profile name" />
+              <div class="settings-actions">
+                <button type="button" class="btn btn-accent" id="btnCalibrationSave">Save profile</button>
+                <button type="button" class="btn" id="btnCalibrationDelete">Delete</button>
+              </div>
+            </div>
+          </div>
+        </section>
+        <section class="settings-block">
+          <h3>Audio device</h3>
+          <button type="button" class="btn btn-accent" id="btnSettingsAudio">Open audio settings</button>
+        </section>
       </div>
     </div>
 
     <div id="metroPopover" class="popover popover-metro" hidden role="dialog" aria-label="Metronome">
       <div class="popover-head">
         <h2>Metronome</h2>
-        <button type="button" class="popover-icon-btn" id="btnMetroClose" title="Close">✕</button>
-      </div>
-      <div class="metro-top">
-        <div class="metro-field">
-          <span class="metro-field-label">VOLUME</span>
-          <div class="knob-wrap mini" data-param="metronomeVolume">
-            <div class="knob knob-mini" id="knob-metronomeVolume"></div>
-            <div class="knob-value" id="val-metronomeVolume">35%</div>
-          </div>
-        </div>
+        <button type="button" class="popover-icon-btn" id="btnMetroClose" aria-label="Close">✕</button>
       </div>
       <div class="metro-main">
-        <div class="metro-bpm-block">
-          <span class="metro-field-label">BPM</span>
-          <div class="metro-bpm-row">
-            <div class="metro-bpm-step">
-              <button type="button" id="btnTempoPlus" class="dock-step">▲</button>
-              <button type="button" id="btnTempoMinus" class="dock-step">▼</button>
-            </div>
-            <div class="metro-bpm-value" id="metroBpmBig">120.0</div>
-            <button type="button" class="metro-tap-btn" id="btnTap">TAP</button>
+        <div class="metro-bpm-row">
+          <div class="metro-bpm-step">
+            <button type="button" id="btnTempoPlus" aria-label="Tempo up">▲</button>
+            <button type="button" id="btnTempoMinus" aria-label="Tempo down">▼</button>
           </div>
+          <div class="metro-bpm-value"><span id="metroBpmBig">120.0</span><small>bpm</small></div>
+          <button type="button" class="btn" id="btnTap">Tap</button>
         </div>
-        <button type="button" class="metro-play-btn" id="metronomeEnabled" aria-pressed="false" title="Start / stop">
+        <button type="button" class="metro-play-btn" id="metronomeEnabled" aria-pressed="false" aria-label="Start or stop">
           <span id="metroPlayIcon">▶</span>
         </button>
       </div>
-      <div class="metro-beats" id="metroBeats" aria-hidden="true">
-        <span class="beat-dot accent"></span>
-        <span class="beat-dot"></span>
-        <span class="beat-dot"></span>
-        <span class="beat-dot"></span>
+      <div class="metro-foot">
+        <div class="metro-beats" id="metroBeats" aria-hidden="true">
+          <span class="beat-dot accent"></span><span class="beat-dot"></span><span class="beat-dot"></span><span class="beat-dot"></span>
+        </div>
+        <div class="knob-wrap knob-sm" data-param="metronomeVolume">
+          <div class="knob" id="knob-metronomeVolume"></div>
+          <div class="knob-label">Volume</div>
+          <div class="knob-value" id="val-metronomeVolume">35%</div>
+        </div>
       </div>
     </div>
 
-    <footer class="dock-bar" aria-label="Practice tools">
+    <footer class="dock" aria-label="Practice tools">
       <div class="dock-left">
         <button type="button" class="dock-item" id="btnTuner" aria-pressed="false">Tuner</button>
-        <span class="dock-pipe" aria-hidden="true"></span>
-        <button type="button" class="dock-item dock-tap-group" id="btnDockTap" title="Tap tempo">
-          <span>Tap</span>
-          <span class="dock-value" id="dockBpm">120.0 BPM</span>
-          <span class="dock-chevrons" aria-hidden="true">↕</span>
-        </button>
-        <span class="dock-pipe" aria-hidden="true"></span>
-        <button type="button" class="dock-item" id="btnMetro" aria-pressed="false">
-          Metronome
-          <span class="dock-play" id="dockMetroPlay" aria-hidden="true">▶</span>
-        </button>
-        <span class="dock-pipe" aria-hidden="true"></span>
-        <button type="button" class="dock-item" id="btnSettings" title="Audio settings">Settings</button>
+        <button type="button" class="dock-item" id="btnDockTap" title="Tap tempo">Tap <span class="dock-value" id="dockBpm">120.0 BPM</span></button>
+        <button type="button" class="dock-item" id="btnMetro" aria-pressed="false">Metronome <span class="dock-play" id="dockMetroPlay" aria-hidden="true">▶</span></button>
+        <div class="dock-demo">
+          <select id="demoClipSelect" class="dock-select" aria-label="Demo clip">
+            <option value="fallback">Built-in DI</option>
+          </select>
+          <button type="button" class="dock-item" id="btnDemoPlay" aria-pressed="false">Demo <span class="dock-play" id="dockDemoPlay" aria-hidden="true">▶</span></button>
+        </div>
+        <button type="button" class="dock-item" id="btnSettings">Settings</button>
       </div>
       <div class="dock-right">
+        <span class="dock-hot" id="dockHot" hidden>HOT</span>
+        <span class="dock-cpu" id="dockCpu" title="Approximate DSP load">CPU —</span>
         <span class="dock-status" id="footerStatus">Starting…</span>
+        <button type="button" class="dock-item" id="btnAudio">Audio</button>
       </div>
     </footer>
   </div>

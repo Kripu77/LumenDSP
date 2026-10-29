@@ -43,17 +43,19 @@ The core tone always comes from **your** `.nam` file. LumenDSP does not replace 
 
 | Area | Capability |
 |------|------------|
-| Amp | Load and hot-swap `.nam` / A2 models via NeuralAmpModelerCore |
-| Cab | Load and hot-swap impulse response `.wav` files |
+| Amp | Load and hot-swap `.nam` / A2 models via NeuralAmpModelerCore; wet/dry mix |
+| Cab | Load and hot-swap impulse response `.wav` files; wet/dry mix |
 | Library | Browse factory + user NAM/IR library with favorites and import |
 | Dynamics | Input gain, output level, noise gate, compressor |
 | Drive | Soft-clip overdrive pedal stage (pre-amp) |
 | Tone | Three-band EQ (post-amp, pre-cab) |
 | Time FX | Delay and reverb (post-cab) |
-| Practice | Tuner + metronome (bottom dock) |
-| Presets | Named presets with categories, tags, favorites, import/export |
+| Practice | Tuner + metronome + demo DI riff preview (bottom dock) |
+| Calibration | Named input trim profiles (independent of presets) |
+| Presets | Categories, tags, favorites; portable `.lumenpack` with embedded NAM/IR |
+| Diagnostics | Input/output meters, approximate CPU load, hot-signal cue |
 | Formats | Standalone desktop app and VST3 plugin |
-| UI | WebView frontend (HTML/CSS/JS) with dense dark rack layout, JSON bridge to C++ engine |
+| UI | WebView frontend (HTML/CSS/JS): pedals, amp, cabinet and effects pages with pre-rendered knobs, a clickable signal chain and a searchable preset browser; JSON bridge to C++ engine |
 
 ### Signal flow
 

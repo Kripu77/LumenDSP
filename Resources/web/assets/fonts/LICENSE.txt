@@ -1,0 +1,2 @@
+Manrope and Geist Mono are licensed under the SIL Open Font License 1.1 (https://openfontlicense.org).
+Sources: github.com/sharanda/manrope, github.com/vercel/geist-font
