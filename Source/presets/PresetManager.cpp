@@ -329,6 +329,13 @@ bool PresetManager::embedFileResource(
     if (!file.existsAsFile())
         return true;
 
+    // Preset paths are untrusted text; only ever embed real model/IR files.
+    if (!file.hasFileExtension(kind == "ir" ? ".wav" : ".nam"))
+    {
+        errorOut = "Refusing to embed unexpected file type: " + file.getFileName();
+        return false;
+    }
+
     juce::MemoryBlock data;
     if (!file.loadFileAsData(data) || data.isEmpty())
     {
@@ -446,9 +453,14 @@ bool PresetManager::extractEmbeddedResources(
             continue;
 
         const auto kind = resource.getProperty("kind").toString();
-        const auto name = resource.getProperty("name").toString();
+        // Packs come from other people: reduce the name to a bare, legal file name of the right type.
+        const auto name = juce::File::createLegalFileName(resource.getProperty("name").toString()
+                                                               .fromLastOccurrenceOf("/", false, false)
+                                                               .fromLastOccurrenceOf("\\", false, false));
         const auto dataB64 = resource.getProperty("data").toString();
-        if (kind.isEmpty() || name.isEmpty() || dataB64.isEmpty())
+        if ((kind != "nam" && kind != "ir") || name.isEmpty() || name.startsWith(".") || dataB64.isEmpty())
+            continue;
+        if (!name.endsWithIgnoreCase(kind == "ir" ? ".wav" : ".nam"))
             continue;
 
         juce::MemoryOutputStream decoded;
@@ -458,13 +470,18 @@ bool PresetManager::extractEmbeddedResources(
             return false;
         }
 
-        const auto hash = resource.getProperty("hash").toString();
+        const auto hash = resource.getProperty("hash").toString().toLowerCase().retainCharacters("0123456789abcdef");
         auto targetDir = kind == "ir" ? irsDir : modelsDir;
         juce::String fileName = name;
         if (hash.isNotEmpty())
             fileName = hash.substring(0, 12) + "_" + name;
 
         auto target = targetDir.getChildFile(fileName);
+        if (!target.isAChildOf(targetDir))
+        {
+            errorOut = "Rejected embedded resource with an unsafe name.";
+            return false;
+        }
         if (!target.existsAsFile())
         {
             if (!target.replaceWithData(decoded.getData(), decoded.getDataSize()))
