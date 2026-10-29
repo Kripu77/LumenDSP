@@ -78,10 +78,20 @@ struct FactoryTone
     float delayTimeMs = 380.0f;
     float delayFeedback = 0.25f;
     float delayMix = 0.2f;
+    float delayTone = parameters::ranges::delayToneDefault;
+    float delayModulation = parameters::ranges::delayModulationDefault;
+    float delaySaturation = parameters::ranges::delaySaturationDefault;
+    bool delayPingPong = parameters::ranges::delayPingPongDefault;
+
+    bool doublerEnabled = parameters::ranges::doublerEnabledDefault;
+    float doublerSpreadMs = parameters::ranges::doublerSpreadDefaultMs;
 
     bool reverbEnabled = false;
     int reverbCharacter = 0;
     float reverbDecaySec = 4.0f;
+    float reverbLowCutHz = parameters::ranges::reverbLowCutDefaultHz;
+    float reverbHighCutHz = parameters::ranges::reverbHighCutDefaultHz;
+    float reverbWidth = parameters::ranges::reverbWidthDefault;
     float reverbMix = 0.18f;
 
     float outputLevelDb = -8.0f;
@@ -123,10 +133,20 @@ void applyFactoryTone(juce::AudioProcessorValueTreeState& apvts, const FactoryTo
     setParameterValue(apvts, parameters::delayTimeId, tone.delayTimeMs);
     setParameterValue(apvts, parameters::delayFeedbackId, tone.delayFeedback);
     setParameterValue(apvts, parameters::delayMixId, tone.delayMix);
+    setParameterValue(apvts, parameters::delayToneId, tone.delayTone);
+    setParameterValue(apvts, parameters::delayModulationId, tone.delayModulation);
+    setParameterValue(apvts, parameters::delaySaturationId, tone.delaySaturation);
+    setBoolParameter(apvts, parameters::delayPingPongId, tone.delayPingPong);
+
+    setBoolParameter(apvts, parameters::doublerEnabledId, tone.doublerEnabled);
+    setParameterValue(apvts, parameters::doublerSpreadId, tone.doublerSpreadMs);
 
     setBoolParameter(apvts, parameters::reverbEnabledId, tone.reverbEnabled);
     setChoiceParameter(apvts, parameters::reverbCharacterId, tone.reverbCharacter);
     setParameterValue(apvts, parameters::reverbDecayId, tone.reverbDecaySec);
+    setParameterValue(apvts, parameters::reverbLowCutId, tone.reverbLowCutHz);
+    setParameterValue(apvts, parameters::reverbHighCutId, tone.reverbHighCutHz);
+    setParameterValue(apvts, parameters::reverbWidthId, tone.reverbWidth);
     setParameterValue(apvts, parameters::reverbMixId, tone.reverbMix);
 
     setParameterValue(apvts, parameters::outputLevelId, tone.outputLevelDb);
@@ -229,9 +249,9 @@ FactoryContentInstaller::InstallResult FactoryContentInstaller::installIfNeeded(
                                 juce::File::findFiles, "*.wav")
                             > 0;
     const bool presetsPresent = presetManager.getPresetNames().contains(defaultPresetName);
-    const bool ambientPresent = presetManager.getPresetNames().contains("06 Ambient Swell");
+    const bool latestPresent = presetManager.getPresetNames().contains(latestPresetName);
 
-    if (markerPresent && modelsPresent && irsPresent && presetsPresent && ambientPresent)
+    if (markerPresent && modelsPresent && irsPresent && presetsPresent && latestPresent)
     {
         result.installedOrAlreadyPresent = true;
         result.statusMessage = "Factory content already installed.";
@@ -277,7 +297,7 @@ FactoryContentInstaller::InstallResult FactoryContentInstaller::installIfNeeded(
 
     result.installedOrAlreadyPresent = true;
     result.performedFreshInstall = !legacyMarkerPresent && !presetsPresent;
-    result.upgradedExistingInstall = legacyMarkerPresent || (presetsPresent && !ambientPresent);
+    result.upgradedExistingInstall = legacyMarkerPresent || (presetsPresent && !latestPresent);
     result.statusMessage = result.upgradedExistingInstall
                                ? "Factory fusion tones upgraded (full FX chain)."
                                : "Factory fusion tones and cab IRs installed.";
@@ -294,6 +314,7 @@ bool FactoryContentInstaller::writeFactoryPresets(
     const auto bugClean = modelsDirectory.getChildFile("Bug333_Clean.nam");
     const auto bugCleanCab = modelsDirectory.getChildFile("Bug333_CleanCab.nam");
     const auto jcmClean = modelsDirectory.getChildFile("JCM2000_Clean.nam");
+    const auto model = [&](const char* fileName) { return modelsDirectory.getChildFile(fileName); };
 
     const auto glassIr = irsDirectory.getChildFile("Lumen_Glass_212.wav");
     const auto smoothIr = irsDirectory.getChildFile("Lumen_Smooth_Lead_412.wav");
@@ -311,7 +332,7 @@ bool FactoryContentInstaller::writeFactoryPresets(
     constexpr int reverbPlate = 2;
     constexpr int reverbAmbient = 3;
 
-    std::array<FactoryTone, 6> tones {};
+    std::array<FactoryTone, 13> tones {};
 
     {
         auto& tone = tones[0];
@@ -479,6 +500,57 @@ bool FactoryContentInstaller::writeFactoryPresets(
         tone.reverbMix = 0.34f;
         tone.outputLevelDb = -11.0f;
     }
+
+    // Plini-inspired tones on GPL-3 captures from pelennor2170/NAM_models (see ATTRIBUTION.md).
+    tones[6] = { .name = "07 Shimmer Clean", .category = "Clean", .tags = { "bright", "glassy", "wide" },
+                   .namFile = model("Shimmer_Clean.nam"), .irFile = glassIr,
+                   .noiseGateThresholdDb = -75.0f, .compressorEnabled = true, .compressorThresholdDb = -20.0f, .compressorRatio = 3.0f, .compressorMix = 0.6f,
+                   .bassGainDb = -2.5f, .trebleGainDb = 2.0f,
+                   .delayEnabled = true, .delaySync = true, .delayFeedback = 0.22f, .delayMix = 0.2f, .delayModulation = 1.0f, .delaySaturation = 0.43f, .delayPingPong = true,
+                   .reverbEnabled = true, .reverbCharacter = reverbAmbient, .reverbDecaySec = 11.0f, .reverbMix = 0.22f,
+                   .outputLevelDb = -5.4f };
+    tones[7] = { .name = "08 Warm Clean", .category = "Clean", .tags = { "round", "soft", "ambient" },
+                   .namFile = model("Warm_Clean.nam"), .irFile = glassIr,
+                   .noiseGateThresholdDb = -75.0f, .compressorEnabled = true, .compressorThresholdDb = -20.0f, .compressorRatio = 3.0f, .compressorMix = 0.6f,
+                   .bassGainDb = -2.0f, .trebleGainDb = 2.5f,
+                   .delayEnabled = true, .delaySync = true, .delayFeedback = 0.22f, .delayMix = 0.2f, .delayModulation = 1.0f, .delaySaturation = 0.43f, .delayPingPong = true,
+                   .reverbEnabled = true, .reverbCharacter = reverbAmbient, .reverbDecaySec = 12.0f, .reverbMix = 0.22f,
+                   .outputLevelDb = -1.8f };
+    tones[8] = { .name = "09 Grit Crunch", .category = "Crunch", .tags = { "crunch", "mid-forward" },
+                   .namFile = model("Grit_Crunch.nam"), .irFile = crunchIr,
+                   .noiseGateThresholdDb = -60.0f, .compressorEnabled = true, .compressorThresholdDb = -20.0f, .compressorRatio = 3.0f, .compressorMix = 0.6f,
+                   .driveEnabled = true, .driveMode = driveBoost, .driveAmount = 0.3f, .driveTone = 0.55f, .driveLevel = 0.8f, .midGainDb = 1.0f,
+                   
+                   .reverbEnabled = true, .reverbCharacter = reverbRoom, .reverbDecaySec = 1.6f, .reverbMix = 0.12f,
+                   .outputLevelDb = -7.4f };
+    tones[9] = { .name = "10 Chime Breakup", .category = "Crunch", .tags = { "chime", "edge of breakup" },
+                   .namFile = model("Chime_Breakup.nam"), .irFile = glassIr,
+                   .noiseGateThresholdDb = -60.0f, .compressorEnabled = true, .compressorThresholdDb = -20.0f, .compressorRatio = 3.0f, .compressorMix = 0.6f,
+                   .driveEnabled = true, .driveMode = driveBoost, .driveAmount = 0.25f, .driveTone = 0.55f, .driveLevel = 0.8f, .bassGainDb = -1.5f,
+                   .delayEnabled = true, .delaySync = true, .delayFeedback = 0.22f, .delayMix = 0.2f, .delayModulation = 1.0f, .delaySaturation = 0.43f, .delayPingPong = true,
+                   .reverbEnabled = true, .reverbCharacter = reverbAmbient, .reverbDecaySec = 6.0f, .reverbMix = 0.22f,
+                   .outputLevelDb = 3.2f };
+    tones[10] = { .name = "11 Liquid Lead", .category = "Lead", .tags = { "smooth", "sustain" },
+                   .namFile = model("Liquid_Lead.nam"), .irFile = smoothIr,
+                   .noiseGateThresholdDb = -60.0f, .compressorEnabled = true, .compressorThresholdDb = -20.0f, .compressorRatio = 3.0f, .compressorMix = 0.6f,
+                   .driveEnabled = true, .driveMode = driveBoost, .driveAmount = 0.3f, .driveTone = 0.55f, .driveLevel = 0.8f, .bassGainDb = -2.0f, .midGainDb = 1.0f,
+                   .delayEnabled = true, .delaySync = true, .delayFeedback = 0.3f, .delayMix = 0.2f, .delayModulation = 1.0f, .delaySaturation = 0.43f, .delayPingPong = true,
+                   .reverbEnabled = true, .reverbCharacter = reverbAmbient, .reverbDecaySec = 11.0f, .reverbMix = 0.25f,
+                   .outputLevelDb = -10.7f };
+    tones[11] = { .name = "12 Singing Solo", .category = "Lead", .tags = { "vocal", "articulate" },
+                   .namFile = model("Singing_Solo.nam"), .irFile = smoothIr,
+                   .noiseGateThresholdDb = -60.0f, .compressorEnabled = true, .compressorThresholdDb = -20.0f, .compressorRatio = 3.0f, .compressorMix = 0.6f,
+                   .driveEnabled = true, .driveMode = driveBoost, .driveAmount = 0.3f, .driveTone = 0.55f, .driveLevel = 0.8f, .bassGainDb = -1.5f, .midGainDb = 1.5f,
+                   .delayEnabled = true, .delaySync = true, .delayFeedback = 0.28f, .delayMix = 0.2f, .delayModulation = 1.0f, .delaySaturation = 0.43f, .delayPingPong = true,
+                   .reverbEnabled = true, .reverbCharacter = reverbAmbient, .reverbDecaySec = 11.0f, .reverbMix = 0.22f,
+                   .outputLevelDb = 1.2f };
+    tones[12] = { .name = "13 Molten Lead", .category = "Lead", .tags = { "saturated", "wide" },
+                   .namFile = model("Molten_Lead.nam"), .irFile = smoothIr,
+                   .noiseGateThresholdDb = -55.0f, .compressorEnabled = true, .compressorThresholdDb = -20.0f, .compressorRatio = 3.0f, .compressorMix = 0.6f,
+                   .driveEnabled = true, .driveMode = driveBoost, .driveAmount = 0.3f, .driveTone = 0.55f, .driveLevel = 0.8f, .bassGainDb = -2.0f, .trebleGainDb = -1.0f,
+                   .delayEnabled = true, .delaySync = true, .delayFeedback = 0.22f, .delayMix = 0.2f, .delayModulation = 1.0f, .delaySaturation = 0.43f, .delayPingPong = true, .doublerEnabled = true, .doublerSpreadMs = 9.0f,
+                   .reverbEnabled = true, .reverbCharacter = reverbAmbient, .reverbDecaySec = 11.0f, .reverbMix = 0.22f,
+                   .outputLevelDb = 1.7f };
 
     bool allSucceeded = true;
     for (const auto& tone : tones)

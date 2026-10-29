@@ -13,9 +13,17 @@ The bundled `.nam` captures are community captures from the
 | `Bug333_Clean.nam` | Phillipe P Bug333-Clean-ESR0,002 | Phillipe P |
 | `Bug333_CleanCab.nam` | Phillipe P Bug333-Clean-Cab-ESR0,007 | Phillipe P |
 | `JCM2000_Clean.nam` | Tim R JCM2000 Clean | Tim R |
+| `Shimmer_Clean.nam` | Sascha S DirtyShirleyMini_Clean_B1_M6_T7_MV10_G4 | Sascha Steiner |
+| `Warm_Clean.nam` | George B Ceriatone King Kong Channel 1 60s mode | George B |
+| `Grit_Crunch.nam` | Sascha S DirtyShirleyMini_crunch_G6 | Sascha Steiner |
+| `Chime_Breakup.nam` | Phillipe P VOXAC15-TopBoost | Phillipe P |
+| `Liquid_Lead.nam` | Roman A LT_MESA_MARKIV_1 | Roman A |
+| `Singing_Solo.nam` | George B Ceriatone King Kong  KK Ch2 60s solo 80s | George B |
+| `Molten_Lead.nam` | Tudor N Ceriatone Molecular 50 | Tudor Adrian Negru |
 
-These models are provided for out-of-the-box fusion-oriented starting points
-(glassy clean to light crunch). You can replace them anytime with any `.nam`
+These models are provided for out-of-the-box fusion-oriented starting points,
+from glassy cleans through crunch to smooth leads. Factory file names are neutral;
+the original capture names above identify the source files in the collection. You can replace them anytime with any `.nam`
 from [TONE3000](https://www.tone3000.com/) or your own captures.
 
 ## Cabinet IRs
