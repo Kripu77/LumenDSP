@@ -16,6 +16,7 @@ public:
     void prepare(const juce::dsp::ProcessSpec& processSpec);
     void reset();
     void setEnabled(bool shouldEnable);
+    void setMix(float wetAmount);
     bool loadImpulseResponseAsync(const juce::File& impulseResponseFile);
     void clearImpulseResponse();
     void process(juce::AudioBuffer<float>& buffer);
@@ -33,6 +34,7 @@ private:
     juce::dsp::Convolution convolution;
     juce::dsp::ProcessSpec currentSpec{};
     juce::AudioBuffer<float> monoScratchBuffer;
+    juce::AudioBuffer<float> dryScratchBuffer;
 
     mutable std::mutex loadMutex;
     juce::AudioBuffer<float> pendingImpulseResponse;
@@ -44,6 +46,7 @@ private:
     std::atomic<bool> pendingLoadReady{false};
     std::atomic<bool> loaded{false};
     std::atomic<bool> enabled{true};
+    std::atomic<float> mixWet{1.0f};
     bool prepared = false;
 };
 

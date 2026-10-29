@@ -1,5 +1,6 @@
 #include "presets/PresetManager.h"
 #include <algorithm>
+#include <cstdint>
 
 namespace lumen::presets
 {
@@ -319,6 +320,171 @@ bool PresetManager::exportPreset(const juce::String& presetName, const juce::Fil
     return source.copyFileTo(destinationFile);
 }
 
+bool PresetManager::embedFileResource(
+    juce::ValueTree& resourcesTree,
+    const juce::String& kind,
+    const juce::File& file,
+    juce::String& errorOut)
+{
+    if (!file.existsAsFile())
+        return true;
+
+    juce::MemoryBlock data;
+    if (!file.loadFileAsData(data) || data.isEmpty())
+    {
+        errorOut = "Could not read resource: " + file.getFileName();
+        return false;
+    }
+
+    // Keep packs practical for typical NAM + IR sizes.
+    constexpr size_t maxBytes = 40ull * 1024ull * 1024ull;
+    if (data.getSize() > maxBytes)
+    {
+        errorOut = "Resource too large to embed: " + file.getFileName();
+        return false;
+    }
+
+    juce::ValueTree resource(resourceTag);
+    // FNV-1a 64-bit — good enough for pack identity without cryptography module.
+    std::uint64_t hash = 14695981039346656037ull;
+    const auto* bytes = static_cast<const std::uint8_t*>(data.getData());
+    for (size_t i = 0; i < data.getSize(); ++i)
+    {
+        hash ^= bytes[i];
+        hash *= 1099511628211ull;
+    }
+
+    resource.setProperty("kind", kind, nullptr);
+    resource.setProperty("name", file.getFileName(), nullptr);
+    resource.setProperty("hash", juce::String::toHexString(static_cast<juce::int64>(hash)), nullptr);
+    resource.setProperty("encoding", "base64", nullptr);
+    resource.setProperty("data", juce::Base64::toBase64(data.getData(), data.getSize()), nullptr);
+    resourcesTree.appendChild(resource, nullptr);
+    return true;
+}
+
+bool PresetManager::exportPresetPack(
+    const juce::String& presetName,
+    const juce::File& destinationFile,
+    juce::String& errorOut) const
+{
+    const auto presetFile = resolvePresetFile(sanitizePresetName(presetName));
+    if (!presetFile.existsAsFile())
+    {
+        errorOut = "Preset not found.";
+        return false;
+    }
+
+    auto sourceXml = juce::XmlDocument::parse(presetFile);
+    if (sourceXml == nullptr)
+    {
+        errorOut = "Could not parse preset.";
+        return false;
+    }
+
+    auto packTree = juce::ValueTree::fromXml(*sourceXml);
+    if (!packTree.hasType(rootXmlTag))
+    {
+        errorOut = "Not a LumenDSP preset file.";
+        return false;
+    }
+
+    packTree.setProperty("packVersion", 1, nullptr);
+
+    // Remove any stale embedded payload before re-embedding current files.
+    auto existingEmbedded = packTree.getChildWithName(embeddedResourcesTag);
+    if (existingEmbedded.isValid())
+        packTree.removeChild(existingEmbedded, nullptr);
+
+    juce::ValueTree resourcesTree(embeddedResourcesTag);
+    const juce::File namFile(packTree.getProperty(namPathAttribute).toString());
+    const juce::File irFile(packTree.getProperty(irPathAttribute).toString());
+    if (!embedFileResource(resourcesTree, "nam", namFile, errorOut))
+        return false;
+    if (!embedFileResource(resourcesTree, "ir", irFile, errorOut))
+        return false;
+    packTree.addChild(resourcesTree, -1, nullptr);
+
+    auto dest = destinationFile;
+    if (!dest.hasFileExtension(packFileExtension) && !dest.hasFileExtension(presetFileExtension))
+        dest = dest.withFileExtension(packFileExtension);
+
+    if (dest.existsAsFile())
+        dest.deleteFile();
+
+    std::unique_ptr<juce::XmlElement> outXml(packTree.createXml());
+    if (outXml == nullptr || !outXml->writeTo(dest))
+    {
+        errorOut = "Could not write preset pack.";
+        return false;
+    }
+
+    return true;
+}
+
+bool PresetManager::extractEmbeddedResources(
+    juce::ValueTree& presetTree,
+    juce::String& errorOut)
+{
+    auto resourcesTree = presetTree.getChildWithName(embeddedResourcesTag);
+    if (!resourcesTree.isValid())
+        return true;
+
+    const auto importRoot = juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory)
+                                .getChildFile(applicationFolderName)
+                                .getChildFile("Library")
+                                .getChildFile("Imported");
+    const auto modelsDir = importRoot.getChildFile("Models");
+    const auto irsDir = importRoot.getChildFile("IRs");
+    modelsDir.createDirectory();
+    irsDir.createDirectory();
+
+    for (int i = 0; i < resourcesTree.getNumChildren(); ++i)
+    {
+        auto resource = resourcesTree.getChild(i);
+        if (!resource.hasType(resourceTag))
+            continue;
+
+        const auto kind = resource.getProperty("kind").toString();
+        const auto name = resource.getProperty("name").toString();
+        const auto dataB64 = resource.getProperty("data").toString();
+        if (kind.isEmpty() || name.isEmpty() || dataB64.isEmpty())
+            continue;
+
+        juce::MemoryOutputStream decoded;
+        if (!juce::Base64::convertFromBase64(decoded, dataB64) || decoded.getDataSize() == 0)
+        {
+            errorOut = "Could not decode embedded resource: " + name;
+            return false;
+        }
+
+        const auto hash = resource.getProperty("hash").toString();
+        auto targetDir = kind == "ir" ? irsDir : modelsDir;
+        juce::String fileName = name;
+        if (hash.isNotEmpty())
+            fileName = hash.substring(0, 12) + "_" + name;
+
+        auto target = targetDir.getChildFile(fileName);
+        if (!target.existsAsFile())
+        {
+            if (!target.replaceWithData(decoded.getData(), decoded.getDataSize()))
+            {
+                errorOut = "Could not write imported resource: " + name;
+                return false;
+            }
+        }
+
+        if (kind == "nam")
+            presetTree.setProperty(namPathAttribute, target.getFullPathName(), nullptr);
+        else if (kind == "ir")
+            presetTree.setProperty(irPathAttribute, target.getFullPathName(), nullptr);
+    }
+
+    // Drop bulky payloads after extraction so local preset files stay small.
+    presetTree.removeChild(resourcesTree, nullptr);
+    return true;
+}
+
 bool PresetManager::importPreset(
     const juce::File& sourceFile,
     juce::String& errorOut,
@@ -343,6 +509,9 @@ bool PresetManager::importPreset(
         errorOut = "Not a LumenDSP preset file.";
         return false;
     }
+
+    if (!extractEmbeddedResources(presetTree, errorOut))
+        return false;
 
     auto name = sanitizePresetName(presetTree.getProperty(nameAttribute).toString());
     if (name.isEmpty())

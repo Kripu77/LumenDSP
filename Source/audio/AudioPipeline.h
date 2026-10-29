@@ -3,6 +3,7 @@
 #include <JuceHeader.h>
 #include "audio/Compressor.h"
 #include "audio/Delay.h"
+#include "audio/DemoPlayer.h"
 #include "audio/Drive.h"
 #include "audio/IrConvolver.h"
 #include "audio/LevelMeter.h"
@@ -12,6 +13,8 @@
 #include "audio/ReverbFx.h"
 #include "audio/ThreeBandEq.h"
 #include "audio/Tuner.h"
+#include <atomic>
+#include <chrono>
 
 namespace lumen::audio
 {
@@ -19,6 +22,7 @@ namespace lumen::audio
 struct PipelineControlState
 {
     float inputGainDb = 0.0f;
+    float calibrationGainDb = 0.0f;
     float outputLevelDb = 0.0f;
     float noiseGateThresholdDb = -80.0f;
     bool noiseGateEnabled = true;
@@ -27,6 +31,8 @@ struct PipelineControlState
     float trebleGainDb = 0.0f;
     bool eqEnabled = true;
     bool cabEnabled = true;
+    float ampMix = 1.0f;
+    float cabMix = 1.0f;
     bool metronomeEnabled = false;
     float metronomeBpm = 120.0f;
     float metronomeVolume = 0.35f;
@@ -56,6 +62,13 @@ struct PipelineControlState
     float reverbMix = 0.18f;
 };
 
+struct PipelineDiagnostics
+{
+    float cpuLoadPercent = 0.0f;
+    bool hotInput = false;
+    bool hotOutput = false;
+};
+
 class AudioPipeline
 {
 public:
@@ -70,6 +83,7 @@ public:
     LevelMeter& getOutputMeter() noexcept;
     Tuner& getTuner() noexcept;
     Metronome& getMetronome() noexcept;
+    DemoPlayer& getDemoPlayer() noexcept;
 
     const NamEngine& getNamEngine() const noexcept;
     const IrConvolver& getIrConvolver() const noexcept;
@@ -77,9 +91,14 @@ public:
     const LevelMeter& getOutputMeter() const noexcept;
     const Tuner& getTuner() const noexcept;
     const Metronome& getMetronome() const noexcept;
+    const DemoPlayer& getDemoPlayer() const noexcept;
+
+    PipelineDiagnostics getDiagnostics() const noexcept;
 
 private:
     static constexpr int monoMeterChannelIndex = 0;
+    static constexpr float hotInputThresholdDb = -3.0f;
+    static constexpr float hotOutputThresholdDb = -1.0f;
 
     void applyInputGain(juce::AudioBuffer<float>& buffer, float gainDb);
     void applyOutputLevel(juce::AudioBuffer<float>& buffer, float levelDb);
@@ -96,9 +115,17 @@ private:
     LevelMeter outputMeter;
     Tuner tuner;
     Metronome metronome;
+    DemoPlayer demoPlayer;
 
     PipelineControlState controls{};
     bool prepared = false;
+    double currentSampleRate = 44100.0;
+    int currentBlockSize = 512;
+
+    std::atomic<float> cpuLoadPercent{0.0f};
+    std::atomic<bool> hotInput{false};
+    std::atomic<bool> hotOutput{false};
+    float cpuLoadSmoothed = 0.0f;
 };
 
 } // namespace lumen::audio

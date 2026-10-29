@@ -14,6 +14,8 @@ inline constexpr const char* midGainId = "midGain";
 inline constexpr const char* trebleGainId = "trebleGain";
 inline constexpr const char* eqEnabledId = "eqEnabled";
 inline constexpr const char* cabEnabledId = "cabEnabled";
+inline constexpr const char* ampMixId = "ampMix";
+inline constexpr const char* cabMixId = "cabMix";
 inline constexpr const char* metronomeEnabledId = "metronomeEnabled";
 inline constexpr const char* metronomeBpmId = "metronomeBpm";
 inline constexpr const char* metronomeVolumeId = "metronomeVolume";
@@ -64,6 +66,8 @@ inline constexpr float eqGainDefaultDb = 0.0f;
 inline constexpr bool noiseGateEnabledDefault = true;
 inline constexpr bool eqEnabledDefault = true;
 inline constexpr bool cabEnabledDefault = true;
+inline constexpr float ampMixDefault = 1.0f;
+inline constexpr float cabMixDefault = 1.0f;
 inline constexpr bool metronomeEnabledDefault = false;
 inline constexpr bool compressorEnabledDefault = false;
 inline constexpr bool driveEnabledDefault = false;
@@ -183,6 +187,8 @@ inline juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout
     detail::addFloat(parameters, trebleGainId, "Treble", ranges::eqGainMinimumDb, ranges::eqGainMaximumDb, ranges::eqGainDefaultDb, 0.1f, "dB");
     detail::addBool(parameters, eqEnabledId, "EQ On", ranges::eqEnabledDefault);
     detail::addBool(parameters, cabEnabledId, "Cab On", ranges::cabEnabledDefault);
+    detail::addFloat(parameters, ampMixId, "Amp Mix", ranges::unitMinimum, ranges::unitMaximum, ranges::ampMixDefault, 0.01f);
+    detail::addFloat(parameters, cabMixId, "Cab Mix", ranges::unitMinimum, ranges::unitMaximum, ranges::cabMixDefault, 0.01f);
 
     detail::addBool(parameters, delayEnabledId, "Delay On", ranges::delayEnabledDefault);
     detail::addBool(parameters, delaySyncId, "Delay Sync", ranges::delaySyncDefault);

@@ -9,6 +9,7 @@ LumenDSPAudioProcessor::LumenDSPAudioProcessor()
     , apvts(*this, nullptr, "PARAMETERS", lumen::parameters::createParameterLayout())
     , presetManager(apvts)
 {
+    configureDemoClips();
     bootstrapFactoryExperience();
 }
 
@@ -25,6 +26,7 @@ void LumenDSPAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBloc
     processSpec.numChannels = static_cast<juce::uint32>(
         juce::jmax(getTotalNumInputChannels(), getTotalNumOutputChannels()));
 
+    configureDemoClips();
     audioPipeline.prepare(processSpec);
     audioPipeline.setControlState(readControlState());
 }
@@ -187,6 +189,55 @@ const lumen::presets::ResourceLibrary& LumenDSPAudioProcessor::getResourceLibrar
     return resourceLibrary;
 }
 
+lumen::presets::UserSettings& LumenDSPAudioProcessor::getUserSettings() noexcept
+{
+    return userSettings;
+}
+
+const lumen::presets::UserSettings& LumenDSPAudioProcessor::getUserSettings() const noexcept
+{
+    return userSettings;
+}
+
+void LumenDSPAudioProcessor::configureDemoClips()
+{
+    audioPipeline.getDemoPlayer().setClipDirectory(findBundledDemoDirectory());
+}
+
+juce::File LumenDSPAudioProcessor::findBundledDemoDirectory() const
+{
+    const auto executable = juce::File::getSpecialLocation(juce::File::currentExecutableFile);
+
+#if JUCE_MAC
+    const auto bundleDemo = executable.getParentDirectory()
+                                .getParentDirectory()
+                                .getChildFile("Resources")
+                                .getChildFile("FactoryContent")
+                                .getChildFile("Demo");
+    if (bundleDemo.isDirectory())
+        return bundleDemo;
+#endif
+
+    const auto beside = executable.getParentDirectory()
+                            .getChildFile("FactoryContent")
+                            .getChildFile("Demo");
+    if (beside.isDirectory())
+        return beside;
+
+    const auto cwd = juce::File::getCurrentWorkingDirectory()
+                         .getChildFile("Resources")
+                         .getChildFile("FactoryContent")
+                         .getChildFile("Demo");
+    if (cwd.isDirectory())
+        return cwd;
+
+    return juce::File::getCurrentWorkingDirectory()
+        .getChildFile("..")
+        .getChildFile("Resources")
+        .getChildFile("FactoryContent")
+        .getChildFile("Demo");
+}
+
 void LumenDSPAudioProcessor::requestNamLoad(const juce::File& modelFile)
 {
     backgroundLoadPool.addJob([this, modelFile]() {
@@ -309,6 +360,7 @@ lumen::audio::PipelineControlState LumenDSPAudioProcessor::readControlState() co
 
     lumen::audio::PipelineControlState controlState;
     controlState.inputGainDb = readFloat(lumen::parameters::inputGainId);
+    controlState.calibrationGainDb = userSettings.getActiveCalibrationGainDb();
     controlState.outputLevelDb = readFloat(lumen::parameters::outputLevelId);
     controlState.noiseGateThresholdDb = readFloat(lumen::parameters::noiseGateThresholdId);
     controlState.noiseGateEnabled = readBool(lumen::parameters::noiseGateEnabledId);
@@ -317,6 +369,8 @@ lumen::audio::PipelineControlState LumenDSPAudioProcessor::readControlState() co
     controlState.trebleGainDb = readFloat(lumen::parameters::trebleGainId);
     controlState.eqEnabled = readBool(lumen::parameters::eqEnabledId);
     controlState.cabEnabled = readBool(lumen::parameters::cabEnabledId);
+    controlState.ampMix = readFloat(lumen::parameters::ampMixId);
+    controlState.cabMix = readFloat(lumen::parameters::cabMixId);
     controlState.metronomeEnabled = readBool(lumen::parameters::metronomeEnabledId);
     controlState.metronomeBpm = readFloat(lumen::parameters::metronomeBpmId);
     controlState.metronomeVolume = readFloat(lumen::parameters::metronomeVolumeId);

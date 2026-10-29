@@ -46,7 +46,12 @@ public:
     bool deletePreset(const juce::String& presetName);
     bool renamePreset(const juce::String& oldName, const juce::String& newName);
     bool toggleFavorite(const juce::String& presetName);
+
     bool exportPreset(const juce::String& presetName, const juce::File& destinationFile) const;
+    bool exportPresetPack(
+        const juce::String& presetName,
+        const juce::File& destinationFile,
+        juce::String& errorOut) const;
     bool importPreset(const juce::File& sourceFile, juce::String& errorOut, juce::String* importedNameOut = nullptr);
 
     juce::String getCurrentPresetName() const;
@@ -54,6 +59,7 @@ public:
 
 private:
     static constexpr const char* presetFileExtension = ".lumenpreset";
+    static constexpr const char* packFileExtension = ".lumenpack";
     static constexpr const char* applicationFolderName = "LumenDSP";
     static constexpr const char* presetsFolderName = "Presets";
     static constexpr const char* favoritesFileName = "preset-favorites.json";
@@ -64,6 +70,8 @@ private:
     static constexpr const char* namPathAttribute = "namModelPath";
     static constexpr const char* irPathAttribute = "irPath";
     static constexpr const char* parametersChildTag = "Parameters";
+    static constexpr const char* embeddedResourcesTag = "EmbeddedResources";
+    static constexpr const char* resourceTag = "Resource";
 
     juce::File resolvePresetFile(const juce::String& presetName) const;
     juce::String sanitizePresetName(const juce::String& presetName) const;
@@ -73,6 +81,15 @@ private:
     static juce::String tagsToString(const juce::StringArray& tags);
     static juce::StringArray tagsFromString(const juce::String& tags);
     static juce::String inferCategory(const juce::String& presetName);
+
+    static bool embedFileResource(
+        juce::ValueTree& resourcesTree,
+        const juce::String& kind,
+        const juce::File& file,
+        juce::String& errorOut);
+    static bool extractEmbeddedResources(
+        juce::ValueTree& presetTree,
+        juce::String& errorOut);
 
     juce::AudioProcessorValueTreeState& apvts;
     juce::String currentPresetName;

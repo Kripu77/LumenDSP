@@ -42,6 +42,7 @@ void NamEngine::prepare(double sampleRateHertz, int maximumBlockSizeSamples)
 
     inputScratch.assign(static_cast<size_t>(currentMaximumBlockSizeSamples), static_cast<NAM_SAMPLE>(0));
     outputScratch.assign(static_cast<size_t>(currentMaximumBlockSizeSamples), static_cast<NAM_SAMPLE>(0));
+    dryScratch.assign(static_cast<size_t>(currentMaximumBlockSizeSamples), 0.0f);
     inputPointers[monoChannelIndex] = inputScratch.data();
     outputPointers[monoChannelIndex] = outputScratch.data();
 
@@ -138,6 +139,11 @@ void NamEngine::clearModel()
     modelLoaded.store(false, std::memory_order_relaxed);
 }
 
+void NamEngine::setMix(float wetAmount)
+{
+    mixWet.store(juce::jlimit(0.0f, 1.0f, wetAmount), std::memory_order_relaxed);
+}
+
 void NamEngine::process(juce::AudioBuffer<float>& buffer)
 {
     if (!prepared.load(std::memory_order_acquire))
@@ -166,8 +172,23 @@ void NamEngine::process(juce::AudioBuffer<float>& buffer)
         || static_cast<int>(outputScratch.size()) < sampleCount)
         return;
 
+    const float wet = mixWet.load(std::memory_order_relaxed);
+    const float dry = 1.0f - wet;
+
     float* monoChannel = buffer.getWritePointer(monoChannelIndex);
+    if (dry > 1.0e-5f && static_cast<int>(dryScratch.size()) >= sampleCount)
+    {
+        for (int i = 0; i < sampleCount; ++i)
+            dryScratch[static_cast<size_t>(i)] = monoChannel[i];
+    }
+
     processMonoThroughModel(*modelForThisBlock, monoChannel, sampleCount);
+
+    if (dry > 1.0e-5f && static_cast<int>(dryScratch.size()) >= sampleCount)
+    {
+        for (int i = 0; i < sampleCount; ++i)
+            monoChannel[i] = dry * dryScratch[static_cast<size_t>(i)] + wet * monoChannel[i];
+    }
 
     for (int channelIndex = 1; channelIndex < channelCount; ++channelIndex)
         buffer.copyFrom(channelIndex, 0, monoChannel, sampleCount);

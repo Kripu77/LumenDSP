@@ -110,6 +110,12 @@ void ResourceLibrary::refresh()
         "*.nam",
         models);
     scanDirectory(getUserModelsDirectory(), "nam", "user", "*.nam", models);
+    scanDirectory(
+        getLibraryRoot().getChildFile("Imported").getChildFile(modelsFolderName),
+        "nam",
+        "imported",
+        "*.nam",
+        models);
 
     scanDirectory(
         FactoryContentInstaller::getUserIrsDirectory(),
@@ -118,6 +124,12 @@ void ResourceLibrary::refresh()
         "*.wav",
         irs);
     scanDirectory(getUserIrsDirectory(), "ir", "user", "*.wav", irs);
+    scanDirectory(
+        getLibraryRoot().getChildFile("Imported").getChildFile(irsFolderName),
+        "ir",
+        "imported",
+        "*.wav",
+        irs);
 
     auto byFavoriteThenName = [](const ResourceEntry& a, const ResourceEntry& b) {
         if (a.favorite != b.favorite)

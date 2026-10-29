@@ -6,6 +6,7 @@
 #include "presets/FactoryContentInstaller.h"
 #include "presets/PresetManager.h"
 #include "presets/ResourceLibrary.h"
+#include "presets/UserSettings.h"
 
 class LumenDSPAudioProcessor : public juce::AudioProcessor
 {
@@ -41,6 +42,8 @@ public:
     lumen::presets::PresetManager& getPresetManager() noexcept;
     lumen::presets::ResourceLibrary& getResourceLibrary() noexcept;
     const lumen::presets::ResourceLibrary& getResourceLibrary() const noexcept;
+    lumen::presets::UserSettings& getUserSettings() noexcept;
+    const lumen::presets::UserSettings& getUserSettings() const noexcept;
 
     void requestNamLoad(const juce::File& modelFile);
     void requestIrLoad(const juce::File& irFile);
@@ -53,6 +56,8 @@ public:
     juce::String getFactoryStatusMessage() const;
     juce::String getDefaultPresetName() const;
 
+    void configureDemoClips();
+
 private:
     static constexpr int defaultInputChannelCount = 2;
     static constexpr int defaultOutputChannelCount = 2;
@@ -63,6 +68,7 @@ private:
 
     lumen::audio::PipelineControlState readControlState() const;
     void restoreAttachedFilesFromState(const juce::ValueTree& stateTree);
+    juce::File findBundledDemoDirectory() const;
 
     void bootstrapFactoryExperience();
 
@@ -70,6 +76,7 @@ private:
     lumen::audio::AudioPipeline audioPipeline;
     lumen::presets::PresetManager presetManager;
     lumen::presets::ResourceLibrary resourceLibrary;
+    lumen::presets::UserSettings userSettings;
     juce::ThreadPool backgroundLoadPool{1};
     juce::String factoryStatusMessage;
     juce::String defaultPresetName{"01 Glass Clean"};

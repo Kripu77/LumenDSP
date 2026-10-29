@@ -21,6 +21,7 @@ public:
     void reset();
     bool loadModelAsync(const juce::File& modelFile);
     void clearModel();
+    void setMix(float wetAmount);
     void process(juce::AudioBuffer<float>& buffer);
 
     bool isModelLoaded() const noexcept;
@@ -49,6 +50,7 @@ private:
 
     std::vector<NAM_SAMPLE> inputScratch;
     std::vector<NAM_SAMPLE> outputScratch;
+    std::vector<float> dryScratch;
     NAM_SAMPLE* inputPointers[monoChannelCount]{};
     NAM_SAMPLE* outputPointers[monoChannelCount]{};
 
@@ -63,6 +65,7 @@ private:
     std::atomic<bool> modelLoaded{false};
     std::atomic<bool> modelLoading{false};
     std::atomic<bool> prepared{false};
+    std::atomic<float> mixWet{1.0f};
 };
 
 } // namespace lumen::audio

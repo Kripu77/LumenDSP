@@ -17,6 +17,12 @@ void IrConvolver::prepare(const juce::dsp::ProcessSpec& processSpec)
         false,
         true,
         true);
+    dryScratchBuffer.setSize(
+        static_cast<int>(processSpec.numChannels),
+        static_cast<int>(processSpec.maximumBlockSize),
+        false,
+        true,
+        true);
     prepared = true;
     reset();
 }
@@ -29,6 +35,11 @@ void IrConvolver::reset()
 void IrConvolver::setEnabled(bool shouldEnable)
 {
     enabled.store(shouldEnable, std::memory_order_relaxed);
+}
+
+void IrConvolver::setMix(float wetAmount)
+{
+    mixWet.store(juce::jlimit(0.0f, 1.0f, wetAmount), std::memory_order_relaxed);
 }
 
 bool IrConvolver::loadImpulseResponseAsync(const juce::File& impulseResponseFile)
@@ -85,9 +96,35 @@ void IrConvolver::process(juce::AudioBuffer<float>& buffer)
     if (!enabled.load(std::memory_order_relaxed) || !loaded.load(std::memory_order_relaxed) || !prepared)
         return;
 
+    const float wet = mixWet.load(std::memory_order_relaxed);
+    const float dry = 1.0f - wet;
+    const int channels = buffer.getNumChannels();
+    const int samples = buffer.getNumSamples();
+
+    if (dry > 1.0e-5f
+        && dryScratchBuffer.getNumChannels() >= channels
+        && dryScratchBuffer.getNumSamples() >= samples)
+    {
+        for (int ch = 0; ch < channels; ++ch)
+            dryScratchBuffer.copyFrom(ch, 0, buffer, ch, 0, samples);
+    }
+
     juce::dsp::AudioBlock<float> audioBlock(buffer);
     juce::dsp::ProcessContextReplacing<float> context(audioBlock);
     convolution.process(context);
+
+    if (dry > 1.0e-5f
+        && dryScratchBuffer.getNumChannels() >= channels
+        && dryScratchBuffer.getNumSamples() >= samples)
+    {
+        for (int ch = 0; ch < channels; ++ch)
+        {
+            auto* wetData = buffer.getWritePointer(ch);
+            const auto* dryData = dryScratchBuffer.getReadPointer(ch);
+            for (int i = 0; i < samples; ++i)
+                wetData[i] = dry * dryData[i] + wet * wetData[i];
+        }
+    }
 }
 
 bool IrConvolver::isLoaded() const noexcept

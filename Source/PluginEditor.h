@@ -27,6 +27,8 @@ public:
     void pushPracticeToWeb();
     void pushLibraryToWeb();
     void pushPresetsToWeb();
+    void pushSettingsToWeb();
+    void pushDemoToWeb();
 
 private:
     void timerCallback() override;
@@ -34,6 +36,8 @@ private:
     juce::var buildStateObject() const;
     juce::var buildLibraryObject() const;
     juce::var buildPresetsObject() const;
+    juce::var buildSettingsObject() const;
+    juce::var buildDemoObject() const;
     juce::File getWebResourceRoot() const;
     std::optional<juce::WebBrowserComponent::Resource> getResource(const juce::String& url);
     juce::String getMimeForExtension(const juce::String& extension) const;
@@ -42,6 +46,7 @@ private:
     void handleBrowseIr();
     void handleImportResource(const juce::String& kind);
     void handleOpenAudioSettings();
+    void handleExportPresetPack(const juce::String& name);
     float readParameter(const juce::String& parameterId) const;
 
     void ensureStandaloneInputUnmuted();
@@ -55,6 +60,8 @@ private:
     bool lastModelLoaded = false;
     juce::String lastModelName;
     juce::String lastStatus;
+    bool lastDemoPlaying = false;
+    juce::String lastDemoClipId;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(LumenDSPAudioProcessorEditor)
 };

@@ -147,6 +147,20 @@ void LumenDSPAudioProcessorEditor::timerCallback()
 
     pushMetersToWeb();
     pushPracticeToWeb();
+
+    // Only refresh demo state when play/clip actually changes (rebuilding the
+    // <select> on a timer closed the dropdown and made clips unselectable).
+    {
+        const auto& demo = audioProcessor.getAudioPipeline().getDemoPlayer();
+        const bool playing = demo.isPlaying();
+        const auto clipId = demo.getActiveClipId();
+        if (playing != lastDemoPlaying || clipId != lastDemoClipId)
+        {
+            lastDemoPlaying = playing;
+            lastDemoClipId = clipId;
+            pushDemoToWeb();
+        }
+    }
 }
 
 void LumenDSPAudioProcessorEditor::ensureStandaloneInputUnmuted()
@@ -175,9 +189,12 @@ void LumenDSPAudioProcessorEditor::handleWebMessage(const juce::String& message)
     if (type == "ready")
     {
         webReady = true;
+        audioProcessor.configureDemoClips();
         pushStateToWeb();
         pushLibraryToWeb();
         pushPresetsToWeb();
+        pushSettingsToWeb();
+        pushDemoToWeb();
         return;
     }
 
@@ -254,12 +271,18 @@ void LumenDSPAudioProcessorEditor::handleWebMessage(const juce::String& message)
         return;
     }
 
+    if (type == "exportPresetPack")
+    {
+        handleExportPresetPack(parsed.getProperty("name", {}).toString());
+        return;
+    }
+
     if (type == "importPreset")
     {
         fileChooser = std::make_unique<juce::FileChooser>(
-            "Import preset",
+            "Import preset or pack",
             juce::File{},
-            "*.lumenpreset");
+            "*.lumenpreset;*.lumenpack");
         constexpr auto flags =
             juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles;
         fileChooser->launchAsync(flags, [this](const juce::FileChooser& chooser) {
@@ -278,12 +301,112 @@ void LumenDSPAudioProcessorEditor::handleWebMessage(const juce::String& message)
                 return;
             }
 
+            audioProcessor.getResourceLibrary().refresh();
+            pushLibraryToWeb();
             pushStateToWeb();
             pushPresetsToWeb();
             if (importedName.isNotEmpty())
                 audioProcessor.applyPreset(importedName);
             pushStateToWeb();
+
+            auto* status = new juce::DynamicObject();
+            status->setProperty("type", "status");
+            status->setProperty("message", "Imported " + importedName);
+            emitToWeb(juce::var(status));
         });
+        return;
+    }
+
+    if (type == "demoPlay" || type == "demoToggle")
+    {
+        auto& demo = audioProcessor.getAudioPipeline().getDemoPlayer();
+        audioProcessor.configureDemoClips();
+        const auto clipId = parsed.getProperty("clipId", {}).toString();
+        if (clipId.isNotEmpty())
+            demo.selectClip(clipId);
+
+        if (type == "demoToggle")
+            demo.toggle();
+        else
+            demo.start();
+
+        lastDemoPlaying = demo.isPlaying();
+        lastDemoClipId = demo.getActiveClipId();
+        pushDemoToWeb();
+
+        auto* status = new juce::DynamicObject();
+        status->setProperty("type", "status");
+        status->setProperty(
+            "message",
+            demo.isPlaying()
+                ? ("Demo: " + demo.getActiveClipName())
+                : juce::String("Demo stopped"));
+        emitToWeb(juce::var(status));
+        return;
+    }
+
+    if (type == "demoStop")
+    {
+        audioProcessor.getAudioPipeline().getDemoPlayer().stop();
+        lastDemoPlaying = false;
+        pushDemoToWeb();
+        auto* status = new juce::DynamicObject();
+        status->setProperty("type", "status");
+        status->setProperty("message", "Demo stopped");
+        emitToWeb(juce::var(status));
+        return;
+    }
+
+    if (type == "demoSelect")
+    {
+        auto& demo = audioProcessor.getAudioPipeline().getDemoPlayer();
+        audioProcessor.configureDemoClips();
+        const auto wasPlaying = demo.isPlaying();
+        demo.selectClip(parsed.getProperty("clipId", {}).toString());
+        if (wasPlaying)
+            demo.start();
+        lastDemoPlaying = demo.isPlaying();
+        lastDemoClipId = demo.getActiveClipId();
+        pushDemoToWeb();
+        return;
+    }
+
+    if (type == "setCalibration")
+    {
+        audioProcessor.getUserSettings().setActiveCalibration(
+            parsed.getProperty("id", {}).toString());
+        pushSettingsToWeb();
+        return;
+    }
+
+    if (type == "saveCalibration")
+    {
+        audioProcessor.getUserSettings().upsertCalibrationProfile(
+            parsed.getProperty("name", {}).toString(),
+            static_cast<float>(static_cast<double>(parsed.getProperty("gainDb", 0.0))));
+        pushSettingsToWeb();
+        return;
+    }
+
+    if (type == "setCalibrationGain")
+    {
+        audioProcessor.getUserSettings().setActiveCalibrationGainDb(
+            static_cast<float>(static_cast<double>(parsed.getProperty("gainDb", 0.0))));
+        pushSettingsToWeb();
+        return;
+    }
+
+    if (type == "deleteCalibration")
+    {
+        audioProcessor.getUserSettings().deleteCalibrationProfile(
+            parsed.getProperty("id", {}).toString());
+        pushSettingsToWeb();
+        return;
+    }
+
+    if (type == "refreshSettings")
+    {
+        pushSettingsToWeb();
         return;
     }
 
@@ -340,6 +463,38 @@ void LumenDSPAudioProcessorEditor::handleWebMessage(const juce::String& message)
         handleOpenAudioSettings();
 }
 
+void LumenDSPAudioProcessorEditor::handleExportPresetPack(const juce::String& name)
+{
+    fileChooser = std::make_unique<juce::FileChooser>(
+        "Export portable preset pack",
+        juce::File{},
+        "*.lumenpack");
+    constexpr auto flags =
+        juce::FileBrowserComponent::saveMode | juce::FileBrowserComponent::canSelectFiles;
+    fileChooser->launchAsync(flags, [this, name](const juce::FileChooser& chooser) {
+        auto dest = chooser.getResult();
+        if (dest.getFullPathName().isEmpty())
+            return;
+        if (!dest.hasFileExtension(".lumenpack"))
+            dest = dest.withFileExtension(".lumenpack");
+
+        juce::String error;
+        if (!audioProcessor.getPresetManager().exportPresetPack(name, dest, error))
+        {
+            auto* status = new juce::DynamicObject();
+            status->setProperty("type", "status");
+            status->setProperty("message", error.isNotEmpty() ? error : "Export pack failed");
+            emitToWeb(juce::var(status));
+            return;
+        }
+
+        auto* status = new juce::DynamicObject();
+        status->setProperty("type", "status");
+        status->setProperty("message", "Exported pack: " + dest.getFileName());
+        emitToWeb(juce::var(status));
+    });
+}
+
 void LumenDSPAudioProcessorEditor::pushStateToWeb()
 {
     emitToWeb(buildStateObject());
@@ -347,13 +502,82 @@ void LumenDSPAudioProcessorEditor::pushStateToWeb()
 
 void LumenDSPAudioProcessorEditor::pushMetersToWeb()
 {
+    const auto diagnostics = audioProcessor.getAudioPipeline().getDiagnostics();
     auto* object = new juce::DynamicObject();
     object->setProperty("type", "meters");
     object->setProperty("inputDb", audioProcessor.getAudioPipeline().getInputMeter().getPeakLevelDb());
     object->setProperty("inputHoldDb", audioProcessor.getAudioPipeline().getInputMeter().getPeakHoldLevelDb());
     object->setProperty("outputDb", audioProcessor.getAudioPipeline().getOutputMeter().getPeakLevelDb());
     object->setProperty("outputHoldDb", audioProcessor.getAudioPipeline().getOutputMeter().getPeakHoldLevelDb());
+    object->setProperty("cpuPercent", diagnostics.cpuLoadPercent);
+    object->setProperty("hotInput", diagnostics.hotInput);
+    object->setProperty("hotOutput", diagnostics.hotOutput);
     emitToWeb(juce::var(object));
+}
+
+void LumenDSPAudioProcessorEditor::pushSettingsToWeb()
+{
+    emitToWeb(buildSettingsObject());
+}
+
+void LumenDSPAudioProcessorEditor::pushDemoToWeb()
+{
+    emitToWeb(buildDemoObject());
+}
+
+juce::var LumenDSPAudioProcessorEditor::buildSettingsObject() const
+{
+    auto* object = new juce::DynamicObject();
+    object->setProperty("type", "settings");
+
+    const auto& settings = audioProcessor.getUserSettings();
+    object->setProperty("activeCalibrationId", settings.getActiveCalibrationId());
+    object->setProperty("activeCalibrationName", settings.getActiveCalibrationName());
+    object->setProperty("activeCalibrationGainDb", settings.getActiveCalibrationGainDb());
+
+    juce::Array<juce::var> profiles;
+    for (const auto& profile : settings.getCalibrationProfiles())
+    {
+        auto* item = new juce::DynamicObject();
+        item->setProperty("id", profile.id);
+        item->setProperty("name", profile.name);
+        item->setProperty("gainDb", profile.gainDb);
+        profiles.add(juce::var(item));
+    }
+    object->setProperty("calibrationProfiles", profiles);
+    return juce::var(object);
+}
+
+juce::var LumenDSPAudioProcessorEditor::buildDemoObject() const
+{
+    const auto& demo = audioProcessor.getAudioPipeline().getDemoPlayer();
+    auto* object = new juce::DynamicObject();
+    object->setProperty("type", "demo");
+    object->setProperty("playing", demo.isPlaying());
+    object->setProperty("activeClipId", demo.getActiveClipId());
+    object->setProperty("activeClipName", demo.getActiveClipName());
+    object->setProperty("hasAudio", demo.hasAudio());
+
+    juce::Array<juce::var> clips;
+    for (const auto& clip : demo.getClips())
+    {
+        auto* item = new juce::DynamicObject();
+        item->setProperty("id", clip.id);
+        item->setProperty("name", clip.name);
+        clips.add(juce::var(item));
+    }
+
+    // Guarantee the UI always has something to show/select.
+    if (clips.isEmpty())
+    {
+        auto* item = new juce::DynamicObject();
+        item->setProperty("id", "fallback");
+        item->setProperty("name", "Built-in DI");
+        clips.add(juce::var(item));
+    }
+
+    object->setProperty("clips", clips);
+    return juce::var(object);
 }
 
 void LumenDSPAudioProcessorEditor::pushLibraryToWeb()
@@ -472,6 +696,8 @@ juce::var LumenDSPAudioProcessorEditor::buildStateObject() const
     putFloat("trebleGain", lumen::parameters::trebleGainId);
     putBool("eqEnabled", lumen::parameters::eqEnabledId);
     putBool("cabEnabled", lumen::parameters::cabEnabledId);
+    putFloat("ampMix", lumen::parameters::ampMixId);
+    putFloat("cabMix", lumen::parameters::cabMixId);
     putBool("metronomeEnabled", lumen::parameters::metronomeEnabledId);
     putFloat("metronomeBpm", lumen::parameters::metronomeBpmId);
     putFloat("metronomeVolume", lumen::parameters::metronomeVolumeId);
