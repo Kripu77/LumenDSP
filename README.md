@@ -7,16 +7,16 @@
 <!-- BEGIN_LATEST_RELEASE -->
 ## Download
 
-[![Release v0.2.0](https://img.shields.io/badge/release-v0.2.0-5ec8ff?style=flat-square&logo=github)](https://github.com/Kripu77/LumenDSP/releases/tag/v0.2.0)
+[![Release v0.3.0](https://img.shields.io/badge/release-v0.3.0-5ec8ff?style=flat-square&logo=github)](https://github.com/Kripu77/LumenDSP/releases/tag/v0.3.0)
 
-**Current release: [`v0.2.0`](https://github.com/Kripu77/LumenDSP/releases/tag/v0.2.0)**
+**Current release: [`v0.3.0`](https://github.com/Kripu77/LumenDSP/releases/tag/v0.3.0)**
 
 | Platform | Download |
 |----------|----------|
-| **macOS** (Apple Silicon) | [**LumenDSP-macos-arm64.zip**](https://github.com/Kripu77/LumenDSP/releases/download/v0.2.0/LumenDSP-macos-arm64.zip) |
-| **Windows** (x64) | [**LumenDSP-windows-x64.zip**](https://github.com/Kripu77/LumenDSP/releases/download/v0.2.0/LumenDSP-windows-x64.zip) |
+| **macOS** (Apple Silicon) | [**LumenDSP-macos-arm64.zip**](https://github.com/Kripu77/LumenDSP/releases/download/v0.3.0/LumenDSP-macos-arm64.zip) |
+| **Windows** (x64) | [**LumenDSP-windows-x64.zip**](https://github.com/Kripu77/LumenDSP/releases/download/v0.3.0/LumenDSP-windows-x64.zip) |
 
-Versioned filenames: [macOS v0.2.0](https://github.com/Kripu77/LumenDSP/releases/download/v0.2.0/LumenDSP-v0.2.0-macos-arm64.zip) · [Windows v0.2.0](https://github.com/Kripu77/LumenDSP/releases/download/v0.2.0/LumenDSP-v0.2.0-windows-x64.zip)
+Versioned filenames: [macOS v0.3.0](https://github.com/Kripu77/LumenDSP/releases/download/v0.3.0/LumenDSP-v0.3.0-macos-arm64.zip) · [Windows v0.3.0](https://github.com/Kripu77/LumenDSP/releases/download/v0.3.0/LumenDSP-v0.3.0-windows-x64.zip)
 
 Always-latest redirect (after this release is published): [all releases](https://github.com/Kripu77/LumenDSP/releases/latest)
 
