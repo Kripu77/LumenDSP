@@ -20,6 +20,10 @@
     delayTime: { min: 1, max: 1000, unit: "ms", decimals: 0 },
     delayFeedback: { min: 0, max: 1, unit: "%", decimals: 0, asPercent: true },
     delayMix: { min: 0, max: 1, unit: "%", decimals: 0, asPercent: true },
+    delayTone: { min: 0, max: 1, unit: "%", decimals: 0, asPercent: true },
+    delayModulation: { min: 0, max: 1, unit: "%", decimals: 0, asPercent: true },
+    delaySaturation: { min: 0, max: 1, unit: "%", decimals: 0, asPercent: true },
+    doublerSpread: { min: 3, max: 20, unit: "ms", decimals: 1 },
     reverbSize: { min: 0, max: 1, unit: "%", decimals: 0, asPercent: true },
     reverbDamping: { min: 0, max: 1, unit: "%", decimals: 0, asPercent: true },
     reverbMix: { min: 0, max: 1, unit: "%", decimals: 0, asPercent: true },
@@ -68,6 +72,12 @@
       delayTime: 380,
       delayFeedback: 0.25,
       delayMix: 0.2,
+      delayTone: 0.5,
+      delayModulation: 0.3,
+      delaySaturation: 0.2,
+      delayPingPong: false,
+      doublerEnabled: false,
+      doublerSpread: 6,
       reverbEnabled: false,
       reverbCharacter: 0,
       reverbSize: 0.4,
@@ -254,7 +264,8 @@
 
   function delayReadout() {
     const p = state.parameters;
-    return p.delaySync ? DELAY_DIVISIONS[Math.round(p.delayDivision) || 0] : `${Math.round(p.delayTime)} ms`;
+    const time = p.delaySync ? DELAY_DIVISIONS[Math.round(p.delayDivision) || 0] : `${Math.round(p.delayTime)} ms`;
+    return p.delayPingPong ? `${time} ↔` : time;
   }
 
   function stepPreset(delta) {
@@ -293,6 +304,8 @@
     setToggle("driveEnabled", state.parameters.driveEnabled);
     setToggle("delayEnabled", state.parameters.delayEnabled);
     setToggle("delaySync", state.parameters.delaySync);
+    setToggle("delayPingPong", state.parameters.delayPingPong);
+    setToggle("doublerEnabled", state.parameters.doublerEnabled);
     setToggle("reverbEnabled", state.parameters.reverbEnabled);
 
     syncChoiceChips("driveMode", state.parameters.driveMode);
@@ -890,6 +903,8 @@
     bindToggle("driveEnabled", "driveEnabled");
     bindToggle("delayEnabled", "delayEnabled");
     bindToggle("delaySync", "delaySync");
+    bindToggle("delayPingPong", "delayPingPong");
+    bindToggle("doublerEnabled", "doublerEnabled");
     bindToggle("reverbEnabled", "reverbEnabled");
     bindChoiceGroups();
 

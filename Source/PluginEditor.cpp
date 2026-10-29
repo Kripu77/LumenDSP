@@ -727,6 +727,12 @@ juce::var LumenDSPAudioProcessorEditor::buildStateObject() const
     putFloat("delayTime", lumen::parameters::delayTimeId);
     putFloat("delayFeedback", lumen::parameters::delayFeedbackId);
     putFloat("delayMix", lumen::parameters::delayMixId);
+    putFloat("delayTone", lumen::parameters::delayToneId);
+    putFloat("delayModulation", lumen::parameters::delayModulationId);
+    putFloat("delaySaturation", lumen::parameters::delaySaturationId);
+    putBool("delayPingPong", lumen::parameters::delayPingPongId);
+    putBool("doublerEnabled", lumen::parameters::doublerEnabledId);
+    putFloat("doublerSpread", lumen::parameters::doublerSpreadId);
 
     putBool("reverbEnabled", lumen::parameters::reverbEnabledId);
     putChoice("reverbCharacter", lumen::parameters::reverbCharacterId);

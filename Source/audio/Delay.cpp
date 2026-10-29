@@ -6,29 +6,35 @@ namespace lumen::audio
 void Delay::prepare(const juce::dsp::ProcessSpec& processSpec)
 {
     sampleRate = processSpec.sampleRate > 0.0 ? processSpec.sampleRate : 48000.0;
-    const int maxSamples = juce::jmax(
-        1,
-        static_cast<int>(sampleRate * maximumDelayMs * 0.001) + 8);
-    const int channels = juce::jmax(1, static_cast<int>(processSpec.numChannels));
-
-    delayLines.assign(
-        static_cast<size_t>(channels),
-        std::vector<float>(static_cast<size_t>(maxSamples), 0.0f));
-    writeIndex = 0;
+    line.setMaximumDelayInSamples(
+        static_cast<int>(sampleRate * (maximumDelayMs + 2.0f * maximumModulationMs) * 0.001) + 8);
+    line.prepare(processSpec);
+    toneFilter.prepare(processSpec);
+    lowCutFilter.prepare(processSpec);
+    lowCutFilter.setType(juce::dsp::FirstOrderTPTFilterType::highpass);
+    lowCutFilter.setCutoffFrequency(90.0f);
+    setTone(0.5f);
+    delaySamples.reset(sampleRate, 0.3);
     prepared = true;
     updateDelaySamples();
+    delaySamples.setCurrentAndTargetValue(delaySamples.getTargetValue());
     reset();
 }
 
 void Delay::reset()
 {
-    for (auto& line : delayLines)
-        std::fill(line.begin(), line.end(), 0.0f);
-    writeIndex = 0;
+    line.reset();
+    toneFilter.reset();
+    lowCutFilter.reset();
+    wowPhase = 0.0f;
+    flutterPhase = 0.0f;
 }
 
 void Delay::setEnabled(bool shouldEnable) noexcept
 {
+    // Clear stale repeats so re-enabling never replays old audio.
+    if (shouldEnable && !enabled)
+        reset();
     enabled = shouldEnable;
 }
 
@@ -69,6 +75,26 @@ void Delay::setMix(float mix01) noexcept
     mix = juce::jlimit(0.0f, 1.0f, mix01);
 }
 
+void Delay::setTone(float tone01) noexcept
+{
+    toneFilter.setCutoffFrequency(1500.0f * std::pow(8.0f, juce::jlimit(0.0f, 1.0f, tone01)));
+}
+
+void Delay::setModulation(float depth01) noexcept
+{
+    modulation = juce::jlimit(0.0f, 1.0f, depth01);
+}
+
+void Delay::setSaturation(float amount01) noexcept
+{
+    saturation = juce::jlimit(0.0f, 1.0f, amount01);
+}
+
+void Delay::setPingPong(bool shouldPingPong) noexcept
+{
+    pingPong = shouldPingPong;
+}
+
 float Delay::getEffectiveTimeMs() const noexcept
 {
     if (!syncEnabled)
@@ -95,35 +121,48 @@ float Delay::beatsForDivision(DelayDivision value)
 void Delay::updateDelaySamples()
 {
     const float timeMs = juce::jlimit(1.0f, maximumDelayMs, getEffectiveTimeMs());
-    delaySamples = juce::jmax(1, static_cast<int>(sampleRate * timeMs * 0.001));
-    if (!delayLines.empty())
-        delaySamples = juce::jmin(delaySamples, static_cast<int>(delayLines[0].size()) - 1);
+    delaySamples.setTargetValue(static_cast<float>(sampleRate * timeMs * 0.001));
 }
 
 void Delay::process(juce::AudioBuffer<float>& buffer)
 {
-    if (!prepared || !enabled || delayLines.empty())
+    if (!prepared || !enabled)
         return;
 
-    const int channels = juce::jmin(buffer.getNumChannels(), static_cast<int>(delayLines.size()));
-    const int samples = buffer.getNumSamples();
-    const int lineSize = static_cast<int>(delayLines[0].size());
+    const int channels = juce::jmin(buffer.getNumChannels(), 2);
+    const bool bounce = pingPong && channels == 2;
+    const float twoPi = juce::MathConstants<float>::twoPi;
+    const float wowIncrement = twoPi * 0.55f / static_cast<float>(sampleRate);
+    const float flutterIncrement = twoPi * 5.3f / static_cast<float>(sampleRate);
+    const float modulationSamples = modulation * maximumModulationMs * 0.001f * static_cast<float>(sampleRate);
+    const float drive = 1.0f + 4.0f * saturation;
 
-    for (int i = 0; i < samples; ++i)
+    for (int i = 0; i < buffer.getNumSamples(); ++i)
     {
-        const int readIndex = (writeIndex - delaySamples + lineSize) % lineSize;
+        wowPhase = std::fmod(wowPhase + wowIncrement, twoPi);
+        flutterPhase = std::fmod(flutterPhase + flutterIncrement, twoPi);
+        const float baseDelay = delaySamples.getNextValue() + modulationSamples;
+
+        float dry[2] {};
+        float wet[2] {};
+        for (int ch = 0; ch < channels; ++ch)
+        {
+            // Left and right wobble a quarter-cycle apart, which widens the repeats.
+            const float offset = static_cast<float>(ch) * juce::MathConstants<float>::halfPi;
+            const float wobble = 0.85f * std::sin(wowPhase + offset) + 0.15f * std::sin(flutterPhase + offset);
+            dry[ch] = buffer.getSample(ch, i);
+            const float repeat = line.popSample(ch, baseDelay + modulationSamples * wobble);
+            wet[ch] = lowCutFilter.processSample(ch, toneFilter.processSample(ch, repeat));
+        }
 
         for (int ch = 0; ch < channels; ++ch)
         {
-            float* dry = buffer.getWritePointer(ch);
-            auto& line = delayLines[static_cast<size_t>(ch)];
-            const float delayed = line[static_cast<size_t>(readIndex)];
-            const float input = dry[i];
-            line[static_cast<size_t>(writeIndex)] = input + delayed * feedback;
-            dry[i] = input * (1.0f - mix) + delayed * mix;
+            const float source = bounce ? wet[1 - ch] : wet[ch];
+            const float tape = std::tanh(drive * source) / drive;
+            const float input = bounce ? (ch == 0 ? 0.5f * (dry[0] + dry[1]) : 0.0f) : dry[ch];
+            line.pushSample(ch, input + feedback * tape);
+            buffer.setSample(ch, i, dry[ch] + mix * wet[ch]);
         }
-
-        writeIndex = (writeIndex + 1) % lineSize;
     }
 }
 

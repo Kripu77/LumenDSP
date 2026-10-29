@@ -66,6 +66,15 @@
         <select id="presetSelect" class="visually-hidden" aria-label="Preset" tabindex="-1"></select>
       </div>
 
+      <div class="gate">
+        <button type="button" class="switch" id="doublerEnabled" aria-pressed="false">doubler</button>
+        <div class="knob-wrap knob-sm" data-param="doublerSpread">
+          <div class="knob" id="knob-doublerSpread"></div>
+          <div class="knob-label">Spread</div>
+          <div class="knob-value" id="val-doublerSpread">6.0 ms</div>
+        </div>
+      </div>
+
       <div class="io io-out">
         <div class="knob-wrap knob-sm" data-param="outputLevel">
           <div class="knob" id="knob-outputLevel"></div>
@@ -201,9 +210,12 @@
       <section class="scene" data-scene="effects" aria-label="Effects">
         <div class="board">
           <article class="pedal pedal-wide fx-module" data-fx="delay" style="--enamel: #1f8f76; --ink: #eafff8;">
-            <div class="lcd" id="delayLcd" aria-live="polite">380 ms</div>
-            <div class="mode-row">
+            <div class="lcd-row">
               <button type="button" class="switch switch-pedal" id="delaySync" aria-pressed="false">sync</button>
+              <div class="lcd" id="delayLcd" aria-live="polite">380 ms</div>
+              <button type="button" class="switch switch-pedal" id="delayPingPong" aria-pressed="false">ping-pong</button>
+            </div>
+            <div class="mode-row">
               <div class="fx-choice division" data-choice="delayDivision" id="delayDivisionGroup" role="group" aria-label="Delay division">
                 <button type="button" class="fx-chip active" data-value="0">1/4</button>
                 <button type="button" class="fx-chip" data-value="1">1/8</button>
@@ -213,7 +225,7 @@
                 <button type="button" class="fx-chip" data-value="5">1/2</button>
               </div>
             </div>
-            <div class="pedal-knobs">
+            <div class="pedal-knobs six">
               <div class="knob-wrap knob-pedal" data-param="delayTime" id="delayTimeWrap">
                 <div class="knob" id="knob-delayTime"></div>
                 <div class="knob-label">time</div>
@@ -228,6 +240,21 @@
                 <div class="knob" id="knob-delayMix"></div>
                 <div class="knob-label">mix</div>
                 <div class="knob-value" id="val-delayMix">20%</div>
+              </div>
+              <div class="knob-wrap knob-pedal" data-param="delayTone">
+                <div class="knob" id="knob-delayTone"></div>
+                <div class="knob-label">tone</div>
+                <div class="knob-value" id="val-delayTone">50%</div>
+              </div>
+              <div class="knob-wrap knob-pedal" data-param="delayModulation">
+                <div class="knob" id="knob-delayModulation"></div>
+                <div class="knob-label">wobble</div>
+                <div class="knob-value" id="val-delayModulation">30%</div>
+              </div>
+              <div class="knob-wrap knob-pedal" data-param="delaySaturation">
+                <div class="knob" id="knob-delaySaturation"></div>
+                <div class="knob-label">tape</div>
+                <div class="knob-value" id="val-delaySaturation">20%</div>
               </div>
             </div>
             <h2 class="pedal-name">echo</h2>

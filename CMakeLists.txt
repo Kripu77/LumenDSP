@@ -134,6 +134,7 @@ target_sources(LumenDSP
         Source/audio/Delay.cpp
         Source/audio/ReverbFx.cpp
         Source/audio/DemoPlayer.cpp
+        Source/audio/Doubler.cpp
         Source/audio/AudioPipeline.cpp
         Source/presets/PresetManager.cpp
         Source/presets/FactoryContentInstaller.cpp

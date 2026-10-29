@@ -37,6 +37,13 @@ inline constexpr const char* delayDivisionId = "delayDivision";
 inline constexpr const char* delayTimeId = "delayTime";
 inline constexpr const char* delayFeedbackId = "delayFeedback";
 inline constexpr const char* delayMixId = "delayMix";
+inline constexpr const char* delayToneId = "delayTone";
+inline constexpr const char* delayModulationId = "delayModulation";
+inline constexpr const char* delaySaturationId = "delaySaturation";
+inline constexpr const char* delayPingPongId = "delayPingPong";
+
+inline constexpr const char* doublerEnabledId = "doublerEnabled";
+inline constexpr const char* doublerSpreadId = "doublerSpread";
 
 inline constexpr const char* reverbEnabledId = "reverbEnabled";
 inline constexpr const char* reverbCharacterId = "reverbCharacter";
@@ -102,6 +109,15 @@ inline constexpr float delayTimeMaximumMs = 1000.0f;
 inline constexpr float delayTimeDefaultMs = 380.0f;
 inline constexpr float delayFeedbackDefault = 0.25f;
 inline constexpr float delayMixDefault = 0.2f;
+inline constexpr float delayToneDefault = 0.5f;
+inline constexpr float delayModulationDefault = 0.3f;
+inline constexpr float delaySaturationDefault = 0.2f;
+inline constexpr bool delayPingPongDefault = false;
+
+inline constexpr bool doublerEnabledDefault = false;
+inline constexpr float doublerSpreadMinimumMs = 3.0f;
+inline constexpr float doublerSpreadMaximumMs = 20.0f;
+inline constexpr float doublerSpreadDefaultMs = 6.0f;
 
 inline constexpr int reverbCharacterDefault = 0;
 inline constexpr float reverbSizeDefault = 0.4f;
@@ -201,6 +217,13 @@ inline juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout
     detail::addFloat(parameters, delayTimeId, "Delay Time", ranges::delayTimeMinimumMs, ranges::delayTimeMaximumMs, ranges::delayTimeDefaultMs, 1.0f, "ms");
     detail::addFloat(parameters, delayFeedbackId, "Delay Fdbk", ranges::unitMinimum, ranges::unitMaximum, ranges::delayFeedbackDefault, 0.01f);
     detail::addFloat(parameters, delayMixId, "Delay Mix", ranges::unitMinimum, ranges::unitMaximum, ranges::delayMixDefault, 0.01f);
+    detail::addFloat(parameters, delayToneId, "Delay Tone", ranges::unitMinimum, ranges::unitMaximum, ranges::delayToneDefault, 0.01f);
+    detail::addFloat(parameters, delayModulationId, "Delay Tape Mod", ranges::unitMinimum, ranges::unitMaximum, ranges::delayModulationDefault, 0.01f);
+    detail::addFloat(parameters, delaySaturationId, "Delay Tape Sat", ranges::unitMinimum, ranges::unitMaximum, ranges::delaySaturationDefault, 0.01f);
+    detail::addBool(parameters, delayPingPongId, "Delay Ping-Pong", ranges::delayPingPongDefault);
+
+    detail::addBool(parameters, doublerEnabledId, "Doubler On", ranges::doublerEnabledDefault);
+    detail::addFloat(parameters, doublerSpreadId, "Doubler Spread", ranges::doublerSpreadMinimumMs, ranges::doublerSpreadMaximumMs, ranges::doublerSpreadDefaultMs, 0.1f, "ms");
 
     detail::addBool(parameters, reverbEnabledId, "Reverb On", ranges::reverbEnabledDefault);
     detail::addChoice(

@@ -150,7 +150,7 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round
 
 .globals {
   display: grid;
-  grid-template-columns: auto auto 1fr auto;
+  grid-template-columns: auto auto 1fr auto auto;
   align-items: center;
   gap: 36px;
   padding: 0 24px;
@@ -450,6 +450,11 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round
   width: 100%;
 }
 .pedal-knobs > :nth-child(3):last-child { grid-column: 1 / -1; margin-top: -12px; }
+.pedal-knobs.six { grid-template-columns: repeat(3, 1fr); gap: 2px 0; }
+.pedal-knobs.six .knob { width: 66px; height: 66px; }
+.lcd-row { display: flex; align-items: center; justify-content: center; gap: 4px; margin: -6px 0 2px; }
+.lcd-row .lcd { margin: 0; min-width: 84px; }
+.lcd-row .switch-pedal { white-space: nowrap; padding: 0 3px; }
 
 .pedal-name {
   margin: auto 0 20px;
@@ -1189,6 +1194,7 @@ kbd {
   .knob-pedal .knob { width: 64px; height: 64px; }
   .pedal-name { font-size: 38px; margin-bottom: 8px; }
   .footswitch { width: 66px; height: 66px; }
+  .pedal-knobs.six .knob { width: 54px; height: 54px; }
   .amp-grille { height: 96px; }
 }
 

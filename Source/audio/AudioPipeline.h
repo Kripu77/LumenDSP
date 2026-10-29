@@ -4,6 +4,7 @@
 #include "audio/Compressor.h"
 #include "audio/Delay.h"
 #include "audio/DemoPlayer.h"
+#include "audio/Doubler.h"
 #include "audio/Drive.h"
 #include "audio/IrConvolver.h"
 #include "audio/LevelMeter.h"
@@ -54,6 +55,13 @@ struct PipelineControlState
     float delayTimeMs = 380.0f;
     float delayFeedback = 0.25f;
     float delayMix = 0.2f;
+    float delayTone = 0.5f;
+    float delayModulation = 0.3f;
+    float delaySaturation = 0.2f;
+    bool delayPingPong = false;
+    bool doublerEnabled = false;
+    float doublerSpreadMs = 6.0f;
+    float hostBpm = 0.0f;
 
     bool reverbEnabled = false;
     int reverbCharacter = 0;
@@ -109,6 +117,7 @@ private:
     Drive drive;
     ThreeBandEq threeBandEq;
     IrConvolver irConvolver;
+    Doubler doubler;
     Delay delay;
     ReverbFx reverb;
     LevelMeter inputMeter;

@@ -14,6 +14,7 @@ void AudioPipeline::prepare(const juce::dsp::ProcessSpec& processSpec)
     drive.prepare(processSpec);
     threeBandEq.prepare(processSpec);
     irConvolver.prepare(processSpec);
+    doubler.prepare(processSpec);
     delay.prepare(processSpec);
     reverb.prepare(processSpec);
     inputMeter.prepare(processSpec.sampleRate);
@@ -33,6 +34,7 @@ void AudioPipeline::reset()
     drive.reset();
     threeBandEq.reset();
     irConvolver.reset();
+    doubler.reset();
     delay.reset();
     reverb.reset();
     inputMeter.reset();
@@ -77,10 +79,17 @@ void AudioPipeline::setControlState(const PipelineControlState& controlState)
     delay.setEnabled(controls.delayEnabled);
     delay.setSyncEnabled(controls.delaySync);
     delay.setDivision(static_cast<DelayDivision>(juce::jlimit(0, 5, controls.delayDivision)));
-    delay.setTempoBpm(controls.metronomeBpm);
+    delay.setTempoBpm(controls.hostBpm > 0.0f ? controls.hostBpm : controls.metronomeBpm);
     delay.setTimeMs(controls.delayTimeMs);
     delay.setFeedback(controls.delayFeedback);
     delay.setMix(controls.delayMix);
+    delay.setTone(controls.delayTone);
+    delay.setModulation(controls.delayModulation);
+    delay.setSaturation(controls.delaySaturation);
+    delay.setPingPong(controls.delayPingPong);
+
+    doubler.setEnabled(controls.doublerEnabled);
+    doubler.setSpreadMs(controls.doublerSpreadMs);
 
     reverb.setEnabled(controls.reverbEnabled);
     reverb.setCharacter(static_cast<ReverbCharacter>(juce::jlimit(0, 3, controls.reverbCharacter)));
@@ -112,6 +121,7 @@ void AudioPipeline::process(juce::AudioBuffer<float>& buffer)
     namEngine.process(buffer);
     threeBandEq.process(buffer);
     irConvolver.process(buffer);
+    doubler.process(buffer);
     delay.process(buffer);
     reverb.process(buffer);
 

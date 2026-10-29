@@ -28,7 +28,12 @@ void LumenDSPAudioProcessor::prepareToPlay(double sampleRate, int samplesPerBloc
 
     configureDemoClips();
     audioPipeline.prepare(processSpec);
-    audioPipeline.setControlState(readControlState());
+    auto controlState = readControlState();
+    if (auto* playHead = getPlayHead())
+        if (const auto position = playHead->getPosition())
+            if (const auto bpm = position->getBpm())
+                controlState.hostBpm = static_cast<float>(*bpm);
+    audioPipeline.setControlState(controlState);
 }
 
 void LumenDSPAudioProcessor::releaseResources()
@@ -65,7 +70,12 @@ void LumenDSPAudioProcessor::processBlock(
     for (int channel = totalNumInputChannels; channel < totalNumOutputChannels; ++channel)
         buffer.clear(channel, 0, buffer.getNumSamples());
 
-    audioPipeline.setControlState(readControlState());
+    auto controlState = readControlState();
+    if (auto* playHead = getPlayHead())
+        if (const auto position = playHead->getPosition())
+            if (const auto bpm = position->getBpm())
+                controlState.hostBpm = static_cast<float>(*bpm);
+    audioPipeline.setControlState(controlState);
     audioPipeline.process(buffer);
 }
 
@@ -392,6 +402,12 @@ lumen::audio::PipelineControlState LumenDSPAudioProcessor::readControlState() co
     controlState.delayTimeMs = readFloat(lumen::parameters::delayTimeId);
     controlState.delayFeedback = readFloat(lumen::parameters::delayFeedbackId);
     controlState.delayMix = readFloat(lumen::parameters::delayMixId);
+    controlState.delayTone = readFloat(lumen::parameters::delayToneId);
+    controlState.delayModulation = readFloat(lumen::parameters::delayModulationId);
+    controlState.delaySaturation = readFloat(lumen::parameters::delaySaturationId);
+    controlState.delayPingPong = readBool(lumen::parameters::delayPingPongId);
+    controlState.doublerEnabled = readBool(lumen::parameters::doublerEnabledId);
+    controlState.doublerSpreadMs = readFloat(lumen::parameters::doublerSpreadId);
 
     controlState.reverbEnabled = readBool(lumen::parameters::reverbEnabledId);
     controlState.reverbCharacter = readChoice(lumen::parameters::reverbCharacterId);
