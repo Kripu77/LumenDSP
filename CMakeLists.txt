@@ -50,6 +50,11 @@ if(NOT neural_amp_modeler_core_POPULATED)
     FetchContent_Populate(neural_amp_modeler_core)
 endif()
 
+# Signalsmith Basics reverb (MIT, header-only); SOURCE_SUBDIR skips its CMake so the optional STFT/Hilbert deps aren't fetched.
+FetchContent_Declare(signalsmith_basics GIT_REPOSITORY https://github.com/Signalsmith-Audio/basics.git GIT_TAG 369e906e03760ec219d07b06fa06dc4fd099f377 SOURCE_SUBDIR none)
+FetchContent_Declare(signalsmith_dsp GIT_REPOSITORY https://github.com/Signalsmith-Audio/dsp.git GIT_TAG v1.7.1 GIT_SHALLOW TRUE SOURCE_SUBDIR none)
+FetchContent_MakeAvailable(signalsmith_basics signalsmith_dsp)
+
 set(LUMENDSP_NAM_ROOT "${neural_amp_modeler_core_SOURCE_DIR}")
 set(LUMENDSP_NAM_EIGEN_DIR "${LUMENDSP_NAM_ROOT}/Dependencies/eigen")
 set(LUMENDSP_NAM_NLOHMANN_DIR "${LUMENDSP_NAM_ROOT}/Dependencies/nlohmann")
@@ -149,6 +154,12 @@ set(LUMENDSP_WEB_UI_DIR "${CMAKE_CURRENT_SOURCE_DIR}/Resources/web")
 target_include_directories(LumenDSP
     PRIVATE
         "${CMAKE_CURRENT_SOURCE_DIR}/Source"
+)
+
+target_include_directories(LumenDSP
+    SYSTEM PRIVATE
+        "${signalsmith_basics_SOURCE_DIR}/include"
+        "${signalsmith_dsp_SOURCE_DIR}/include"
 )
 
 target_compile_definitions(LumenDSP

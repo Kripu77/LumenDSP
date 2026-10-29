@@ -450,7 +450,9 @@ svg { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round
   width: 100%;
 }
 .pedal-knobs > :nth-child(3):last-child { grid-column: 1 / -1; margin-top: -12px; }
-.pedal-knobs.six { grid-template-columns: repeat(3, 1fr); gap: 2px 0; }
+.pedal-knobs.six { grid-template-columns: repeat(6, 1fr); gap: 2px 0; }
+.pedal-knobs.six > * { grid-column: span 2; }
+.pedal-knobs.six > :nth-child(4):nth-last-child(2) { grid-column: 2 / span 2; }
 .pedal-knobs.six .knob { width: 66px; height: 66px; }
 .lcd-row { display: flex; align-items: center; justify-content: center; gap: 4px; margin: -6px 0 2px; }
 .lcd-row .lcd { margin: 0; min-width: 84px; }

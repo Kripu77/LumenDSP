@@ -93,8 +93,10 @@ void AudioPipeline::setControlState(const PipelineControlState& controlState)
 
     reverb.setEnabled(controls.reverbEnabled);
     reverb.setCharacter(static_cast<ReverbCharacter>(juce::jlimit(0, 3, controls.reverbCharacter)));
-    reverb.setRoomSize(controls.reverbSize);
-    reverb.setDamping(controls.reverbDamping);
+    reverb.setDecaySeconds(controls.reverbDecaySec);
+    reverb.setLowCutHz(controls.reverbLowCutHz);
+    reverb.setHighCutHz(controls.reverbHighCutHz);
+    reverb.setWidth(controls.reverbWidth);
     reverb.setMix(controls.reverbMix);
 
     metronome.setEnabled(controls.metronomeEnabled);

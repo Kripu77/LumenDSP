@@ -736,8 +736,10 @@ juce::var LumenDSPAudioProcessorEditor::buildStateObject() const
 
     putBool("reverbEnabled", lumen::parameters::reverbEnabledId);
     putChoice("reverbCharacter", lumen::parameters::reverbCharacterId);
-    putFloat("reverbSize", lumen::parameters::reverbSizeId);
-    putFloat("reverbDamping", lumen::parameters::reverbDampingId);
+    putFloat("reverbDecay", lumen::parameters::reverbDecayId);
+    putFloat("reverbLowCut", lumen::parameters::reverbLowCutId);
+    putFloat("reverbHighCut", lumen::parameters::reverbHighCutId);
+    putFloat("reverbWidth", lumen::parameters::reverbWidthId);
     putFloat("reverbMix", lumen::parameters::reverbMixId);
 
     object->setProperty("parameters", juce::var(parameters));

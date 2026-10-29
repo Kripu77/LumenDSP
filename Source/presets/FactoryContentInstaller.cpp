@@ -81,8 +81,7 @@ struct FactoryTone
 
     bool reverbEnabled = false;
     int reverbCharacter = 0;
-    float reverbSize = 0.4f;
-    float reverbDamping = 0.5f;
+    float reverbDecaySec = 4.0f;
     float reverbMix = 0.18f;
 
     float outputLevelDb = -8.0f;
@@ -127,8 +126,7 @@ void applyFactoryTone(juce::AudioProcessorValueTreeState& apvts, const FactoryTo
 
     setBoolParameter(apvts, parameters::reverbEnabledId, tone.reverbEnabled);
     setChoiceParameter(apvts, parameters::reverbCharacterId, tone.reverbCharacter);
-    setParameterValue(apvts, parameters::reverbSizeId, tone.reverbSize);
-    setParameterValue(apvts, parameters::reverbDampingId, tone.reverbDamping);
+    setParameterValue(apvts, parameters::reverbDecayId, tone.reverbDecaySec);
     setParameterValue(apvts, parameters::reverbMixId, tone.reverbMix);
 
     setParameterValue(apvts, parameters::outputLevelId, tone.outputLevelDb);
@@ -333,8 +331,7 @@ bool FactoryContentInstaller::writeFactoryPresets(
         tone.trebleGainDb = 2.5f;
         tone.reverbEnabled = true;
         tone.reverbCharacter = reverbRoom;
-        tone.reverbSize = 0.32f;
-        tone.reverbDamping = 0.45f;
+        tone.reverbDecaySec = 1.6f;
         tone.reverbMix = 0.14f;
         tone.outputLevelDb = -8.0f;
     }
@@ -361,8 +358,7 @@ bool FactoryContentInstaller::writeFactoryPresets(
         tone.delayMix = 0.12f;
         tone.reverbEnabled = true;
         tone.reverbCharacter = reverbAmbient;
-        tone.reverbSize = 0.55f;
-        tone.reverbDamping = 0.35f;
+        tone.reverbDecaySec = 6.0f;
         tone.reverbMix = 0.22f;
         tone.outputLevelDb = -8.0f;
     }
@@ -394,8 +390,7 @@ bool FactoryContentInstaller::writeFactoryPresets(
         tone.delayMix = 0.2f;
         tone.reverbEnabled = true;
         tone.reverbCharacter = reverbPlate;
-        tone.reverbSize = 0.48f;
-        tone.reverbDamping = 0.4f;
+        tone.reverbDecaySec = 3.0f;
         tone.reverbMix = 0.2f;
         tone.outputLevelDb = -10.0f;
     }
@@ -419,8 +414,7 @@ bool FactoryContentInstaller::writeFactoryPresets(
         tone.cabEnabled = false;
         tone.reverbEnabled = true;
         tone.reverbCharacter = reverbRoom;
-        tone.reverbSize = 0.28f;
-        tone.reverbDamping = 0.55f;
+        tone.reverbDecaySec = 1.4f;
         tone.reverbMix = 0.1f;
         tone.outputLevelDb = -6.0f;
     }
@@ -448,8 +442,7 @@ bool FactoryContentInstaller::writeFactoryPresets(
         tone.trebleGainDb = 0.5f;
         tone.reverbEnabled = true;
         tone.reverbCharacter = reverbRoom;
-        tone.reverbSize = 0.25f;
-        tone.reverbDamping = 0.6f;
+        tone.reverbDecaySec = 1.2f;
         tone.reverbMix = 0.08f;
         tone.outputLevelDb = -9.0f;
     }
@@ -482,8 +475,7 @@ bool FactoryContentInstaller::writeFactoryPresets(
         tone.delayMix = 0.28f;
         tone.reverbEnabled = true;
         tone.reverbCharacter = reverbAmbient;
-        tone.reverbSize = 0.72f;
-        tone.reverbDamping = 0.3f;
+        tone.reverbDecaySec = 9.0f;
         tone.reverbMix = 0.34f;
         tone.outputLevelDb = -11.0f;
     }

@@ -49,7 +49,7 @@ The core tone always comes from **your** `.nam` file. LumenDSP does not replace 
 | Dynamics | Input gain, output level, noise gate, compressor |
 | Drive | Soft-clip overdrive pedal stage (pre-amp) |
 | Tone | Three-band EQ (post-amp, pre-cab) |
-| Time FX | Delay and reverb (post-cab) |
+| Time FX | Stereo tape delay (wobble, saturation, ping-pong, host sync), stereo doubler, and a long-tail FDN reverb with decay, low/high cut and width (post-cab) |
 | Practice | Tuner + metronome + demo DI riff preview (bottom dock) |
 | Calibration | Named input trim profiles (independent of presets) |
 | Presets | Categories, tags, favorites; portable `.lumenpack` with embedded NAM/IR |
@@ -81,6 +81,7 @@ Input → Gate → Comp → Drive → Amp (NAM) → EQ → Cab (IR) → Delay �
   CMake uses the same `juce_add_plugin` workflow as JUCE 7. The default tag is **8.0.6** because JUCE 7.0.x fails to build `juceaide` against the **macOS 15 SDK** (`CGWindowListCreateImage` removed). Override with `-DLUMENDSP_JUCE_GIT_TAG=...` if you use an older SDK.
 - **CMake** — cross-platform build and dependency fetch
 - **[NeuralAmpModelerCore](https://github.com/sdatkinson/NeuralAmpModelerCore)** — real-time `.nam` / A2 inference (MIT)
+- **[Signalsmith Basics](https://github.com/Signalsmith-Audio/basics)** + **[DSP](https://github.com/Signalsmith-Audio/dsp)** — reverb (MIT, header-only)
 
 ## Build requirements
 
@@ -262,6 +263,7 @@ Third-party components retain their own licenses:
 - [JUCE](https://github.com/juce-framework/JUCE) — see JUCE license terms for your use case
 - [NeuralAmpModelerCore](https://github.com/sdatkinson/NeuralAmpModelerCore) — MIT
 - Eigen (via NeuralAmpModelerCore) — MPL2
+- [Signalsmith Basics](https://github.com/Signalsmith-Audio/basics) and [Signalsmith DSP](https://github.com/Signalsmith-Audio/dsp) — MIT
 
 ## Credits
 

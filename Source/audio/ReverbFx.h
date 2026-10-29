@@ -1,6 +1,7 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include <signalsmith-basics/reverb.h>
 
 namespace lumen::audio
 {
@@ -13,6 +14,7 @@ enum class ReverbCharacter
     ambient = 3
 };
 
+// Stereo FDN reverb (Signalsmith Basics, MIT) with Plini-style decay, cut filters and width.
 class ReverbFx
 {
 public:
@@ -20,22 +22,22 @@ public:
     void reset();
     void setEnabled(bool shouldEnable) noexcept;
     void setCharacter(ReverbCharacter character) noexcept;
-    void setRoomSize(float size01) noexcept;
-    void setDamping(float damping01) noexcept;
+    void setDecaySeconds(float seconds) noexcept;
+    void setLowCutHz(float hz) noexcept;
+    void setHighCutHz(float hz) noexcept;
+    void setWidth(float width01) noexcept;
     void setMix(float mix01) noexcept;
     void process(juce::AudioBuffer<float>& buffer);
 
 private:
-    void applyParameters();
-
-    juce::dsp::Reverb reverb;
-    juce::dsp::Reverb::Parameters params{};
+    signalsmith::basics::ReverbFloat reverb;
+    juce::AudioBuffer<float> wet;
+    juce::SmoothedValue<float> wetGain;
+    juce::SmoothedValue<float> width;
+    ReverbCharacter character = ReverbCharacter::hall;
+    int maximumBlockSize = 0;
     bool enabled = false;
     bool prepared = false;
-    ReverbCharacter character = ReverbCharacter::room;
-    float size = 0.4f;
-    float damping = 0.5f;
-    float mix = 0.18f;
 };
 
 } // namespace lumen::audio

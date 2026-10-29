@@ -24,8 +24,10 @@
     delayModulation: { min: 0, max: 1, unit: "%", decimals: 0, asPercent: true },
     delaySaturation: { min: 0, max: 1, unit: "%", decimals: 0, asPercent: true },
     doublerSpread: { min: 3, max: 20, unit: "ms", decimals: 1 },
-    reverbSize: { min: 0, max: 1, unit: "%", decimals: 0, asPercent: true },
-    reverbDamping: { min: 0, max: 1, unit: "%", decimals: 0, asPercent: true },
+    reverbDecay: { min: 0.3, max: 20, unit: "s", decimals: 1 },
+    reverbLowCut: { min: 20, max: 700, unit: "Hz", decimals: 0 },
+    reverbHighCut: { min: 1000, max: 12000, unit: "Hz", decimals: 0 },
+    reverbWidth: { min: 0, max: 1, unit: "%", decimals: 0, asPercent: true },
     reverbMix: { min: 0, max: 1, unit: "%", decimals: 0, asPercent: true },
   };
 
@@ -80,8 +82,10 @@
       doublerSpread: 6,
       reverbEnabled: false,
       reverbCharacter: 0,
-      reverbSize: 0.4,
-      reverbDamping: 0.5,
+      reverbDecay: 4,
+      reverbLowCut: 180,
+      reverbHighCut: 8000,
+      reverbWidth: 1,
       reverbMix: 0.18,
     },
     presets: [],
@@ -245,7 +249,7 @@
       { title: "amp", icon: "amp", section: "amp", on: state.namLoaded, detail: state.namLoaded ? state.namName.replace(/\.nam$/i, "") : "no model" },
       { title: "cab", icon: "cab", section: "cab", on: p.cabEnabled && state.irLoaded, detail: state.irLoaded ? state.irName.replace(/\.wav$/i, "") : "no IR" },
       { title: "echo", icon: "delay", section: "effects", on: p.delayEnabled, detail: delayReadout() },
-      { title: "haze", icon: "reverb", section: "effects", on: p.reverbEnabled, detail: ["room", "hall", "plate", "ambient"][Math.round(p.reverbCharacter) || 0] },
+      { title: "haze", icon: "reverb", section: "effects", on: p.reverbEnabled, detail: `${["room", "hall", "plate", "ambient"][Math.round(p.reverbCharacter) || 0]} ${Number(p.reverbDecay).toFixed(1)} s` },
     ];
 
     root.innerHTML = `<span class="chain-jack">in</span>${nodes

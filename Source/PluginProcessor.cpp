@@ -411,8 +411,10 @@ lumen::audio::PipelineControlState LumenDSPAudioProcessor::readControlState() co
 
     controlState.reverbEnabled = readBool(lumen::parameters::reverbEnabledId);
     controlState.reverbCharacter = readChoice(lumen::parameters::reverbCharacterId);
-    controlState.reverbSize = readFloat(lumen::parameters::reverbSizeId);
-    controlState.reverbDamping = readFloat(lumen::parameters::reverbDampingId);
+    controlState.reverbDecaySec = readFloat(lumen::parameters::reverbDecayId);
+    controlState.reverbLowCutHz = readFloat(lumen::parameters::reverbLowCutId);
+    controlState.reverbHighCutHz = readFloat(lumen::parameters::reverbHighCutId);
+    controlState.reverbWidth = readFloat(lumen::parameters::reverbWidthId);
     controlState.reverbMix = readFloat(lumen::parameters::reverbMixId);
 
     return controlState;

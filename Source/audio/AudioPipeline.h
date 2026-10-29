@@ -65,8 +65,10 @@ struct PipelineControlState
 
     bool reverbEnabled = false;
     int reverbCharacter = 0;
-    float reverbSize = 0.4f;
-    float reverbDamping = 0.5f;
+    float reverbDecaySec = 4.0f;
+    float reverbLowCutHz = 180.0f;
+    float reverbHighCutHz = 8000.0f;
+    float reverbWidth = 1.0f;
     float reverbMix = 0.18f;
 };
 

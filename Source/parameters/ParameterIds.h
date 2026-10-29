@@ -47,8 +47,10 @@ inline constexpr const char* doublerSpreadId = "doublerSpread";
 
 inline constexpr const char* reverbEnabledId = "reverbEnabled";
 inline constexpr const char* reverbCharacterId = "reverbCharacter";
-inline constexpr const char* reverbSizeId = "reverbSize";
-inline constexpr const char* reverbDampingId = "reverbDamping";
+inline constexpr const char* reverbDecayId = "reverbDecay";
+inline constexpr const char* reverbLowCutId = "reverbLowCut";
+inline constexpr const char* reverbHighCutId = "reverbHighCut";
+inline constexpr const char* reverbWidthId = "reverbWidth";
 inline constexpr const char* reverbMixId = "reverbMix";
 
 namespace ranges
@@ -120,8 +122,16 @@ inline constexpr float doublerSpreadMaximumMs = 20.0f;
 inline constexpr float doublerSpreadDefaultMs = 6.0f;
 
 inline constexpr int reverbCharacterDefault = 0;
-inline constexpr float reverbSizeDefault = 0.4f;
-inline constexpr float reverbDampingDefault = 0.5f;
+inline constexpr float reverbDecayMinimumSec = 0.3f;
+inline constexpr float reverbDecayMaximumSec = 20.0f;
+inline constexpr float reverbDecayDefaultSec = 4.0f;
+inline constexpr float reverbLowCutMinimumHz = 20.0f;
+inline constexpr float reverbLowCutMaximumHz = 700.0f;
+inline constexpr float reverbLowCutDefaultHz = 180.0f;
+inline constexpr float reverbHighCutMinimumHz = 1000.0f;
+inline constexpr float reverbHighCutMaximumHz = 12000.0f;
+inline constexpr float reverbHighCutDefaultHz = 8000.0f;
+inline constexpr float reverbWidthDefault = 1.0f;
 inline constexpr float reverbMixDefault = 0.18f;
 
 } // namespace ranges
@@ -232,8 +242,10 @@ inline juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout
         "Reverb Style",
         { "Room", "Hall", "Plate", "Ambient" },
         ranges::reverbCharacterDefault);
-    detail::addFloat(parameters, reverbSizeId, "Reverb Size", ranges::unitMinimum, ranges::unitMaximum, ranges::reverbSizeDefault, 0.01f);
-    detail::addFloat(parameters, reverbDampingId, "Reverb Damp", ranges::unitMinimum, ranges::unitMaximum, ranges::reverbDampingDefault, 0.01f);
+    detail::addFloat(parameters, reverbDecayId, "Reverb Decay", ranges::reverbDecayMinimumSec, ranges::reverbDecayMaximumSec, ranges::reverbDecayDefaultSec, 0.1f, "s");
+    detail::addFloat(parameters, reverbLowCutId, "Reverb Low Cut", ranges::reverbLowCutMinimumHz, ranges::reverbLowCutMaximumHz, ranges::reverbLowCutDefaultHz, 1.0f, "Hz");
+    detail::addFloat(parameters, reverbHighCutId, "Reverb High Cut", ranges::reverbHighCutMinimumHz, ranges::reverbHighCutMaximumHz, ranges::reverbHighCutDefaultHz, 10.0f, "Hz");
+    detail::addFloat(parameters, reverbWidthId, "Reverb Width", ranges::unitMinimum, ranges::unitMaximum, ranges::reverbWidthDefault, 0.01f);
     detail::addFloat(parameters, reverbMixId, "Reverb Mix", ranges::unitMinimum, ranges::unitMaximum, ranges::reverbMixDefault, 0.01f);
 
     detail::addFloat(parameters, outputLevelId, "Output", ranges::outputLevelMinimumDb, ranges::outputLevelMaximumDb, ranges::outputLevelDefaultDb, 0.1f, "dB");
