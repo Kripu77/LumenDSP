@@ -1,0 +1,128 @@
+# Smoke-tests packaged builds on real Windows and macOS runners:
+# pluginval (Tracktion) on the VST3, plus a standalone launch that must install factory content without crashing.
+name: Verify Release
+
+on:
+  workflow_call:
+    inputs:
+      tag:
+        type: string
+        required: true
+      source:
+        description: "artifact (same workflow run) or release (published GitHub Release)"
+        type: string
+        default: artifact
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to verify, e.g. v0.3.0"
+        type: string
+        required: true
+      source:
+        type: choice
+        options: [release, artifact]
+        default: release
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Verify (${{ matrix.name }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            name: windows-x64
+          - os: macos-14
+            name: macos-arm64
+    env:
+      TAG: ${{ inputs.tag }}
+      GH_TOKEN: ${{ github.token }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Download package (workflow artifact)
+        if: inputs.source == 'artifact'
+        uses: actions/download-artifact@v4
+        with:
+          name: LumenDSP-${{ inputs.tag }}-${{ matrix.name }}
+          path: pkg
+
+      - name: Download package (published release)
+        if: inputs.source == 'release'
+        run: gh release download "${TAG}" -R "${GITHUB_REPOSITORY}" -p "LumenDSP-${TAG}-${{ matrix.name }}.zip" -D pkg
+
+      - name: Unpack and locate binaries
+        run: |
+          set -euo pipefail
+          mkdir -p unpacked
+          if [[ "${RUNNER_OS}" == "Windows" ]]; then
+            powershell.exe -NoProfile -Command "Expand-Archive -Path 'pkg\\LumenDSP-${TAG}-windows-x64.zip' -DestinationPath unpacked"
+            VST3="$(find unpacked -type d -name 'LumenDSP.vst3' | head -1)"
+            APP_BIN="$(find unpacked -type f -name 'LumenDSP.exe' -not -path '*vst3*' | head -1)"
+          else
+            ditto -x -k "pkg/LumenDSP-${TAG}-macos-arm64.zip" unpacked
+            VST3="$(find unpacked -type d -name 'LumenDSP.vst3' | head -1)"
+            APP_BIN="$(find unpacked -type d -name 'LumenDSP.app' | head -1)/Contents/MacOS/LumenDSP"
+          fi
+          test -n "${VST3}" && test -e "${APP_BIN}"
+          echo "VST3=${VST3}" >> "${GITHUB_ENV}"
+          echo "APP_BIN=${APP_BIN}" >> "${GITHUB_ENV}"
+          echo "VST3: ${VST3}"; echo "App: ${APP_BIN}"
+
+      - name: pluginval (VST3)
+        run: |
+          set -euo pipefail
+          if [[ "${RUNNER_OS}" == "Windows" ]]; then
+            curl -sfL -o pluginval.zip https://github.com/Tracktion/pluginval/releases/latest/download/pluginval_Windows.zip
+            unzip -q pluginval.zip -d pluginval
+            PLUGINVAL="pluginval/pluginval.exe"
+          else
+            curl -sfL -o pluginval.zip https://github.com/Tracktion/pluginval/releases/latest/download/pluginval_macOS.zip
+            unzip -q pluginval.zip -d pluginval
+            PLUGINVAL="pluginval/pluginval.app/Contents/MacOS/pluginval"
+          fi
+          # Strictness 5 covers state save/restore, parameter fuzzing and several sample rates / block sizes.
+          "${PLUGINVAL}" --strictness-level 5 --skip-gui-tests --timeout-ms 600000 \
+            --output-dir pluginval-logs --validate "${VST3}"
+
+      - name: Standalone launch
+        run: |
+          set -euo pipefail
+          if [[ "${RUNNER_OS}" == "Windows" ]]; then
+            DATA="$(cygpath -u "${APPDATA}")/LumenDSP"
+          else
+            DATA="${HOME}/Library/LumenDSP"
+          fi
+          rm -rf "${DATA}"
+          "${APP_BIN}" > standalone.log 2>&1 &
+          PID=$!
+          for _ in $(seq 1 90); do
+            [[ -f "${DATA}/factory_bootstrap.log" ]] && break
+            kill -0 "${PID}" 2>/dev/null || { echo "Standalone exited early"; cat standalone.log; exit 1; }
+            sleep 1
+          done
+          sleep 5
+          cat "${DATA}/factory_bootstrap.log"
+          grep -q "installed" "${DATA}/factory_bootstrap.log"
+          MODELS="$(find "${DATA}/FactoryContent/Models" -name '*.nam' | wc -l | tr -d ' ')"
+          PRESETS="$(find "${DATA}/Presets" -name '*.lumenpreset' | wc -l | tr -d ' ')"
+          echo "factory models: ${MODELS}, presets: ${PRESETS}"
+          test "${MODELS}" -ge 12 && test "${PRESETS}" -ge 13
+          kill -0 "${PID}" || { echo "Standalone crashed after start-up"; cat standalone.log; exit 1; }
+          kill "${PID}" 2>/dev/null || taskkill //F //IM LumenDSP.exe > /dev/null 2>&1 || true
+
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: verify-logs-${{ inputs.tag }}-${{ matrix.name }}
+          path: |
+            pluginval-logs
+            standalone.log
+          if-no-files-found: ignore
+          retention-days: 14

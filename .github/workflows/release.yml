@@ -188,6 +188,56 @@ jobs:
       - name: Build Standalone + VST3
         run: cmake --build build --config Release --target LumenDSP_All -j 4
 
+      - name: Sign and notarize (macOS)
+        if: runner.os == 'macOS'
+        env:
+          MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
+          MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+          NOTARY_API_KEY: ${{ secrets.NOTARY_API_KEY }}
+          NOTARY_API_KEY_ID: ${{ secrets.NOTARY_API_KEY_ID }}
+          NOTARY_API_ISSUER_ID: ${{ secrets.NOTARY_API_ISSUER_ID }}
+        run: |
+          set -euo pipefail
+          APP="build/LumenDSP_artefacts/Release/Standalone/LumenDSP.app"
+          VST="build/LumenDSP_artefacts/Release/VST3/LumenDSP.vst3"
+
+          if [[ -z "${MACOS_CERTIFICATE}" || -z "${NOTARY_API_KEY}" ]]; then
+            echo "No Developer ID secrets set: ad-hoc signing only (users will need right-click → Open)."
+            codesign --force --deep --sign - "${APP}"
+            codesign --force --deep --sign - "${VST}"
+            echo "NOTARIZED=false" >> "${GITHUB_ENV}"
+            exit 0
+          fi
+
+          KEYCHAIN="${RUNNER_TEMP}/signing.keychain-db"
+          KEYCHAIN_PASSWORD="$(uuidgen)"
+          security create-keychain -p "${KEYCHAIN_PASSWORD}" "${KEYCHAIN}"
+          security set-keychain-settings -lut 21600 "${KEYCHAIN}"
+          security unlock-keychain -p "${KEYCHAIN_PASSWORD}" "${KEYCHAIN}"
+          echo "${MACOS_CERTIFICATE}" | base64 --decode > "${RUNNER_TEMP}/certificate.p12"
+          security import "${RUNNER_TEMP}/certificate.p12" -k "${KEYCHAIN}" -P "${MACOS_CERTIFICATE_PASSWORD}" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k "${KEYCHAIN_PASSWORD}" "${KEYCHAIN}" > /dev/null
+          security list-keychains -d user -s "${KEYCHAIN}" $(security list-keychains -d user | tr -d '"')
+          IDENTITY="$(security find-identity -v -p codesigning "${KEYCHAIN}" | awk '/Developer ID Application/ {print $2; exit}')"
+          test -n "${IDENTITY}"
+
+          # Hardened runtime is required for notarization; the app needs audio input, the VST3 inherits the host's entitlements.
+          codesign --force --timestamp --options runtime --entitlements Resources/macos/LumenDSP.entitlements --sign "${IDENTITY}" "${APP}"
+          codesign --force --timestamp --options runtime --sign "${IDENTITY}" "${VST}"
+
+          echo "${NOTARY_API_KEY}" | base64 --decode > "${RUNNER_TEMP}/notary.p8"
+          for bundle in "${APP}" "${VST}"; do
+            ditto -c -k --keepParent "${bundle}" "${RUNNER_TEMP}/notarize.zip"
+            xcrun notarytool submit "${RUNNER_TEMP}/notarize.zip" --key "${RUNNER_TEMP}/notary.p8" \
+              --key-id "${NOTARY_API_KEY_ID}" --issuer "${NOTARY_API_ISSUER_ID}" --wait
+            xcrun stapler staple "${bundle}"
+          done
+          spctl --assess --type execute --verbose "${APP}"
+          echo "NOTARIZED=true" >> "${GITHUB_ENV}"
+
+          security delete-keychain "${KEYCHAIN}"
+          rm -f "${RUNNER_TEMP}/certificate.p12" "${RUNNER_TEMP}/notary.p8"
+
       - name: Package macOS
         if: runner.os == 'macOS'
         env:
@@ -201,10 +251,6 @@ jobs:
           test -d "${APP}"
           test -d "${VST}"
 
-          # Ad-hoc sign so the binary is runnable on modern macOS (still Gatekeeper-unsigned).
-          codesign --force --deep --sign - "${APP}" || true
-          codesign --force --deep --sign - "${VST}" || true
-
           ditto "${APP}" "${STAGE}/LumenDSP.app"
           ditto "${VST}" "${STAGE}/LumenDSP.vst3"
           cat > "${STAGE}/INSTALL.txt" <<'EOF'
@@ -212,7 +258,7 @@ jobs:
 
           Standalone
             1. Drag LumenDSP.app to /Applications (or run in place).
-            2. First launch: right-click → Open if Gatekeeper blocks unsigned apps.
+            2. If this build is not notarized (see the last line), right-click → Open the first time.
             3. Allow Microphone (and Bluetooth if prompted) for audio devices.
             4. Click Audio and choose your guitar interface.
 
@@ -221,8 +267,12 @@ jobs:
               ~/Library/Audio/Plug-Ins/VST3/
             Then rescan plugins in your DAW.
 
-          This build is not notarized. Prefer building from source for development.
           EOF
+          if [[ "${NOTARIZED:-false}" == "true" ]]; then
+            echo "This build is signed with a Developer ID and notarized by Apple." >> "${STAGE}/INSTALL.txt"
+          else
+            echo "This build is not notarized: right-click → Open the first time." >> "${STAGE}/INSTALL.txt"
+          fi
 
           mkdir -p dist
           # Versioned name + stable "latest" name (README always links to the stable name).
@@ -280,9 +330,18 @@ jobs:
   # ---------------------------------------------------------------------------
   # Publish GitHub Release with zipped installers.
   # ---------------------------------------------------------------------------
+  verify:
+    name: Verify packages
+    needs: [plan, build]
+    if: needs.plan.outputs.should_release == 'true'
+    uses: ./.github/workflows/verify-release.yml
+    with:
+      tag: ${{ needs.plan.outputs.tag }}
+      source: artifact
+
   publish:
     name: Publish GitHub Release
-    needs: [plan, build]
+    needs: [plan, build, verify]
     if: needs.plan.outputs.should_release == 'true'
     runs-on: ubuntu-latest
     steps:

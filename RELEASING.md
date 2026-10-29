@@ -68,11 +68,12 @@ What happens next:
 2. Packages:
    - `LumenDSP-vX.Y.Z-macos-arm64.zip` — `LumenDSP.app` + `LumenDSP.vst3`
    - `LumenDSP-vX.Y.Z-windows-x64.zip` — `LumenDSP.exe` + `FactoryContent` + `web` (+ VST3 if built)
-3. Creates a **GitHub Release** on that tag with both zips attached.
-4. Uploads **stable asset names** so README links never break:
+3. **Verifies** both packages on fresh runners (`.github/workflows/verify-release.yml`): [pluginval](https://github.com/Tracktion/pluginval) strictness 5 on the VST3, and a standalone launch that must install factory content without crashing. Publishing stops if this fails.
+4. Creates a **GitHub Release** on that tag with both zips attached.
+5. Uploads **stable asset names** so README links never break:
    - `LumenDSP-macos-arm64.zip`
    - `LumenDSP-windows-x64.zip`
-5. Rewrites the README **Download** block (between `BEGIN_LATEST_RELEASE` markers) and pushes to `main`.
+6. Rewrites the README **Download** block (between `BEGIN_LATEST_RELEASE` markers) and pushes to `main`.
 
 ### Manual: Actions UI
 
@@ -112,11 +113,25 @@ Then:
 | macOS Apple Silicon | `macos-14` | Standalone `.app` (ad-hoc signed), VST3, `INSTALL.txt` |
 | Windows x64 | `windows-latest` | Standalone `.exe` + resource folders, optional VST3, `INSTALL.txt` |
 
-**Not included yet:** notarized Developer ID signing, Intel macOS universal binary, Linux, AU/CLAP installers. Those can be added later with certificates and extra matrix jobs.
+**Not included yet:** Intel macOS universal binary, Linux, AU/CLAP installers. Those can be added later with certificates and extra matrix jobs.
 
-### Gatekeeper (macOS)
+### Gatekeeper (macOS) and notarization
 
-CI builds are **not notarized**. Users may need:
+The release workflow signs with a Developer ID and notarizes **when these repository secrets exist** (Settings → Secrets and variables → Actions); otherwise it falls back to ad-hoc signing:
+
+| Secret | What it is |
+|--------|------------|
+| `MACOS_CERTIFICATE` | Your **Developer ID Application** certificate exported as `.p12`, base64-encoded (`base64 -i cert.p12 \| pbcopy`) |
+| `MACOS_CERTIFICATE_PASSWORD` | The password you set when exporting the `.p12` |
+| `NOTARY_API_KEY` | App Store Connect API key (`AuthKey_XXXX.p8`, Developer role), base64-encoded |
+| `NOTARY_API_KEY_ID` | That key's Key ID |
+| `NOTARY_API_ISSUER_ID` | The Issuer ID shown on the App Store Connect keys page |
+
+Requires an Apple Developer Program membership. Both `LumenDSP.app` (hardened runtime, `Resources/macos/LumenDSP.entitlements`) and `LumenDSP.vst3` are signed, notarized and stapled.
+
+To re-check an existing release: **Actions → Verify Release → Run workflow** with the tag.
+
+Without those secrets, builds are **not notarized**. Users may need:
 
 **Right-click → Open** the first time, or System Settings → Privacy & Security → Open Anyway.
 
