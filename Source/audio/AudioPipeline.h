@@ -147,6 +147,8 @@ private:
     std::atomic<bool> practiceCaptureEnabled{false};
     // Absolute sample clock shared by every practice event. 64-bit: never wraps in practice.
     int64_t samplesProcessed = 0;
+    // Copy of currentSampleRate the message thread can read without a data race.
+    std::atomic<double> publishedSampleRate{44100.0};
 
     PipelineControlState controls{};
     bool prepared = false;

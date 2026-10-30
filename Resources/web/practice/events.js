@@ -15,7 +15,7 @@
   const MILLISECONDS_PER_SECOND = 1000;
 
   function createTake() {
-    return { sampleRate: 0, beats: [], onsets: [], pitchFrames: [], droppedEvents: 0 };
+    return { sampleRate: 0, beats: [], onsets: [], pitchFrames: [], droppedEvents: 0, isInterrupted: false };
   }
 
   function isValidTuple(tuple) {
@@ -28,7 +28,12 @@
     if (!batch || !Array.isArray(batch.events)) return take;
 
     const sampleRate = Number(batch.sampleRate);
-    if (Number.isFinite(sampleRate) && sampleRate > 0) take.sampleRate = sampleRate;
+    if (Number.isFinite(sampleRate) && sampleRate > 0) {
+      // A sample-rate change mid-take (the audio device was switched) makes the event
+      // times incomparable, so the take is flagged rather than silently mis-scored.
+      if (take.sampleRate > 0 && sampleRate !== take.sampleRate) take.isInterrupted = true;
+      take.sampleRate = sampleRate;
+    }
     take.droppedEvents = Math.max(take.droppedEvents, Number(batch.dropped) || 0);
 
     for (const tuple of batch.events) {

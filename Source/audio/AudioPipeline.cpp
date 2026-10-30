@@ -6,6 +6,7 @@ namespace lumen::audio
 void AudioPipeline::prepare(const juce::dsp::ProcessSpec& processSpec)
 {
     currentSampleRate = processSpec.sampleRate > 0.0 ? processSpec.sampleRate : 44100.0;
+    publishedSampleRate.store(currentSampleRate, std::memory_order_relaxed);
     currentBlockSize = juce::jmax(1, static_cast<int>(processSpec.maximumBlockSize));
 
     namEngine.prepare(processSpec.sampleRate, currentBlockSize);
@@ -44,7 +45,8 @@ void AudioPipeline::reset()
     metronome.reset();
     demoPlayer.reset();
     onsetDetector.reset();
-    samplesProcessed = 0;
+    // samplesProcessed deliberately keeps counting across resets: a device or buffer
+    // change mid-take must not restart the clock that every practice event is stamped on.
     cpuLoadSmoothed = 0.0f;
     cpuLoadPercent.store(0.0f, std::memory_order_relaxed);
     hotInput.store(false, std::memory_order_relaxed);
@@ -211,7 +213,8 @@ void AudioPipeline::captureInputEvents(const juce::AudioBuffer<float>& buffer, i
         const auto& frame = tuner.getFrameInLastBlock(index);
         practiceEvents.push(PracticeEvent{
             PracticeEventKind::pitch,
-            blockStartSample + frame.sampleOffset - halfWindow,
+            // sampleOffset is the last sample written, so the window centre is halfWindow - 1 back.
+            blockStartSample + frame.sampleOffset - halfWindow + 1,
             frame.frequencyHz,
             frame.confidence});
     }
@@ -263,7 +266,7 @@ uint32_t AudioPipeline::getDroppedPracticeEventCount() const noexcept
 
 double AudioPipeline::getSampleRate() const noexcept
 {
-    return currentSampleRate;
+    return publishedSampleRate.load(std::memory_order_relaxed);
 }
 
 void AudioPipeline::applyInputGain(juce::AudioBuffer<float>& buffer, float gainDb)

@@ -98,6 +98,8 @@ window.lumenPostMessage = function(payload) {
 LumenDSPAudioProcessorEditor::~LumenDSPAudioProcessorEditor()
 {
     stopTimer();
+    // Nothing will drain the queue once the editor is gone.
+    audioProcessor.getAudioPipeline().setPracticeCaptureEnabled(false);
 }
 
 void LumenDSPAudioProcessorEditor::paint(juce::Graphics& graphics)
@@ -190,6 +192,8 @@ void LumenDSPAudioProcessorEditor::handleWebMessage(const juce::String& message)
     if (type == "ready")
     {
         webReady = true;
+        // A page (re)load means any take in progress was lost on the UI side.
+        audioProcessor.getAudioPipeline().setPracticeCaptureEnabled(false);
         audioProcessor.configureDemoClips();
         pushStateToWeb();
         pushLibraryToWeb();
@@ -689,7 +693,17 @@ void LumenDSPAudioProcessorEditor::handlePracticeCapture(bool shouldCapture)
         // Start each take from an empty queue so stale events from an earlier take never leak in.
         pipeline.clearPracticeEvents();
 
-    pipeline.setPracticeCaptureEnabled(shouldCapture);
+    if (!shouldCapture)
+    {
+        // Send what is still queued before announcing the stop, so the UI finishes the take
+        // with its final notes (the last calibration click's pick, the end of a vibrato).
+        drainPracticeEventsToWeb();
+        pipeline.setPracticeCaptureEnabled(false);
+    }
+    else
+    {
+        pipeline.setPracticeCaptureEnabled(true);
+    }
     pushPracticeCaptureStateToWeb();
 }
 

@@ -55,3 +55,13 @@ test("pitch frames convert to milliseconds from the first frame", () => {
   ]);
   assert.deepEqual(pitchFramesInMs(createTake()), []);
 });
+
+test("a sample-rate change mid-take flags the take as interrupted", () => {
+  const take = createTake();
+  appendBatch(take, { sampleRate: 48000, events: [[EVENT_KIND.beat, 10, 0, 1]] });
+  assert.equal(take.isInterrupted, false);
+  appendBatch(take, { sampleRate: 48000, events: [] });
+  assert.equal(take.isInterrupted, false);
+  appendBatch(take, { sampleRate: 44100, events: [] });
+  assert.equal(take.isInterrupted, true);
+});

@@ -114,3 +114,35 @@ test("cent and note helpers agree with concert pitch", () => {
   assert.equal(noteNameForCents(0), "A4");
   assert.equal(noteNameForCents(hzToCents(82.41)), "E2");
 });
+
+// Real tuner frames each average pitch over a 2048-sample window (~42.7 ms at 48 kHz),
+// which shrinks the measured swing. Simulate that averaging and check the correction.
+function windowedNote({ rateHz, peakToPeakCents, windowMs, durationMs = 1600, baseHz = 196 }) {
+  const frames = [];
+  const sub = 32;
+  for (let time = windowMs / 2; time <= durationMs; time += FRAME_MS) {
+    let sum = 0;
+    for (let step = 0; step < sub; step += 1) {
+      const t = time - windowMs / 2 + (step + 0.5) * (windowMs / sub);
+      sum += (peakToPeakCents / 2) * Math.sin((2 * Math.PI * rateHz * t) / 1000);
+    }
+    frames.push({ timeMs: time, frequencyHz: baseHz * 2 ** (sum / sub / 1200) });
+  }
+  return frames;
+}
+
+test("corrects the width lost to the tuner's analysis window", () => {
+  const windowMs = (2048 / 48000) * 1000;
+  for (const rateHz of [5, 7]) {
+    const frames = windowedNote({ rateHz, peakToPeakCents: 50, windowMs });
+    const raw = analyseVibrato(frames).summary.widthCents;
+    const corrected = analyseVibrato(frames, { analysisWindowMs: windowMs }).summary.widthCents;
+    assert.ok(raw < 48, `uncorrected should read low at ${rateHz} Hz (${raw})`);
+    assert.ok(Math.abs(corrected - 50) < 3, `corrected width at ${rateHz} Hz was ${corrected}`);
+  }
+});
+
+test("window correction is a no-op without a window length", () => {
+  const frames = heldNote({ centsAt: sine(5.5, 50) });
+  assert.deepEqual(analyseVibrato(frames, { analysisWindowMs: 0 }).summary, analyseVibrato(frames).summary);
+});

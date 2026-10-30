@@ -15,6 +15,11 @@
   // Ignore the first clicks of a calibration: the player is still finding the pulse.
   const CALIBRATION_WARMUP_CLICKS = 2;
   const MINIMUM_HITS_TO_LOG = 8;
+  // How long to wait for the engine to confirm a stop (and flush its last events)
+  // before finishing the take anyway, e.g. if the bridge is gone.
+  const STOP_CONFIRM_TIMEOUT_MS = 600;
+  // The tuner analyses 2048-sample windows; see vibrato.js analysisWindowMs.
+  const TUNER_WINDOW_SAMPLES = 2048;
   const QUIZ_ROUND_LENGTH = 10;
   const LIVE_TRACE_WINDOW_MS = 4000;
   // Re-analyse the whole take this often while recording, for live vibrato numbers.
@@ -41,7 +46,9 @@
     capture: { enabled: false, sampleRate: 48000, deviceLatencySamples: 0 },
     take: null,
     takeMode: null,
+    isStopping: false,
     takeStartedAt: 0,
+    lastTimingTake: null,
     restoreMetronomeTo: null,
     timingResult: null,
     calibrationResult: null,
@@ -55,6 +62,7 @@
   let bridge = null;
   let saveTimer = 0;
   let lastLiveAnalysisAt = 0;
+  let stopTimer = 0;
   const $ = (id) => document.getElementById(id);
 
   // ---- helpers ------------------------------------------------------------------------
@@ -115,6 +123,7 @@
   // ---- tool switching -------------------------------------------------------------------
 
   function showTool(tool) {
+    if (tool === ui.tool && document.querySelector(`[data-practice-panel="${tool}"]:not([hidden])`)) return;
     if (isCapturing()) stopTake();
     ui.tool = tool;
     document.querySelectorAll("[data-practice-tool]").forEach((button) => {
@@ -131,6 +140,8 @@
 
   function startTake(mode) {
     if (!bridge || isCapturing()) return;
+    clearTimeout(stopTimer);
+    ui.isStopping = false;
     ui.take = events.createTake();
     ui.takeMode = mode;
     ui.takeStartedAt = Date.now();
@@ -147,16 +158,37 @@
     renderTakeState();
   }
 
+  // Stopping is a handshake: the engine flushes its queue and then reports capture off,
+  // and only then is the take finished, so its final notes are not lost.
   function stopTake() {
-    if (!isCapturing()) return;
+    if (!isCapturing() || ui.isStopping) return;
+    ui.isStopping = true;
     bridge?.send({ type: "practiceCapture", enabled: false });
-    if (ui.restoreMetronomeTo !== null) bridge?.setMetronomeEnabled(ui.restoreMetronomeTo);
+    stopTimer = setTimeout(finishTake, STOP_CONFIRM_TIMEOUT_MS);
+    renderTakeState();
+  }
+
+  function finishTake() {
+    clearTimeout(stopTimer);
+    if (!isCapturing()) return;
+    ui.isStopping = false;
+    // Only undo the metronome change we made; respect it if the player turned it off meanwhile.
+    if (ui.restoreMetronomeTo !== null && bridge?.getParameter("metronomeEnabled")) bridge.setMetronomeEnabled(ui.restoreMetronomeTo);
     ui.restoreMetronomeTo = null;
 
     const take = ui.take;
     const mode = ui.takeMode;
     ui.take = null;
     ui.takeMode = null;
+
+    if (take.isInterrupted) {
+      const message = "audio device changed during the take, so it was discarded";
+      if (mode === "calibrate") setText("calibrationStatus", message);
+      else if (mode === "timing") setText("timingTendency", message);
+      else ui.vibratoResult = null;
+      renderTakeState();
+      return;
+    }
 
     if (mode === "timing") finishTimingTake(take);
     else if (mode === "calibrate") finishCalibration(take);
@@ -176,7 +208,7 @@
       button.classList.toggle("recording", isThisTake);
       button.disabled = capturing && !isThisTake;
       const label = button.querySelector(".take-label");
-      if (label) label.textContent = isThisTake ? "stop" : button.dataset.idleLabel;
+      if (label) label.textContent = isThisTake ? (ui.isStopping ? "finishing" : "stop") : button.dataset.idleLabel;
     });
     $("practiceScene")?.classList.toggle("is-capturing", capturing);
   }
@@ -185,20 +217,25 @@
     if (!isCapturing()) return;
     const pitchCountBefore = ui.take.pitchFrames.length;
     events.appendBatch(ui.take, batch);
+    if (ui.take.isInterrupted) {
+      stopTake();
+      return;
+    }
 
     if (ui.takeMode === "timing") {
       ui.timingResult = analyseCurrentTiming(ui.take);
       renderTimingResult(true);
     } else if (ui.takeMode === "calibrate") {
       setText("calibrationStatus", `click ${Math.min(ui.take.beats.length, CALIBRATION_CLICKS)} of ${CALIBRATION_CLICKS}: pick on every click`);
-      if (ui.take.beats.length >= CALIBRATION_CLICKS) stopTake();
+      // Wait for one click past the last so the pick on click N has arrived.
+      if (ui.take.beats.length > CALIBRATION_CLICKS && !ui.isStopping) stopTake();
     } else if (ui.takeMode === "vibrato") {
       appendLiveTrace(ui.take, pitchCountBefore);
       renderLiveTrace();
       const now = Date.now();
       if (now - lastLiveAnalysisAt >= LIVE_ANALYSIS_INTERVAL_MS) {
         lastLiveAnalysisAt = now;
-        ui.vibratoResult = vibrato.analyseVibrato(events.pitchFramesInMs(ui.take));
+        ui.vibratoResult = analyseVibratoTake(ui.take);
         renderVibratoResult();
       }
     }
@@ -220,6 +257,7 @@
   }
 
   function finishTimingTake(take) {
+    ui.lastTimingTake = take;
     ui.timingResult = analyseCurrentTiming(take);
     renderTimingResult(false);
     const result = ui.timingResult;
@@ -236,11 +274,22 @@
     });
   }
 
+  // Lets the player re-read the same take under a different grid or tolerance (not re-logged).
+  function reanalyseLastTimingTake() {
+    if (isCapturing() || !ui.lastTimingTake) return;
+    ui.timingResult = analyseCurrentTiming(ui.lastTimingTake);
+    renderTimingResult(false);
+  }
+
   function finishCalibration(take) {
     // Drop the warm-up clicks so the first few hesitant picks don't bias the median.
-    const warmupEnd = take.beats[CALIBRATION_WARMUP_CLICKS]?.sampleIndex ?? 0;
+    // Onsets arrive late by the latency and a player may be early, so compare corrected
+    // times against half a beat before the first kept click.
     const beats = take.beats.slice(CALIBRATION_WARMUP_CLICKS);
-    const onsets = take.onsets.filter((onset) => onset.sampleIndex >= warmupEnd);
+    const halfBeat = beats.length > 1 ? (beats[1].sampleIndex - beats[0].sampleIndex) / 2 : 0;
+    const latencySamples = events.msToSamples(deviceLatencyMs(), take.sampleRate);
+    const cutoff = (beats[0]?.sampleIndex ?? 0) - halfBeat;
+    const onsets = take.onsets.filter((onset) => onset.sampleIndex - latencySamples >= cutoff);
     const estimate = timing.estimateLatencyMs(beats, onsets, { sampleRate: take.sampleRate, baseLatencyMs: deviceLatencyMs() });
     ui.calibrationResult = estimate;
     if (estimate.isValid) {
@@ -292,7 +341,8 @@
     setText("timingSpread", `±${result.standardDeviationMs.toFixed(1)} ms`);
     setText("timingTight", `${Math.round(result.tightPercent)}%`);
     const extras = result.extraOnsetCount ? ` · ${result.extraOnsetCount} extra` : "";
-    setText("timingTendency", `${result.tendency} · ${result.hits.length} notes${extras}`);
+    const dropped = (ui.take || ui.lastTimingTake)?.droppedEvents ? " · some events were dropped (CPU busy), result may be incomplete" : "";
+    setText("timingTendency", `${result.tendency} · ${result.hits.length} notes${extras}${dropped}`);
     $("timingTendency").dataset.tendency = result.tendency;
     paintTimingChart();
     $("timingSlots").innerHTML = slotBreakdownHtml(result);
@@ -395,8 +445,13 @@
       <path d="${path}" class="pr-trace"/></svg>`;
   }
 
+  function analyseVibratoTake(take) {
+    const analysisWindowMs = take.sampleRate > 0 ? (TUNER_WINDOW_SAMPLES / take.sampleRate) * MILLISECONDS_PER_SECOND : 0;
+    return vibrato.analyseVibrato(events.pitchFramesInMs(take), { analysisWindowMs });
+  }
+
   function finishVibratoTake(take) {
-    ui.vibratoResult = vibrato.analyseVibrato(events.pitchFramesInMs(take));
+    ui.vibratoResult = analyseVibratoTake(take);
     renderVibratoResult();
     const summary = ui.vibratoResult.summary;
     if (!summary) return;
@@ -698,9 +753,11 @@
       else if (dataset.take) toggleTake(dataset.take);
       else if (dataset.subdivision) {
         updateLog(practiceLog.setTargets(ui.log, "timing", { subdivision: Number(dataset.subdivision) }));
-        if (ui.timingResult && !isCapturing()) ui.timingResult = null;
-        renderTimingResult(false);
-      } else if (dataset.tolerance) updateLog(practiceLog.setTargets(ui.log, "timing", { toleranceMs: Number(dataset.tolerance) }));
+        reanalyseLastTimingTake();
+      } else if (dataset.tolerance) {
+        updateLog(practiceLog.setTargets(ui.log, "timing", { toleranceMs: Number(dataset.tolerance) }));
+        reanalyseLastTimingTake();
+      }
       else if (dataset.bpmStep) {
         bridge.setTempo((bridge.getParameter("metronomeBpm") ?? 120) + Number(dataset.bpmStep));
         setText("practiceBpm", Math.round(bridge.getParameter("metronomeBpm")));
@@ -746,6 +803,7 @@
     renderVibratoResult();
     renderQuiz();
     showTool(ui.tool);
+    bridge.send({ type: "practiceCapture", enabled: false });
   }
 
   function receive(message) {
@@ -760,6 +818,7 @@
         deviceLatencySamples: Number(message.deviceLatencySamples) || 0,
       };
       renderLatency();
+      if (!ui.capture.enabled && ui.isStopping) finishTake();
     } else if (message.type === "practiceEvents") {
       onEventsBatch(message);
     } else if (message.type === "practice") {

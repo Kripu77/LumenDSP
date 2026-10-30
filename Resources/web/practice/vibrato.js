@@ -40,7 +40,12 @@
     // Below this peak-to-peak swing a note counts as straight (no vibrato).
     minimumWidthCents: 12,
     minimumCycles: 2,
+    // Length of the tuner's analysis window. Each pitch estimate averages the pitch over the
+    // window, which shrinks the measured swing by sinc(rate * window); 0 disables correction.
+    analysisWindowMs: 0,
   });
+  // Beyond this the correction would amplify noise more than it fixes bias.
+  const MINIMUM_WINDOW_GAIN = 0.5;
 
   function hzToCents(frequencyHz) {
     return CENTS_PER_OCTAVE * Math.log2(frequencyHz / REFERENCE_HZ);
@@ -146,6 +151,13 @@
     return median(periods);
   }
 
+  // Averaging a sinusoid over a window of length T scales it by sinc(f * T).
+  function windowGain(rateHz, windowMs) {
+    if (!(windowMs > 0)) return 1;
+    const phase = Math.PI * rateHz * (windowMs / MILLISECONDS_PER_SECOND);
+    return Math.max(MINIMUM_WINDOW_GAIN, Math.sin(phase) / phase);
+  }
+
   function straightNote(base) {
     return { ...base, hasVibrato: false, rateHz: 0, widthCents: 0, cycles: 0, rateConsistency: 0, widthConsistency: 0, consistency: 0 };
   }
@@ -186,7 +198,8 @@
 
     if (periodsMs.length < settings.minimumCycles) return straightNote(base);
 
-    const widthCents = median(widthsCents);
+    const rateHz = MILLISECONDS_PER_SECOND / median(periodsMs);
+    const widthCents = median(widthsCents) / windowGain(rateHz, settings.analysisWindowMs);
     if (widthCents < settings.minimumWidthCents) return straightNote(base);
 
     const rateConsistency = evenness(periodsMs);
@@ -194,7 +207,7 @@
     return {
       ...base,
       hasVibrato: true,
-      rateHz: MILLISECONDS_PER_SECOND / median(periodsMs),
+      rateHz,
       widthCents,
       cycles: periodsMs.length,
       rateConsistency,
