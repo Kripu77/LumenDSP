@@ -145,6 +145,7 @@ target_sources(LumenDSP
         Source/presets/FactoryContentInstaller.cpp
         Source/presets/ResourceLibrary.cpp
         Source/presets/UserSettings.cpp
+        Source/practice/PracticeLogStore.cpp
 )
 
 set(LUMENDSP_FACTORY_CONTENT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/Resources/FactoryContent")
@@ -213,3 +214,14 @@ foreach(format Standalone VST3)
     )
     add_dependencies(${target} ${target}_WebUI)
 endforeach()
+
+# JUCE-free unit tests for the practice capture primitives (onset detector, event queue).
+# They build in seconds and run on every CI platform via ctest.
+option(LUMENDSP_BUILD_TESTS "Build LumenDSP unit tests" ON)
+if(LUMENDSP_BUILD_TESTS)
+    enable_testing()
+    add_executable(LumenDSPPracticeTests tests/cpp/PracticeTests.cpp)
+    target_include_directories(LumenDSPPracticeTests PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/Source")
+    target_compile_features(LumenDSPPracticeTests PRIVATE cxx_std_20)
+    add_test(NAME practice_capture COMMAND LumenDSPPracticeTests)
+endif()
