@@ -1,4 +1,5 @@
 #include "audio/Tuner.h"
+#include <algorithm>
 #include <cmath>
 
 namespace lumen::audio
@@ -8,6 +9,7 @@ void Tuner::prepare(double sampleRate)
 {
     currentSampleRate = sampleRate > 0.0 ? sampleRate : 48000.0;
     ring.assign(static_cast<size_t>(analysisSize), 0.0f);
+    window.assign(static_cast<size_t>(analysisSize), 0.0f);
     writeIndex = 0;
     samplesSinceAnalyse = 0;
     reset();
@@ -25,6 +27,8 @@ void Tuner::reset()
 
 void Tuner::process(const juce::AudioBuffer<float>& buffer, int channelIndex)
 {
+    frameCountInLastBlock = 0;
+
     if (ring.empty() || buffer.getNumChannels() <= 0)
         return;
 
@@ -41,7 +45,10 @@ void Tuner::process(const juce::AudioBuffer<float>& buffer, int channelIndex)
         if (samplesSinceAnalyse >= hopSize)
         {
             samplesSinceAnalyse = 0;
-            analyse();
+            auto frame = analyse();
+            frame.sampleOffset = i;
+            if (frameCountInLastBlock < maxFramesPerBlock)
+                framesInLastBlock[static_cast<size_t>(frameCountInLastBlock++)] = frame;
         }
     }
 }
@@ -61,6 +68,16 @@ bool Tuner::isLocked() const noexcept
     return locked.load(std::memory_order_relaxed);
 }
 
+int Tuner::getFrameCountInLastBlock() const noexcept
+{
+    return frameCountInLastBlock;
+}
+
+const TunerFrame& Tuner::getFrameInLastBlock(int index) const noexcept
+{
+    return framesInLastBlock[static_cast<size_t>(juce::jlimit(0, maxFramesPerBlock - 1, index))];
+}
+
 juce::String Tuner::getNoteName() const
 {
     const float hz = frequencyHz.load(std::memory_order_relaxed);
@@ -71,19 +88,43 @@ juce::String Tuner::getNoteName() const
     return midiNoteToName(midi);
 }
 
-void Tuner::analyse()
+void Tuner::copyRingInTimeOrder() noexcept
 {
-    float energy = 0.0f;
-    for (float sample : ring)
-        energy += sample * sample;
-    energy = std::sqrt(energy / static_cast<float>(analysisSize));
+    // writeIndex points at the oldest sample. Correlating the ring in storage order would
+    // splice the newest and oldest samples together and smear the pitch estimate.
+    const auto oldestFirst = ring.begin() + writeIndex;
+    std::copy(oldestFirst, ring.end(), window.begin());
+    std::copy(ring.begin(), oldestFirst, window.begin() + (analysisSize - writeIndex));
+}
 
-    if (energy < silenceThreshold)
+float Tuner::autocorrelationAt(int lag) const noexcept
+{
+    float correlation = 0.0f;
+    for (int i = 0; i < analysisSize - lag; ++i)
+        correlation += window[static_cast<size_t>(i)] * window[static_cast<size_t>(i + lag)];
+    return correlation;
+}
+
+void Tuner::storeUnlocked() noexcept
+{
+    locked.store(false, std::memory_order_relaxed);
+    frequencyHz.store(0.0f, std::memory_order_relaxed);
+    centsOffset.store(0.0f, std::memory_order_relaxed);
+}
+
+TunerFrame Tuner::analyse()
+{
+    copyRingInTimeOrder();
+
+    float zeroLag = 0.0f;
+    for (float sample : window)
+        zeroLag += sample * sample;
+
+    const float rms = std::sqrt(zeroLag / static_cast<float>(analysisSize));
+    if (rms < silenceThreshold || zeroLag <= 1.0e-12f)
     {
-        locked.store(false, std::memory_order_relaxed);
-        frequencyHz.store(0.0f, std::memory_order_relaxed);
-        centsOffset.store(0.0f, std::memory_order_relaxed);
-        return;
+        storeUnlocked();
+        return {};
     }
 
     const int minLag = juce::jmax(1, static_cast<int>(currentSampleRate / maxFrequencyHz));
@@ -91,23 +132,9 @@ void Tuner::analyse()
 
     float bestCorr = 0.0f;
     int bestLag = 0;
-    float zeroLag = 0.0f;
-
-    for (int i = 0; i < analysisSize; ++i)
-        zeroLag += ring[static_cast<size_t>(i)] * ring[static_cast<size_t>(i)];
-
-    if (zeroLag <= 1.0e-12f)
-    {
-        locked.store(false, std::memory_order_relaxed);
-        return;
-    }
-
     for (int lag = minLag; lag <= maxLag; ++lag)
     {
-        float corr = 0.0f;
-        for (int i = 0; i < analysisSize - lag; ++i)
-            corr += ring[static_cast<size_t>(i)] * ring[static_cast<size_t>(i + lag)];
-
+        const float corr = autocorrelationAt(lag);
         if (corr > bestCorr)
         {
             bestCorr = corr;
@@ -118,23 +145,19 @@ void Tuner::analyse()
     const float confidence = bestCorr / zeroLag;
     if (bestLag <= 0 || confidence < lockThreshold)
     {
+        // Keep the previous reading on screen for a moment of low confidence (as before),
+        // but report the frame as unvoiced so practice analysis can segment notes.
         locked.store(false, std::memory_order_relaxed);
-        return;
+        return TunerFrame{0, 0.0f, confidence};
     }
 
     float refinedLag = static_cast<float>(bestLag);
     if (bestLag > minLag && bestLag < maxLag)
     {
-        auto corrAt = [&](int lag) {
-            float corr = 0.0f;
-            for (int i = 0; i < analysisSize - lag; ++i)
-                corr += ring[static_cast<size_t>(i)] * ring[static_cast<size_t>(i + lag)];
-            return corr;
-        };
-
-        const float y0 = corrAt(bestLag - 1);
-        const float y1 = corrAt(bestLag);
-        const float y2 = corrAt(bestLag + 1);
+        // Parabolic interpolation around the peak gives sub-sample lag, i.e. cent-level accuracy.
+        const float y0 = autocorrelationAt(bestLag - 1);
+        const float y1 = bestCorr;
+        const float y2 = autocorrelationAt(bestLag + 1);
         const float denom = 2.0f * (2.0f * y1 - y0 - y2);
         if (std::abs(denom) > 1.0e-12f)
             refinedLag += (y0 - y2) / denom;
@@ -144,7 +167,7 @@ void Tuner::analyse()
     if (hz < minFrequencyHz || hz > maxFrequencyHz)
     {
         locked.store(false, std::memory_order_relaxed);
-        return;
+        return TunerFrame{0, 0.0f, confidence};
     }
 
     const float midiFloat = 69.0f + 12.0f * std::log2(hz / 440.0f);
@@ -154,6 +177,7 @@ void Tuner::analyse()
     frequencyHz.store(hz, std::memory_order_relaxed);
     centsOffset.store(cents, std::memory_order_relaxed);
     locked.store(true, std::memory_order_relaxed);
+    return TunerFrame{0, hz, confidence};
 }
 
 juce::String Tuner::midiNoteToName(int midiNote)

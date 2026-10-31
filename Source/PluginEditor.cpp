@@ -98,6 +98,8 @@ window.lumenPostMessage = function(payload) {
 LumenDSPAudioProcessorEditor::~LumenDSPAudioProcessorEditor()
 {
     stopTimer();
+    // Nothing will drain the queue once the editor is gone.
+    audioProcessor.getAudioPipeline().setPracticeCaptureEnabled(false);
 }
 
 void LumenDSPAudioProcessorEditor::paint(juce::Graphics& graphics)
@@ -147,6 +149,7 @@ void LumenDSPAudioProcessorEditor::timerCallback()
 
     pushMetersToWeb();
     pushPracticeToWeb();
+    drainPracticeEventsToWeb();
 
     // Only refresh demo state when play/clip actually changes (rebuilding the
     // <select> on a timer closed the dropdown and made clips unselectable).
@@ -189,12 +192,28 @@ void LumenDSPAudioProcessorEditor::handleWebMessage(const juce::String& message)
     if (type == "ready")
     {
         webReady = true;
+        // A page (re)load means any take in progress was lost on the UI side.
+        audioProcessor.getAudioPipeline().setPracticeCaptureEnabled(false);
         audioProcessor.configureDemoClips();
         pushStateToWeb();
         pushLibraryToWeb();
         pushPresetsToWeb();
         pushSettingsToWeb();
         pushDemoToWeb();
+        pushPracticeLogToWeb();
+        pushPracticeCaptureStateToWeb();
+        return;
+    }
+
+    if (type == "practiceCapture")
+    {
+        handlePracticeCapture(static_cast<bool>(parsed.getProperty("enabled", false)));
+        return;
+    }
+
+    if (type == "savePracticeLog")
+    {
+        handleSavePracticeLog(parsed.getProperty("log", {}));
         return;
     }
 
@@ -665,6 +684,111 @@ void LumenDSPAudioProcessorEditor::pushPracticeToWeb()
     object->setProperty("beatInBar", metro.getBeatInBar());
     object->setProperty("beatsPerBar", metro.getBeatsPerBar());
     emitToWeb(juce::var(object));
+}
+
+void LumenDSPAudioProcessorEditor::handlePracticeCapture(bool shouldCapture)
+{
+    auto& pipeline = audioProcessor.getAudioPipeline();
+    if (shouldCapture)
+        // Start each take from an empty queue so stale events from an earlier take never leak in.
+        pipeline.clearPracticeEvents();
+
+    if (!shouldCapture)
+    {
+        // Send what is still queued before announcing the stop, so the UI finishes the take
+        // with its final notes (the last calibration click's pick, the end of a vibrato).
+        drainPracticeEventsToWeb();
+        pipeline.setPracticeCaptureEnabled(false);
+    }
+    else
+    {
+        pipeline.setPracticeCaptureEnabled(true);
+    }
+    pushPracticeCaptureStateToWeb();
+}
+
+void LumenDSPAudioProcessorEditor::pushPracticeCaptureStateToWeb()
+{
+    const auto& pipeline = audioProcessor.getAudioPipeline();
+    auto* object = new juce::DynamicObject();
+    object->setProperty("type", "practiceCaptureState");
+    object->setProperty("enabled", pipeline.isPracticeCaptureEnabled());
+    object->setProperty("sampleRate", pipeline.getSampleRate());
+    object->setProperty("deviceLatencySamples", getDeviceRoundTripLatencySamples());
+    emitToWeb(juce::var(object));
+}
+
+void LumenDSPAudioProcessorEditor::drainPracticeEventsToWeb()
+{
+    using lumen::practice::PracticeEvent;
+
+    auto& pipeline = audioProcessor.getAudioPipeline();
+    if (!pipeline.isPracticeCaptureEnabled())
+        return;
+
+    if (practiceDrainBuffer.empty())
+        practiceDrainBuffer.resize(lumen::audio::AudioPipeline::practiceQueueCapacity);
+
+    // Compact [kind, sampleIndex, value, confidence] tuples: a long take can produce
+    // thousands of events and the bridge serialises everything as JSON text.
+    juce::Array<juce::var> events;
+    size_t popped = 0;
+    while ((popped = pipeline.popPracticeEvents(practiceDrainBuffer.data(), practiceDrainBuffer.size())) > 0)
+    {
+        for (size_t index = 0; index < popped; ++index)
+        {
+            const auto& event = practiceDrainBuffer[index];
+            juce::Array<juce::var> tuple;
+            tuple.add(static_cast<int>(event.kind));
+            tuple.add(static_cast<double>(event.sampleIndex));
+            tuple.add(event.value);
+            tuple.add(event.confidence);
+            events.add(juce::var(tuple));
+        }
+    }
+
+    if (events.isEmpty())
+        return;
+
+    auto* object = new juce::DynamicObject();
+    object->setProperty("type", "practiceEvents");
+    object->setProperty("sampleRate", pipeline.getSampleRate());
+    object->setProperty("dropped", static_cast<int>(pipeline.getDroppedPracticeEventCount()));
+    object->setProperty("events", events);
+    emitToWeb(juce::var(object));
+}
+
+int LumenDSPAudioProcessorEditor::getDeviceRoundTripLatencySamples() const
+{
+    // Only the standalone app owns the audio device. In a DAW the host compensates (or not)
+    // and the UI falls back to the user's calibrated offset.
+#if JucePlugin_Build_Standalone
+    if (juce::JUCEApplicationBase::isStandaloneApp())
+        if (auto* holder = juce::StandalonePluginHolder::getInstance())
+            if (auto* device = holder->deviceManager.getCurrentAudioDevice())
+                return device->getInputLatencyInSamples() + device->getOutputLatencyInSamples();
+#endif
+    return 0;
+}
+
+void LumenDSPAudioProcessorEditor::pushPracticeLogToWeb()
+{
+    auto* object = new juce::DynamicObject();
+    object->setProperty("type", "practiceLog");
+    object->setProperty("log", practiceLogStore.load());
+    emitToWeb(juce::var(object));
+}
+
+void LumenDSPAudioProcessorEditor::handleSavePracticeLog(const juce::var& log)
+{
+    juce::String error;
+    if (practiceLogStore.save(log, &error))
+        return;
+
+    auto* status = new juce::DynamicObject();
+    status->setProperty("type", "status");
+    status->setProperty("message", error);
+    emitToWeb(juce::var(status));
 }
 
 void LumenDSPAudioProcessorEditor::emitToWeb(const juce::var& payload)

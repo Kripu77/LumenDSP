@@ -2,7 +2,9 @@
 
 #include <JuceHeader.h>
 #include "PluginProcessor.h"
+#include "practice/PracticeLogStore.h"
 #include <optional>
+#include <vector>
 
 class LumenWebBrowser : public juce::WebBrowserComponent
 {
@@ -29,6 +31,7 @@ public:
     void pushPresetsToWeb();
     void pushSettingsToWeb();
     void pushDemoToWeb();
+    void pushPracticeLogToWeb();
 
 private:
     void timerCallback() override;
@@ -47,6 +50,11 @@ private:
     void handleImportResource(const juce::String& kind);
     void handleOpenAudioSettings();
     void handleExportPresetPack(const juce::String& name);
+    void handlePracticeCapture(bool shouldCapture);
+    void handleSavePracticeLog(const juce::var& log);
+    void drainPracticeEventsToWeb();
+    void pushPracticeCaptureStateToWeb();
+    int getDeviceRoundTripLatencySamples() const;
     float readParameter(const juce::String& parameterId) const;
 
     void ensureStandaloneInputUnmuted();
@@ -62,6 +70,10 @@ private:
     juce::String lastStatus;
     bool lastDemoPlaying = false;
     juce::String lastDemoClipId;
+
+    lumen::practice::PracticeLogStore practiceLogStore;
+    // Reused every drain so the 30 Hz timer does not allocate.
+    std::vector<lumen::practice::PracticeEvent> practiceDrainBuffer;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(LumenDSPAudioProcessorEditor)
 };

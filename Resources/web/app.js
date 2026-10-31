@@ -31,7 +31,7 @@
     reverbMix: { min: 0, max: 1, unit: "%", decimals: 0, asPercent: true },
   };
 
-  const SECTIONS = ["pedals", "amp", "cab", "effects"];
+  const SECTIONS = ["pedals", "amp", "cab", "effects", "practice"];
   const DELAY_DIVISIONS = ["1/4", "1/8", "1/8d", "1/16", "1/4d", "1/2"];
   const CHAIN_ICONS = {
     comp: "M3 12h6M6.5 9.5 9 12l-2.5 2.5M21 12h-6M17.5 9.5 15 12l2.5 2.5M12 5v14",
@@ -225,6 +225,7 @@
   function showSection(name) {
     const index = SECTIONS.indexOf(name);
     if (index < 0) return;
+    if (state.section === "practice" && name !== "practice") window.LumenPractice?.ui?.onHidden();
     state.section = name;
     document.body.dataset.section = name;
     document.querySelectorAll(".scene").forEach((scene) => {
@@ -1115,6 +1116,9 @@
       if (outputMeter) outputMeter.classList.toggle("hot", !!state.hotOutput);
     } else if (data.type === "practice") {
       paintPractice(data);
+      window.LumenPractice?.ui?.receive(data);
+    } else if (data.type.startsWith("practice")) {
+      window.LumenPractice?.ui?.receive(data);
     } else if (data.type === "demo") {
       state.demo = {
         playing: !!data.playing,
@@ -1172,5 +1176,15 @@
   bindStage();
   applyState(state);
   showSection("pedals");
+  window.LumenPractice?.ui?.init({
+    send,
+    getParameter: (id) => state.parameters[id],
+    setTempo,
+    // Goes through applyState so the dock's metronome indicator stays in sync.
+    setMetronomeEnabled: (isEnabled) => {
+      applyState({ parameters: { metronomeEnabled: isEnabled } });
+      send({ type: "setParameter", id: "metronomeEnabled", value: isEnabled ? 1 : 0 });
+    },
+  });
   send({ type: "ready" });
 })();

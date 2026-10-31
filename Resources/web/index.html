@@ -28,6 +28,10 @@
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h3l2-5 3 10 3-12 3 9 2-2h2"/></svg>
           <span>Effects</span>
         </button>
+        <button type="button" class="section-tab" data-section-tab="practice">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3.5h6l3.5 17h-13z"/><path d="M12 15.5 16 6"/><circle cx="12" cy="15.5" r="1.3"/></svg>
+          <span>Practice</span>
+        </button>
       </nav>
 
       <button type="button" id="btnLibrary" class="chrome-btn" aria-pressed="false">Library</button>
@@ -307,6 +311,144 @@
         </div>
       </section>
 
+      <section class="scene practice-scene" data-scene="practice" id="practiceScene" aria-label="Practice">
+        <div class="pr-console">
+          <nav class="pr-rail" aria-label="Practice tools">
+            <button type="button" class="pr-tool" data-practice-tool="timing" style="--accent: var(--sky)" aria-pressed="true">
+              <span class="pr-tool-tile"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3.5h6l3.5 17h-13z"/><path d="M12 15.5 16 6"/></svg></span>
+              <span class="pr-tool-text"><span class="pr-tool-title">timing</span><span class="pr-tool-sub">lock to the click</span></span>
+            </button>
+            <button type="button" class="pr-tool" data-practice-tool="vibrato" style="--accent: var(--violet)" aria-pressed="false">
+              <span class="pr-tool-tile"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12c2-5 4-5 5 0s3 5 5 0 3-5 5 0 3 5 5 0"/></svg></span>
+              <span class="pr-tool-text"><span class="pr-tool-title">vibrato</span><span class="pr-tool-sub">rate, width, evenness</span></span>
+            </button>
+            <button type="button" class="pr-tool" data-practice-tool="fretboard" style="--accent: var(--amber)" aria-pressed="false">
+              <span class="pr-tool-tile"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h18M3 12h18M3 17h18M8 5v14M14 5v14"/><circle cx="11" cy="12" r="1.6"/></svg></span>
+              <span class="pr-tool-text"><span class="pr-tool-title">fretboard</span><span class="pr-tool-sub">modes on the neck</span></span>
+            </button>
+            <button type="button" class="pr-tool" data-practice-tool="log" style="--accent: var(--mint)" aria-pressed="false">
+              <span class="pr-tool-tile"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V5M4 19h16M8 15l4-4 3 3 5-6"/></svg></span>
+              <span class="pr-tool-text"><span class="pr-tool-title">log</span><span class="pr-tool-sub">streaks and trends</span></span>
+            </button>
+          </nav>
+
+          <div class="pr-panels">
+            <!-- timing -->
+            <section class="pr-panel" data-practice-panel="timing" style="--accent: var(--sky)" aria-label="Timing">
+              <div class="pr-toolbar">
+                <div class="pr-group">
+                  <span class="pr-label">tempo</span>
+                  <button type="button" class="pr-step" data-bpm-step="-5" aria-label="Slower by 5 BPM">−</button>
+                  <span class="pr-readout"><b id="practiceBpm">120</b> bpm</span>
+                  <button type="button" class="pr-step" data-bpm-step="5" aria-label="Faster by 5 BPM">+</button>
+                  <span class="pr-beats" aria-hidden="true"><i class="pr-beat"></i><i class="pr-beat"></i><i class="pr-beat"></i><i class="pr-beat"></i></span>
+                </div>
+                <div class="pr-group"><span class="pr-label">notes</span><span class="pr-chips" id="subdivisionChips"></span></div>
+                <div class="pr-group"><span class="pr-label">tight</span><span class="pr-chips" id="toleranceChips"></span><span class="pr-unit">ms</span></div>
+                <button type="button" class="pr-take" data-take="timing" data-idle-label="start take"><span class="pr-rec" aria-hidden="true"></span><span class="take-label">start take</span></button>
+              </div>
+
+              <div class="pr-body" id="timingResult">
+                <div class="pr-stats">
+                  <div class="pr-stat big"><span class="pr-stat-value" id="timingScore">--</span><span class="pr-stat-label">score</span></div>
+                  <div class="pr-stat"><span class="pr-stat-value" id="timingMean">--</span><span class="pr-stat-label">average offset</span></div>
+                  <div class="pr-stat"><span class="pr-stat-value" id="timingSpread">--</span><span class="pr-stat-label">spread</span></div>
+                  <div class="pr-stat"><span class="pr-stat-value" id="timingTight">--</span><span class="pr-stat-label">in the pocket</span></div>
+                </div>
+                <p class="pr-verdict" id="timingTendency">start a take and play along with the click</p>
+                <div class="pr-chart fill" id="timingChart"></div>
+                <div class="pr-slots" id="timingSlots" aria-label="Average offset by position in the beat"></div>
+              </div>
+
+              <footer class="pr-latency">
+                <span>latency <b id="latencyTotal">0.0 ms</b></span>
+                <span class="pr-faint">device <span id="latencyDevice">0.0 ms</span> · your offset <span id="latencyOffset">0.0 ms</span></span>
+                <button type="button" class="pr-take small" data-take="calibrate" data-idle-label="calibrate"><span class="pr-rec" aria-hidden="true"></span><span class="take-label">calibrate</span></button>
+                <button type="button" class="pr-chip" data-action="reset-latency">reset</button>
+                <span class="pr-faint" id="calibrationStatus">calibrate once per interface: pick quarter notes right on the click</span>
+              </footer>
+            </section>
+
+            <!-- vibrato -->
+            <section class="pr-panel" data-practice-panel="vibrato" style="--accent: var(--violet)" aria-label="Vibrato" hidden>
+              <div class="pr-toolbar">
+                <div class="pr-group">
+                  <span class="pr-label">target rate</span>
+                  <button type="button" class="pr-step" data-vibrato-target="rateHz" data-step="-0.5" aria-label="Lower target rate">−</button>
+                  <span class="pr-readout" id="targetRate">5.5 Hz</span>
+                  <button type="button" class="pr-step" data-vibrato-target="rateHz" data-step="0.5" aria-label="Raise target rate">+</button>
+                </div>
+                <div class="pr-group">
+                  <span class="pr-label">target width</span>
+                  <button type="button" class="pr-step" data-vibrato-target="widthCents" data-step="-10" aria-label="Narrower target width">−</button>
+                  <span class="pr-readout" id="targetWidth">50 ¢</span>
+                  <button type="button" class="pr-step" data-vibrato-target="widthCents" data-step="10" aria-label="Wider target width">+</button>
+                </div>
+                <button type="button" class="pr-take" data-take="vibrato" data-idle-label="start take"><span class="pr-rec" aria-hidden="true"></span><span class="take-label">start take</span></button>
+              </div>
+
+              <div class="pr-body">
+                <div class="pr-stats">
+                  <div class="pr-stat big"><span class="pr-stat-value" id="vibratoScore">--</span><span class="pr-stat-label">vs target</span></div>
+                  <div class="pr-stat"><span class="pr-stat-value" id="vibratoRate">--</span><span class="pr-stat-label">rate</span></div>
+                  <div class="pr-stat"><span class="pr-stat-value" id="vibratoWidth">--</span><span class="pr-stat-label">width</span></div>
+                  <div class="pr-stat"><span class="pr-stat-value" id="vibratoConsistency">--</span><span class="pr-stat-label">evenness</span></div>
+                </div>
+                <div class="pr-live">
+                  <span class="pr-live-note" id="vibratoLiveNote">--</span>
+                  <div class="pr-chart" id="vibratoLive"></div>
+                </div>
+                <div class="pr-notes" id="vibratoNotes"></div>
+              </div>
+              <footer class="pr-latency"><span class="pr-faint">hold each note for at least half a second · 100¢ is one semitone · bends are removed before measuring</span></footer>
+            </section>
+
+            <!-- fretboard -->
+            <section class="pr-panel" data-practice-panel="fretboard" style="--accent: var(--amber)" aria-label="Fretboard" hidden>
+              <div class="pr-toolbar">
+                <label class="pr-group"><span class="pr-label">root</span><select class="pr-select" id="boardRoot"></select></label>
+                <label class="pr-group"><span class="pr-label">scale</span><select class="pr-select wide" id="boardScale"></select></label>
+                <label class="pr-group"><span class="pr-label">tuning</span><select class="pr-select" id="boardTuning"></select></label>
+                <div class="pr-group">
+                  <span class="pr-label">frets</span>
+                  <input class="pr-number" id="boardMinFret" type="number" min="0" max="22" value="0" aria-label="Lowest fret" />
+                  <span class="pr-faint">to</span>
+                  <input class="pr-number" id="boardMaxFret" type="number" min="0" max="22" value="12" aria-label="Highest fret" />
+                </div>
+                <div class="pr-group"><span class="pr-chips">
+                  <button type="button" class="pr-chip" data-board-labels="degrees" aria-pressed="true">degrees</button>
+                  <button type="button" class="pr-chip" data-board-labels="notes" aria-pressed="false">notes</button>
+                </span></div>
+                <button type="button" class="pr-take" id="btnQuiz" data-action="quiz"><span class="pr-rec" aria-hidden="true"></span><span class="take-label">quiz me</span></button>
+              </div>
+              <div class="pr-body">
+                <div class="pr-formula" id="scaleFormula"></div>
+                <div class="pr-fretboard" id="fretboardSvg"></div>
+                <div class="pr-quiz" id="quizPanel" aria-live="polite"></div>
+              </div>
+              <footer class="pr-latency"><span class="pr-faint"><i class="pr-key root"></i>root <i class="pr-key colour"></i>the notes that give this mode its sound</span></footer>
+            </section>
+
+            <!-- log -->
+            <section class="pr-panel" data-practice-panel="log" style="--accent: var(--mint)" aria-label="Practice log" hidden>
+              <div class="pr-body">
+                <div class="pr-stats">
+                  <div class="pr-stat big"><span class="pr-stat-value" id="logStreak">0</span><span class="pr-stat-label">day streak</span></div>
+                  <div class="pr-stat"><span class="pr-stat-value" id="logWeekSessions">0</span><span class="pr-stat-label">sessions this week</span></div>
+                  <div class="pr-stat"><span class="pr-stat-value" id="logWeekMinutes">0</span><span class="pr-stat-label">minutes this week</span></div>
+                </div>
+                <div class="pr-trends">
+                  <figure class="pr-trend-card" style="--accent: var(--sky)"><figcaption>timing score</figcaption><div id="trendTiming"></div></figure>
+                  <figure class="pr-trend-card" style="--accent: var(--violet)"><figcaption>vibrato score</figcaption><div id="trendVibrato"></div></figure>
+                  <figure class="pr-trend-card" style="--accent: var(--amber)"><figcaption>quiz accuracy</figcaption><div id="trendFretboard"></div></figure>
+                </div>
+                <div class="pr-sessions" id="logSessions"></div>
+              </div>
+            </section>
+          </div>
+        </div>
+      </section>
+
       <nav class="chain" id="signalPath" aria-label="Signal chain"></nav>
     </main>
 
@@ -479,6 +621,12 @@
       </div>
     </footer>
   </div>
+  <script src="practice/events.js"></script>
+  <script src="practice/timing.js"></script>
+  <script src="practice/vibrato.js"></script>
+  <script src="practice/fretboard.js"></script>
+  <script src="practice/practiceLog.js"></script>
+  <script src="practice/ui.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

@@ -14,6 +14,21 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  web-tests:
+    name: Web UI analysis tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Run practice analysis tests
+        run: npm test
+
   build:
     name: Build (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
@@ -59,12 +74,18 @@ jobs:
       - name: Build Standalone + VST3
         run: cmake --build build --config Release --target LumenDSP_All -j 4
 
+      - name: Build and run practice capture tests
+        run: |
+          cmake --build build --config Release --target LumenDSPPracticeTests -j 4
+          ctest --test-dir build -C Release --output-on-failure
+
       - name: Smoke-check artefacts (macOS)
         if: runner.os == 'macOS'
         run: |
           test -d build/LumenDSP_artefacts/Release/Standalone/LumenDSP.app
           test -d build/LumenDSP_artefacts/Release/VST3/LumenDSP.vst3
           test -f build/LumenDSP_artefacts/Release/Standalone/LumenDSP.app/Contents/Resources/web/index.html
+          test -f build/LumenDSP_artefacts/Release/Standalone/LumenDSP.app/Contents/Resources/web/practice/ui.js
 
       - name: Smoke-check artefacts (Windows)
         if: runner.os == 'Windows'
@@ -72,3 +93,4 @@ jobs:
         run: |
           test -f build/LumenDSP_artefacts/Release/Standalone/LumenDSP.exe
           test -f build/LumenDSP_artefacts/Release/Standalone/web/index.html
+          test -f build/LumenDSP_artefacts/Release/Standalone/web/practice/ui.js

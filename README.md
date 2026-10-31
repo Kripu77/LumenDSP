@@ -50,7 +50,7 @@ The core tone always comes from **your** `.nam` file. LumenDSP does not replace 
 | Drive | Soft-clip overdrive pedal stage (pre-amp) |
 | Tone | Three-band EQ (post-amp, pre-cab) |
 | Time FX | Stereo tape delay (wobble, saturation, ping-pong, host sync), stereo doubler, and a long-tail FDN reverb with decay, low/high cut and width (post-cab) |
-| Practice | Tuner + metronome + demo DI riff preview (bottom dock) |
+| Practice | Tuner + metronome + demo DI riff preview (bottom dock); **Practice studio** section with timing analyser, vibrato analyser, fretboard/mode trainer and practice log (see below) |
 | Calibration | Named input trim profiles (independent of presets) |
 | Presets | Categories, tags, favorites; portable `.lumenpack` with embedded NAM/IR |
 | Diagnostics | Input/output meters, approximate CPU load, hot-signal cue |
@@ -61,6 +61,36 @@ The core tone always comes from **your** `.nam` file. LumenDSP does not replace 
 
 ```
 Input → Gate → Comp → Drive → Amp (NAM) → EQ → Cab (IR) → Delay → Reverb → Output
+```
+
+## Practice studio
+
+The **Practice** section turns the app into a practice coach. Everything is measured from your
+live input while you play; nothing is uploaded anywhere.
+
+| Tool | What it measures |
+|------|------------------|
+| **Timing** | Play along with the metronome (quarters to sextuplets). Every picked note is compared with the click grid: score, average offset (rushing vs dragging), spread, % inside your tolerance, and an offset per position in the beat, so habits like a late "e" and "a" show up immediately. |
+| **Vibrato** | Hold notes with vibrato. Each sustained note gets rate (Hz), width (cents, peak to peak), evenness and intonation, compared with a target you set. Bends and slow drift are removed before measuring, so bend-and-vibrato notes work. |
+| **Fretboard** | Any root, 23 scales and modes (major and melodic minor modes, harmonic minor, pentatonics, hexatonics, symmetric), four tunings, a fret-range window, degree or note labels, and the mode's characteristic notes highlighted. Spelled correctly (F Lydian shows B, Bb Dorian shows Db). Includes a 10-question quiz. |
+| **Log** | Every finished take is saved: day streak, weekly totals, 30-day trends per tool and a session history. Stored in `practice-log.json` next to your user settings. |
+
+**Latency calibration.** Your pick reaches the app later than you played it (you react to a
+click that left the output buffer, then the note travels back through the input). The standalone
+app reads the device's reported latency; press **calibrate** once per interface and pick quarter
+notes on the click to measure the rest. Calibration also absorbs your personal habit of playing
+slightly ahead of or behind the beat, so calibrate when you are playing at your most relaxed.
+
+**How it works.** The audio thread stamps metronome clicks, pick attacks (a transient detector
+on the DI signal) and tuner pitch frames on one shared sample clock and streams them to the UI
+through a lock-free queue, only while a take is recording. Analysis runs in the web UI
+(`Resources/web/practice/`) as plain JavaScript with no build step.
+
+## Tests
+
+```bash
+npm test                                   # practice analysis (Node 21+)
+cmake --build build --target LumenDSPPracticeTests && ctest --test-dir build --output-on-failure
 ```
 
 ## Status

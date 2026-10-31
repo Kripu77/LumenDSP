@@ -1,0 +1,11 @@
+{
+  "name": "lumendsp-web",
+  "private": true,
+  "description": "Test runner for the LumenDSP web UI analysis modules (no build step, no dependencies)",
+  "engines": {
+    "node": ">=21"
+  },
+  "scripts": {
+    "test": "node --test \"tests/web/**/*.test.js\""
+  }
+}

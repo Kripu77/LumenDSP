@@ -14,6 +14,8 @@
 #include "audio/ReverbFx.h"
 #include "audio/ThreeBandEq.h"
 #include "audio/Tuner.h"
+#include "practice/OnsetDetector.h"
+#include "practice/PracticeEventQueue.h"
 #include <atomic>
 #include <chrono>
 
@@ -105,6 +107,17 @@ public:
 
     PipelineDiagnostics getDiagnostics() const noexcept;
 
+    // Practice capture: when enabled, the audio thread streams metronome clicks, pick onsets
+    // and pitch frames (all stamped on one sample clock) for the message thread to drain.
+    static constexpr size_t practiceQueueCapacity = 4096;
+    void setPracticeCaptureEnabled(bool shouldCapture) noexcept;
+    bool isPracticeCaptureEnabled() const noexcept;
+    size_t popPracticeEvents(lumen::practice::PracticeEvent* destination, size_t maxEvents) noexcept;
+    // Message thread only. Drops anything queued so a new take starts clean.
+    void clearPracticeEvents() noexcept;
+    uint32_t getDroppedPracticeEventCount() const noexcept;
+    double getSampleRate() const noexcept;
+
 private:
     static constexpr int monoMeterChannelIndex = 0;
     static constexpr float hotInputThresholdDb = -3.0f;
@@ -112,6 +125,8 @@ private:
 
     void applyInputGain(juce::AudioBuffer<float>& buffer, float gainDb);
     void applyOutputLevel(juce::AudioBuffer<float>& buffer, float levelDb);
+    void captureInputEvents(const juce::AudioBuffer<float>& buffer, int64_t blockStartSample);
+    void captureMetronomeEvents(int64_t blockStartSample);
 
     NamEngine namEngine;
     NoiseGate noiseGate;
@@ -127,6 +142,13 @@ private:
     Tuner tuner;
     Metronome metronome;
     DemoPlayer demoPlayer;
+    lumen::practice::OnsetDetector onsetDetector;
+    lumen::practice::PracticeEventQueue<practiceQueueCapacity> practiceEvents;
+    std::atomic<bool> practiceCaptureEnabled{false};
+    // Absolute sample clock shared by every practice event. 64-bit: never wraps in practice.
+    int64_t samplesProcessed = 0;
+    // Copy of currentSampleRate the message thread can read without a data race.
+    std::atomic<double> publishedSampleRate{44100.0};
 
     PipelineControlState controls{};
     bool prepared = false;

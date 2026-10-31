@@ -1,14 +1,25 @@
 #pragma once
 
 #include <JuceHeader.h>
+#include <array>
 #include <atomic>
 
 namespace lumen::audio
 {
 
+// Where a click started inside the most recent process() block.
+struct MetronomeTick
+{
+    int sampleOffset = 0;
+    int beatInBar = 0;
+};
+
 class Metronome
 {
 public:
+    // Comfortably above the clicks one block can hold (240 BPM, 8192-sample block at 44.1 kHz is ~1).
+    static constexpr int maxTicksPerBlock = 8;
+
     void prepare(double sampleRate);
     void reset();
 
@@ -20,6 +31,11 @@ public:
 
     int getBeatInBar() const noexcept;
     int getBeatsPerBar() const noexcept;
+
+    // Audio thread only: the clicks started during the last process() call, so practice
+    // capture can timestamp them on the same sample clock as the guitar input.
+    int getTickCountInLastBlock() const noexcept;
+    const MetronomeTick& getTickInLastBlock(int index) const noexcept;
 
 private:
     static constexpr float minimumBpm = 40.0f;
@@ -38,6 +54,9 @@ private:
     float clickPhase = 0.0f;
     float clickPhaseDelta = 0.0f;
     float clickAmplitude = 0.0f;
+
+    std::array<MetronomeTick, maxTicksPerBlock> ticksInLastBlock{};
+    int tickCountInLastBlock = 0;
 
     bool enabled = false;
     float volumeLinear = 0.35f;

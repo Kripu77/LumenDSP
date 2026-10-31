@@ -41,6 +41,16 @@ int Metronome::getBeatsPerBar() const noexcept
     return beatsPerBar;
 }
 
+int Metronome::getTickCountInLastBlock() const noexcept
+{
+    return tickCountInLastBlock;
+}
+
+const MetronomeTick& Metronome::getTickInLastBlock(int index) const noexcept
+{
+    return ticksInLastBlock[static_cast<size_t>(juce::jlimit(0, maxTicksPerBlock - 1, index))];
+}
+
 void Metronome::setBpm(float bpm) noexcept
 {
     const float clamped = juce::jlimit(minimumBpm, maximumBpm, bpm);
@@ -56,6 +66,8 @@ void Metronome::setVolumeLinear(float volume01) noexcept
 
 void Metronome::process(juce::AudioBuffer<float>& buffer)
 {
+    tickCountInLastBlock = 0;
+
     if (!enabled || buffer.getNumSamples() <= 0)
         return;
 
@@ -75,6 +87,8 @@ void Metronome::process(juce::AudioBuffer<float>& buffer)
             clickPhase = 0.0f;
             clickAmplitude = volumeLinear * (accent ? 0.85f : 0.55f);
             clickSamplesRemaining = clickLength;
+            if (tickCountInLastBlock < maxTicksPerBlock)
+                ticksInLastBlock[static_cast<size_t>(tickCountInLastBlock++)] = MetronomeTick{i, beat};
             beatInBar.store((beat + 1) % beatsPerBar, std::memory_order_relaxed);
         }
 
